@@ -92,7 +92,7 @@ The user does not need a generic WWII card generator. The target is a local stat
 - [x] Select a compact coverage set that covers every faction, every card kind, every rarity, and every set/package mark at least once.
 - [x] Generate private local official card references, artwork crops, reusable manifest slices, sample project JSON, and a coverage report under `.runtime`.
 - [x] Run typecheck, tests, and script validation after the final documentation updates.
-- [ ] Commit, merge back to `main`, push, and clean the worktree if validation stays green.
+- [x] Commit, merge back to `main`, push, and clean the worktree if validation stays green.
 
 ## Stage 3 Non-Goals
 

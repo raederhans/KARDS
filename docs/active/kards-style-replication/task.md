@@ -5,9 +5,10 @@
 - Worktree name/path: source asset calibration, `C:\Users\raede\Documents\KARDS-source-asset-calibration`
 - Thread/task: KARDS official-card source asset import and compact coverage calibration
 - Base branch/base commit: `main`, `7e0f1a0`
-- Current branch/HEAD: `codex/kards-source-asset-calibration`, working changes pending commit
+- Current branch/HEAD: merged into `main` and pushed at `864fb91`
 - Task goal: generate a private local official-reference coverage pack from CraftSoul/KARDS official card images while keeping official-derived assets out of git and default builds
-- Status: ready-for-integration
+- Status: integrated
+- Cleanup status: integrated worktree removed and merged local branch deleted; recovery commit is `864fb91`
 - Shared hotspot files touched: `src/presets.ts`, card import normalization tests, active docs, private calibration tooling
 - Tests run so far:
   - Private calibration script: passed, selected 15 samples, covered 37/37 requirements, generated 37 manifest images
@@ -44,9 +45,9 @@
    - The private generation path is a local CLI script; the browser still only loads a user-selected asset-pack folder.
    - Official-derived files are not committed.
 4. Commit status:
-   - Not committed yet; final validation and review passed.
+   - Committed as `864fb91`, fast-forward merged into `main`, and pushed to `origin/main`.
 5. Base divergence:
-   - Branch was created from current `main` at `7e0f1a0`; remote/main drift still needs final integration check.
+   - Branch was created from current `main` at `7e0f1a0`; merge remained fast-forward with no remote drift.
 6. Potential conflicts:
    - Low direct conflict risk unless another branch also changes `src/presets.ts` or active replication docs.
 7. Validation:
@@ -59,9 +60,9 @@
    - Clean reusable boards, frames, and fonts still require later pak/UI-atlas extraction.
    - No browser load smoke has run yet for this newly generated private pack.
 9. Recommended next step:
-   - Commit, merge into `main`, push, then use the app's Load Assets and Compare PNG path for a focused browser calibration pass if needed.
+   - Use the app's Load Assets and Compare PNG path for a focused browser calibration pass against the generated private pack.
 10. Integration recommendation:
-   - If validation passes, merge normally into `main`; no cherry-pick is expected.
+   - Integrated by normal fast-forward merge into `main`; no cherry-pick was needed.
 
 ## Stage 2 Current Worktree
 

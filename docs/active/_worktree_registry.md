@@ -2,12 +2,12 @@
 
 ## KARDS source asset calibration Stage 3
 
-- Worktree name/path: source asset calibration, `C:\Users\raede\Documents\KARDS-source-asset-calibration`
+- Worktree name/path: source asset calibration, `C:\Users\raede\Documents\KARDS-source-asset-calibration` (removed after integration)
 - Thread/task: KARDS official-card source asset import and compact coverage calibration
 - Base branch/base commit: `main`, `7e0f1a0`
-- Current branch/HEAD: `codex/kards-source-asset-calibration`, pending commit
+- Current branch/HEAD: merged into `main` and pushed at `864fb91`; local branch deleted after merge
 - Task goal: generate a private official-reference coverage pack from CraftSoul/KARDS official card images without committing official-derived assets
-- Status: ready-for-integration
+- Status: integrated
 - Main changed files:
   - `src/presets.ts`
   - `src/cardModel.test.ts`
@@ -27,13 +27,16 @@
   - `npm run typecheck`: passed
   - `npm run test`: passed, 7 files and 36 tests
   - `npm run build`: passed
+  - `git push`: passed, `main` pushed to `origin`
+  - `git worktree remove C:\Users\raede\Documents\KARDS-source-asset-calibration`: passed
+  - `git branch -d codex/kards-source-asset-calibration`: passed
 - Tests not run yet:
   - Browser private pack load smoke
 - Potential overlap with other worktrees:
   - Direct overlap with any branch changing `src/presets.ts`, set/nation ids, or the active replication docs
   - No other KARDS worktree was present before this branch was created
 - Recommended integration order: integrate this after Stage 2 asset-pack infrastructure and before deeper pak/UI-atlas extraction work
-- Next action: commit, merge into `main`, push, then remove the worktree only after merge verification
+- Next action: use the generated private pack for browser visual calibration and decide whether a later pak/UI-atlas extraction pass is needed
 
 ## KARDS private asset calibration Stage 2
 

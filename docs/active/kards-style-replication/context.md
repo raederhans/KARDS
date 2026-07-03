@@ -243,3 +243,22 @@
   - `npm run typecheck`: passed.
   - `npm run test`: passed, 7 files and 36 tests.
   - `npm run build`: passed.
+
+## 2026-07-03 Stage 3 Integration Closeout
+
+- Committed Stage 3 on branch `codex/kards-source-asset-calibration` as `864fb91`.
+- Main was clean and up to date with `origin/main` before integration.
+- `git worktree list` showed only main and the Stage 3 source-asset calibration worktree.
+- Changed-file overlap analysis found no competing worktree overlap.
+- Fast-forward merged `codex/kards-source-asset-calibration` into `main`.
+- Merge-result validation on `main`:
+  - Private pack regeneration: passed, selected 15 samples and covered 37/37 requirements.
+  - `py -3 -B -m py_compile tools\kards_private_calibration.py`: passed.
+  - `npm run typecheck`: passed.
+  - `npm run test`: passed, 7 files and 36 tests.
+  - `npm run build`: passed.
+  - Manifest/marker check: passed, marker exists, 37 manifest images present, no missing files.
+- Pushed `main` to `origin`: `7e0f1a0..864fb91`.
+- Removed integrated worktree `C:\Users\raede\Documents\KARDS-source-asset-calibration`.
+- Deleted merged local branch `codex/kards-source-asset-calibration`.
+- Recovery pointer: `864fb91`.
