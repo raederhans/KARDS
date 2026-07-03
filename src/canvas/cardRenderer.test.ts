@@ -142,6 +142,35 @@ describe("card renderer output", () => {
     expect(Math.max(...lowerBodyTextYs)).toBeLessThanOrEqual(650);
   });
 
+  it("starts body copy below the unit type icon even without a keyword line", () => {
+    const { canvas, calls } = createFakeCanvas();
+    const card: CardSpec = {
+      ...DEFAULT_CARD,
+      keywordLine: "",
+      body: "alpha beta",
+    };
+
+    renderCard(canvas, card, null);
+
+    const bodyCall = calls.fillText.find(([text]) => text === "alpha beta");
+    expect(bodyCall?.[2]).toBe(585);
+  });
+
+  it("draws limited rarity pips on integer pixels", () => {
+    const { canvas, calls } = createFakeCanvas();
+    const localImage = { width: 9, height: 12 } as CanvasImageSource;
+    const assets = createStaticAssetResolver([{ slot: "rarity-pip", rarityId: "limited", image: localImage }]);
+
+    renderCard(canvas, { ...DEFAULT_CARD, rarity: "limited" }, null, { assets, disablePrintWear: true });
+
+    const pipDraws = calls.drawImage.filter(([image]) => image === localImage);
+    expect(pipDraws).toEqual([
+      [localImage, 233, 679, 9, 12],
+      [localImage, 246, 679, 9, 12],
+      [localImage, 259, 679, 9, 12],
+    ]);
+  });
+
   it("draws local asset-pack layers without replacing dynamic text values", () => {
     const { canvas, calls } = createFakeCanvas();
     const localImage = { width: 20, height: 20 } as CanvasImageSource;

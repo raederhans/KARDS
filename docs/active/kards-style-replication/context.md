@@ -262,3 +262,101 @@
 - Removed integrated worktree `C:\Users\raede\Documents\KARDS-source-asset-calibration`.
 - Deleted merged local branch `codex/kards-source-asset-calibration`.
 - Recovery pointer: `864fb91`.
+
+## 2026-07-03 Stage 4 Visual Smoke Calibration Start
+
+- Created isolated worktree `C:\Users\raede\Documents\KARDS-visual-smoke-calibration` on branch `codex/kards-visual-smoke-calibration` from `main` commit `f4681f6`.
+- Re-read `ultragoal`, `frontend-skill`, `lessons learned.md`, active replication docs, and the worktree registry.
+- No project-local `AGENTS.md`, `.codex/**`, or `.omx/**` project override files were found by the required `rg --files` pass.
+- Reused the Stage 3 private pack at `C:\Users\raede\Documents\KARDS\.runtime\kards-private-assets\stage3-official-coverage-pack`.
+- Added Playwright as a dev dependency because this stage needs a reproducible browser owner for Canvas smoke.
+- Added `tools/kards_browser_visual_smoke.mjs`:
+  - starts a temporary Vite server on a strict port,
+  - opens Chromium through Playwright,
+  - verifies the live app canvas is `500x702` and nonblank,
+  - imports the renderer modules from Vite,
+  - renders each representative Stage 3 sample with the local asset pack,
+  - crops every manifest element slot,
+  - writes `rendered/`, `diff/`, `extracted/`, `app-smoke.png`, `visual-smoke-report.json`, and `visual-smoke-report.md` under `.runtime`.
+- Added `tools/kards_artifact_pixel_audit.py`:
+  - compares rendered crop PNGs against the original private reference PNGs with Pillow,
+  - rewrites diff PNGs from exact file-level RGBA deltas,
+  - refuses output without the `.runtime` path and `.kards-visual-smoke-output` marker.
+
+## 2026-07-03 Stage 4 Calibration Findings
+
+- First smoke run found 33/37 pass and 4 review.
+- The two `type-icon` reviews were not coordinate errors. The sampled cards had `BLITZ`; our text layer was drawing after the icon and touching the bottom of the type-icon crop.
+- The two `rarity-pip` reviews came from limited/elite pip groups starting at `.5` pixel positions, which caused browser interpolation when drawing local pip assets.
+- Fixed renderer behavior:
+  - rarity pip group start X is now rounded before drawing,
+  - no-keyword body copy starts at the layout `bodyY`, keeping it below the unit type-icon row.
+- The final element probe deliberately uses `asset-slot-isolated` mode with text and print wear disabled. This proves element geometry and asset slot drawing without mixing in uncalibrated official font/text layers.
+
+## 2026-07-03 Stage 4 Visual Smoke Result
+
+- Ran:
+  - `npm run smoke:visual:kards -- --pack "C:\Users\raede\Documents\KARDS\.runtime\kards-private-assets\stage3-official-coverage-pack" --output "C:\Users\raede\Documents\KARDS\.runtime\kards-visual-smoke-calibration\latest" --port 5178`
+- Result: passed with exit code 0.
+- Summary:
+  - total elements: 37
+  - pass: 37
+  - review: 0
+  - fail: 0
+  - nation-mark: 11
+  - type-icon: 7
+  - rarity-pip: 4
+  - set-mark: 15
+- App smoke:
+  - canvas: `500x702`
+  - non-transparent pixels: `350775`
+  - non-white pixels: `350999`
+- Final report:
+  - `C:\Users\raede\Documents\KARDS\.runtime\kards-visual-smoke-calibration\latest\visual-smoke-report.json`
+  - `C:\Users\raede\Documents\KARDS\.runtime\kards-visual-smoke-calibration\latest\visual-smoke-report.md`
+- Scope recorded in the report:
+  - validates asset slot geometry and per-element rendered crop identity,
+  - does not validate full-card typography, print wear, or complete card visual equivalence.
+- Reusable private artifacts:
+  - `rendered/`: 37 rendered slot crops
+  - `diff/`: 37 exact pixel diff PNGs
+  - `extracted/`: 37 copied original reference elements
+- The temporary Vite server on port 5178 was stopped and the port was confirmed clear.
+
+## 2026-07-03 Stage 4 Review And Ready State
+
+- Full validation after docs update:
+  - `npm run typecheck`: passed.
+  - `npm run test`: passed, 7 files and 38 tests.
+  - `npm run build`: passed.
+  - `npm run smoke:visual:kards -- --pack "C:\Users\raede\Documents\KARDS\.runtime\kards-private-assets\stage3-official-coverage-pack" --output "C:\Users\raede\Documents\KARDS\.runtime\kards-visual-smoke-calibration\latest" --port 5178`: passed, 37/37 elements.
+  - Port 5178 was confirmed clear after the smoke.
+- Independent code review found three issues:
+  - App canvas smoke failure did not affect the script exit code.
+  - Python pixel audit accepted a caller-provided `diffPath` outside the owned output root.
+  - Python bytecode caches were not ignored.
+- Accepted and fixed all three:
+  - `tools/kards_browser_visual_smoke.mjs` now exits nonzero when `appSmoke.ok` is false.
+  - `tools/kards_artifact_pixel_audit.py` now requires rendered/extracted/diff artifact paths to stay inside the owned output root.
+  - `.gitignore` now ignores `__pycache__/` and `*.py[cod]`.
+- Review-fix validation:
+  - `node --check tools\kards_browser_visual_smoke.mjs`: passed.
+  - `py -3 -B -m py_compile tools\kards_artifact_pixel_audit.py`: passed.
+  - `npx vitest run src/canvas/cardRenderer.test.ts src/canvas/renderAssets.test.ts`: passed, 16 tests.
+  - Non-owned output refusal check: passed and preserved the existing file.
+  - Pixel-audit `diffPath` escape refusal check: passed and wrote no rogue diff.
+  - `npm run typecheck`: passed.
+  - `npm run test`: passed, 7 files and 38 tests.
+  - `npm run build`: passed.
+  - `npm run smoke:visual:kards -- --pack "C:\Users\raede\Documents\KARDS\.runtime\kards-private-assets\stage3-official-coverage-pack" --output "C:\Users\raede\Documents\KARDS\.runtime\kards-visual-smoke-calibration\latest" --port 5178`: passed, 37/37 elements.
+  - Final visual smoke report generated at `2026-07-03T19:34:37.958Z`; port 5178 was confirmed clear afterward.
+- Independent architecture review returned `WATCH`, not a blocker:
+  - It confirmed the approach is correctly scoped and not over-designed.
+  - It warned that `37/37` must remain labeled as element-slot validation, not full-card visual equivalence.
+  - It noted read-side asset loading remains soft because browser folder selection cannot reliably enforce an absolute `.runtime` path; write-side guards remain hard.
+  - The smoke report now includes a `scope` field spelling out what it validates and what it does not validate.
+- Independent verifier approved the stage after checking the final report, generated artifact paths, no official assets in git, and the ready-for-integration documentation state.
+- Final anti-slop cleanup review found no masking fallback slop in the scoped changes. The retry/catch paths in the smoke script are limited to dev-server startup, process cleanup, CLI output, or artifact parsing boundaries and remain grounded by tests or failure propagation.
+- Pending:
+  - Commit this ready-for-integration package.
+  - Merge to `main`, run merge-result validation, push, and remove the visual-smoke worktree if validation stays green.

@@ -1,5 +1,74 @@
 # KARDS Style Replication Task Notes
 
+## Stage 4 Current Worktree
+
+- Worktree name/path: visual smoke calibration, `C:\Users\raede\Documents\KARDS-visual-smoke-calibration`
+- Thread/task: KARDS Stage 4 browser visual smoke and per-element pixel calibration
+- Base branch/base commit: `main`, `f4681f6`
+- Current branch/HEAD: `codex/kards-visual-smoke-calibration`, ready-for-integration and currently uncommitted
+- Task goal: run a reproducible browser smoke against the private Stage 3 pack, compare every unique manifest element by pixels, calibrate renderer issues, and extract reusable private visual artifacts under `.runtime`
+- Status: ready-for-integration
+- Shared hotspot files touched: `src/canvas/cardRenderer.ts`, renderer tests, package scripts/dependencies, active docs, visual smoke tooling
+- Tests run so far:
+  - `npm ci`: passed, 0 vulnerabilities
+  - `node --check tools\kards_browser_visual_smoke.mjs`: passed
+  - `py -3 -B -m py_compile tools\kards_artifact_pixel_audit.py`: passed
+  - `npx vitest run src/canvas/cardRenderer.test.ts src/canvas/renderAssets.test.ts`: passed, 16 tests
+  - `npm run typecheck`: passed
+  - `npm run test`: passed, 7 files and 38 tests
+  - `npm run build`: passed
+  - `npm run smoke:visual:kards -- --pack "C:\Users\raede\Documents\KARDS\.runtime\kards-private-assets\stage3-official-coverage-pack" --output "C:\Users\raede\Documents\KARDS\.runtime\kards-visual-smoke-calibration\latest" --port 5178`: passed, 37/37 elements
+  - Code-review fix checks: non-owned output refusal passed; pixel-audit `diffPath` escape refusal passed
+  - Final review-fix validation repeated `npm run typecheck`, `npm run test`, `npm run build`, and visual smoke successfully
+  - Independent architecture review: `WATCH`, no blocker; element-slot scope must stay explicit
+  - Independent verifier: approved the report/artifact/git-boundary evidence
+  - Anti-slop cleanup review: no masking fallback slop found in the scoped changes
+- Tests not run yet:
+  - Merge-result validation on `main`
+- Potential overlap with other worktrees:
+  - Direct overlap with any branch touching `src/canvas/cardRenderer.ts`, renderer tests, or package dependency files
+  - `git worktree list` currently shows main and this Stage 4 worktree only
+- Recommended integration order:
+  - Integrate after Stage 3 private pack generation and before full-card typography/atlas extraction
+
+## Stage 4 Delivery Package Draft
+
+1. Changed this phase:
+   - Added a browser-backed visual smoke that renders the Stage 3 private pack and crops every manifest element.
+   - Added a Pillow pixel audit that compares rendered crops against original reference PNGs and writes exact diff PNGs.
+   - Added `npm run smoke:visual:kards` and Playwright as a dev dependency for reproducible browser smoke.
+   - Fixed renderer calibration issues found by the smoke: integer-aligned rarity pips and no-keyword body copy below the unit icon row.
+   - Generated private `.runtime` artifacts with 37 rendered crops, 37 diff PNGs, 37 extracted references, and a JSON/Markdown report.
+2. Files touched:
+   - Core files: `src/canvas/cardRenderer.ts`.
+   - Test files: `src/canvas/cardRenderer.test.ts`.
+   - Tooling files: `tools/kards_browser_visual_smoke.mjs`, `tools/kards_artifact_pixel_audit.py`, `package.json`, `package-lock.json`.
+   - Docs: `docs/active/kards-style-replication/plan.md`, `context.md`, `task.md`, `docs/active/_worktree_registry.md`.
+   - Temporary/private files: `C:\Users\raede\Documents\KARDS\.runtime\kards-visual-smoke-calibration\latest/**`, gitignored.
+3. Diff summary:
+   - Production renderer changes are two narrow coordinate/text-position fixes.
+   - New smoke tooling is explicit and private-output guarded.
+   - Official-derived images remain outside git.
+4. Commit status:
+   - Not committed yet; final validation and review are complete.
+5. Base divergence:
+   - Branch was created from `main` at `f4681f6`; current main drift still needs final integration check.
+6. Potential conflicts:
+   - Moderate direct conflict risk with renderer/layout work and package dependency changes.
+7. Validation:
+   - Browser visual smoke passed: 37/37 unique elements, `maxDelta=0`, `changedRatio=0`.
+   - App canvas smoke passed: `500x702`, nonblank.
+   - Targeted renderer tests, full typecheck, full test suite, and production build passed after calibration fixes.
+   - Review-fix guard checks passed for output ownership and pixel-audit path containment.
+8. Unverified risks:
+   - This is an element-slot probe, not a full-card text/font equivalence claim.
+   - The private pack is still full-card-crop derived; cleaner atlas extraction may be needed for broader materials.
+   - Browser-side asset-pack reading cannot reliably enforce absolute `.runtime` paths; write-side private artifact guards are enforced.
+9. Recommended next step:
+   - Commit the ready-for-integration package, then merge to `main` if the integration pre-check stays clean.
+10. Integration recommendation:
+   - Rebase or fast-forward merge after final checks; do not cherry-pick only the renderer fix because the smoke tooling is the verification surface for the calibration.
+
 ## Stage 3 Current Worktree
 
 - Worktree name/path: source asset calibration, `C:\Users\raede\Documents\KARDS-source-asset-calibration`

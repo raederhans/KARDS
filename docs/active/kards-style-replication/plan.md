@@ -101,3 +101,29 @@ The user does not need a generic WWII card generator. The target is a local stat
 - No full Unreal pak extraction in this stage; clean UI atlas extraction remains a later step if full-card crops are not enough.
 - No automatic browser download path; generation stays in the local Python tool and `.runtime`.
 - No README edits.
+
+## Stage 4 Browser Visual Smoke Calibration
+
+- [x] Create an isolated worktree from current `main` for visual smoke calibration.
+- [x] Re-check lessons learned, active task docs, and current renderer/asset-pack boundaries.
+- [x] Install a reproducible browser-smoke dependency and add a named `npm run smoke:visual:kards` entry.
+- [x] Add a browser-backed visual smoke that loads the private Stage 3 pack, renders each representative sample, crops each manifest element, and writes rendered/diff/extracted artifacts under `.runtime`.
+- [x] Add a Pillow-backed pixel audit so final metrics compare rendered crops directly against original reference PNGs, not a browser-redrawn reference canvas.
+- [x] Calibrate renderer issues found by the smoke: integer-align rarity pips and keep no-keyword body copy below the unit type icon.
+- [x] Run the Stage 3 private pack through the smoke: 37/37 element slots pass with `maxDelta=0` and `changedRatio=0`.
+- [x] Complete final typecheck/test/build validation and visual smoke re-run.
+- [x] Complete independent review and fix accepted findings.
+- [ ] Commit, integration, push, and worktree cleanup.
+
+## Stage 4 Probe Boundary
+
+- The visual smoke uses `asset-slot-isolated` mode: print wear and text are disabled while probing element slots.
+- This is deliberate because the Stage 3 pack is made from full-card crops and official text/font layers are not calibrated yet.
+- Full-card text/font comparison remains a later stage after official typography and cleaner atlas extraction decisions.
+
+## Stage 4 Non-Goals
+
+- No official-derived PNGs are committed or bundled.
+- No full-card visual equivalence claim yet.
+- No pak/UI-atlas extraction in this stage.
+- No README edits.

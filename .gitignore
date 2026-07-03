@@ -6,3 +6,5 @@ coverage/
 *.tsbuildinfo
 *.local
 *.log
+__pycache__/
+*.py[cod]

@@ -321,7 +321,7 @@ function drawRarity(
   const pipWidth = 9;
   const gap = 4;
   const totalWidth = pipCount * pipWidth + (pipCount - 1) * gap;
-  const startX = layout.rarity.x + (layout.rarity.width - totalWidth) / 2;
+  const startX = Math.round(layout.rarity.x + (layout.rarity.width - totalWidth) / 2);
   ctx.fillStyle = color;
   let usedPipAsset = false;
   for (let i = 0; i < pipCount; i += 1) {
@@ -462,7 +462,7 @@ function drawText(
 
   ctx.fillStyle = DARK;
   ctx.font = `400 24px ${fonts.body}`;
-  const bodyY = keywordLine ? layout.text.bodyY : layout.text.keywordY + 8;
+  const bodyY = layout.text.bodyY;
   const bodyMaxLines = Math.max(
     1,
     Math.min(layout.text.maxLines, Math.floor((layout.text.bodyBottomY - bodyY) / layout.text.lineHeight) + 1),
