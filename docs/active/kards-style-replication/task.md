@@ -1,13 +1,13 @@
 # KARDS Style Replication Task Notes
 
-## Stage 5 Current Worktree
+## Stage 5 Integrated Worktree
 
-- Worktree name/path: card-face elements Stage 5, `C:\Users\raede\Documents\KARDS-card-face-elements-stage5`
+- Worktree name/path: card-face elements Stage 5, `C:\Users\raede\Documents\KARDS-card-face-elements-stage5` (removed after integration)
 - Thread/task: KARDS remaining card-face, variable-element, and inspect/view-effect extraction
 - Base branch/base commit: `main`, `87c136d`
-- Current branch/HEAD: `codex/kards-card-face-elements-stage5`, ready for integration and not yet committed
+- Current branch/HEAD: merged into `main` at `4c90d36`; local branch deleted after merge
 - Task goal: extract and calibrate the remaining card-face and card-view/inspect-state elements while excluding in-match gameplay effects and keeping official-derived assets private under `.runtime`
-- Status: ready-for-integration
+- Status: integrated
 - Shared hotspot files touched: private extraction tooling and active docs; renderer slot schema, renderer implementation, and visual smoke tooling were not changed
 - Tests run so far:
   - Initial `git status --short --branch`: clean on `main`
@@ -24,8 +24,20 @@
   - `npm run build`: passed
   - Port 5179 check after smoke: clear
   - Independent review: first pass found the HQ coverage overclaim and missing Stage3 regression; second pass confirmed both issues closed and approved integration
+  - Fast-forward merge into `main`: passed, `87c136d..4c90d36`
+  - Merge-result `py -3 -m py_compile tools\kards_private_calibration.py`: passed
+  - Merge-result default Stage 3 generation: passed, 37/37 coverage and 37 manifest images
+  - Merge-result Stage 5 generation: passed, 98/98 coverage, 37 manifest images, 425 reference crops
+  - Merge-result Stage 3 default regression visual smoke: passed, 37/37 elements
+  - Merge-result Stage 5 visual smoke: passed, 37/37 elements
+  - Merge-result `npm test`: passed, 7 files and 38 tests
+  - Merge-result `npm run build`: passed
+  - Merge-result port checks: 5179 and 5180 clear
+  - `git push origin main`: passed, pushed `87c136d..4c90d36`
+  - `git worktree remove C:\Users\raede\Documents\KARDS-card-face-elements-stage5`: passed
+  - `git branch -d codex/kards-card-face-elements-stage5`: passed
 - Tests not run yet:
-  - none before commit/integration
+  - none for Stage 5 closeout
 - Potential overlap with other worktrees:
   - Direct overlap with renderer/layout/smoke work touching `src/canvas/cardRenderer.ts`, `src/canvas/renderAssets.ts`, or `tools/kards_browser_visual_smoke.mjs`
   - No other active KARDS feature worktree existed before Stage 5 was created
@@ -53,9 +65,9 @@
    - The private generator gained a Stage 5 profile for broader element/variable coverage reports.
    - Active docs now record the Stage 5 output and validation evidence.
 4. Commit status:
-   - Not committed yet.
+   - Feature committed as `4c90d36`, fast-forward merged into `main`, pushed to `origin/main`, and cleaned up.
 5. Base divergence:
-   - Branch was created from current `main` at `87c136d`; remote drift must be checked before integration.
+   - Branch was created from `main` at `87c136d`; integration remained fast-forward with no conflicting remote drift.
 6. Potential conflicts:
    - Low direct product-code conflict risk because no renderer files changed.
    - Moderate documentation/tooling conflict risk with any branch also changing `tools/kards_private_calibration.py` or active replication docs.
@@ -67,9 +79,9 @@
    - Full-card/text/number/board crops remain measurement references only; they are not clean reusable renderer assets.
    - Browser-side folder loading still cannot enforce absolute `.runtime` read paths; write-side extraction guards stay strict.
 9. Recommended next step:
-   - Complete independent review, then commit and integrate if review finds no blocker.
+   - Use this private Stage 5 output as the baseline for later clean pak/font/view-effect extraction.
 10. Integration recommendation:
-   - Fast-forward merge is preferred if `main` remains at or fast-forwards cleanly from `87c136d`; no cherry-pick is needed.
+   - Integrated by normal fast-forward merge into `main`; no cherry-pick was needed.
 
 ## Stage 4 Integrated Worktree
 

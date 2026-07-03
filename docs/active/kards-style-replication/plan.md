@@ -138,7 +138,7 @@ The user does not need a generic WWII card generator. The target is a local stat
 - [x] Add or extend manifest slots only for elements that the renderer can resolve deterministically.
 - [x] Add calibration/report checks for every extracted element class, including dimensions, source rect, and coverage status.
 - [x] Run typecheck, tests, build, and visual smoke or equivalent artifact validation.
-- [ ] Complete independent review, commit, merge, push, and worktree cleanup.
+- [x] Complete independent review, commit, merge, push, and worktree cleanup.
 
 ## Stage 5 Extraction Boundary
 

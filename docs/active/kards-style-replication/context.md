@@ -423,3 +423,21 @@
   - `npm run build`: passed.
   - Ports 5179 and 5180 were confirmed clear after smoke.
 - Setup note: the first Stage 5 smoke attempt failed because the new worktree lacked `node_modules` and `vite` was not found; `npm ci` passed with 0 vulnerabilities, then the smoke rerun passed.
+
+## 2026-07-03 Stage 5 Integration Closeout
+
+- Committed Stage 5 on branch `codex/kards-card-face-elements-stage5` as `4c90d36`.
+- Fast-forward merged `codex/kards-card-face-elements-stage5` into `main`: `87c136d..4c90d36`.
+- Merge-result validation on `main`:
+  - `py -3 -m py_compile tools\kards_private_calibration.py`: passed.
+  - Default Stage 3 generation without `--profile`: passed, 37/37 coverage and 37 manifest images.
+  - Stage 5 generation: passed, 98/98 coverage, 37 manifest images, and 425 reference crops.
+  - Stage 3 default regression visual smoke: passed, 37/37 elements.
+  - Stage 5 visual smoke: passed, 37/37 elements.
+  - `npm test`: passed, 7 files and 38 tests.
+  - `npm run build`: passed.
+  - Ports 5179 and 5180 were confirmed clear after smoke.
+- Pushed `main` to `origin`: `87c136d..4c90d36`.
+- Removed integrated worktree `C:\Users\raede\Documents\KARDS-card-face-elements-stage5`.
+- Deleted merged local branch `codex/kards-card-face-elements-stage5`.
+- Recovery pointer: `4c90d36`.

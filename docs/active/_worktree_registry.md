@@ -2,12 +2,12 @@
 
 ## KARDS card-face/view element extraction Stage 5
 
-- Worktree name/path: card-face elements Stage 5, `C:\Users\raede\Documents\KARDS-card-face-elements-stage5`
+- Worktree name/path: card-face elements Stage 5, `C:\Users\raede\Documents\KARDS-card-face-elements-stage5` (removed after integration)
 - Thread/task: extract and calibrate remaining card-face, variable, and inspect/view-state elements
 - Base branch/base commit: `main`, `87c136d`
-- Current branch/HEAD: `codex/kards-card-face-elements-stage5`, ready for integration and not yet committed
+- Current branch/HEAD: merged into `main` at `4c90d36`; local branch deleted after merge
 - Task goal: extract and catalog all feasible static card-face and card-view/inspect-state elements, including variable-bearing surfaces, while excluding in-match combat/gameplay effects and keeping official-derived artifacts in `.runtime`
-- Status: ready-for-integration
+- Status: integrated
 - Main changed files:
   - `tools/kards_private_calibration.py`
   - `docs/active/kards-style-replication/plan.md`
@@ -30,15 +30,27 @@
   - `npm run build`: passed
   - Port 5179 check after smoke: clear
   - Independent review: first pass found the HQ coverage overclaim and missing Stage3 regression; second pass confirmed both issues closed and approved integration
+  - Fast-forward merge into `main`: passed, `87c136d..4c90d36`
+  - Merge-result `py -3 -m py_compile tools\kards_private_calibration.py`: passed
+  - Merge-result default Stage 3 generation: passed, 37/37 coverage and 37 manifest images
+  - Merge-result Stage 5 generation: passed, 98/98 coverage, 37 manifest images, 425 reference crops
+  - Merge-result Stage 3 default regression visual smoke: passed, 37/37 elements
+  - Merge-result Stage 5 visual smoke: passed, 37/37 elements
+  - Merge-result `npm test`: passed, 7 files and 38 tests
+  - Merge-result `npm run build`: passed
+  - Merge-result port checks: 5179 and 5180 clear
+  - `git push origin main`: passed, pushed `87c136d..4c90d36`
+  - `git worktree remove C:\Users\raede\Documents\KARDS-card-face-elements-stage5`: passed
+  - `git branch -d codex/kards-card-face-elements-stage5`: passed
 - Tests not run yet:
-  - none before commit/integration
+  - none for Stage 5 closeout
 - Potential overlap with other worktrees:
   - Direct overlap with future private calibration work touching `tools/kards_private_calibration.py`
   - Documentation overlap with any branch changing the active KARDS replication docs
   - Low direct product-code overlap because renderer/schema/app files were not changed
-  - `git worktree list` currently shows main and this Stage 5 worktree
+  - `git worktree list` now shows only the main checkout
 - Recommended integration order: integrate after Stage 4 element-slot smoke and before any final full-card typography/view-effect polish
-- Next action: complete independent review, then commit and fast-forward integrate if `main` has no conflicting drift
+- Next action: use the Stage 5 private reports as the baseline for a later pak/font/view-effect extraction pass
 
 ## KARDS visual smoke calibration Stage 4
 
