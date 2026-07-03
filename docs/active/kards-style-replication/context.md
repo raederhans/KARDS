@@ -523,3 +523,25 @@
   - Final `npm test` passed, 7 files and 38 tests.
   - Final `npm run build` passed.
   - Temporary negative-check folders and `tools\__pycache__` were removed; ports 5181 and 5182 were clear.
+
+## 2026-07-03 Stage 6 Integration Closeout
+
+- Committed Stage 6 on branch `codex/kards-multisource-clean-extraction` as `5e48a54`.
+- Main was clean and up to date with `origin/main` before integration.
+- `git worktree list --porcelain` showed only main plus the Stage 6 worktree before merge; changed-file analysis found no competing ready worktree.
+- Fast-forward merged `codex/kards-multisource-clean-extraction` into `main`: `36e3d4e..5e48a54`.
+- Merge-result validation on `main`:
+  - `node --check tools\kards_browser_visual_smoke.mjs`: passed.
+  - `py -3 -m py_compile tools\kards_multisource_extraction.py`: passed.
+  - Stage6 generation: passed, 283 extracted/cataloged files, 37 manifest images, and 26045 local pak indexed candidates.
+  - Safety guard negative checks: Python public-output guard, Python manifest-containment guard, JS public-output guard, and JS manifest-containment guard passed.
+  - `npm run smoke:visual:kards -- --pack "C:\Users\raede\Documents\KARDS\.runtime\kards-private-assets\stage6-multisource-clean-extraction" --output "C:\Users\raede\Documents\KARDS\.runtime\kards-visual-smoke-calibration\stage6-multisource-clean-extraction" --port 5181`: passed, 37/37 elements.
+  - `npm test`: passed, 7 files and 38 tests.
+  - `npm run build`: passed.
+  - Temporary negative-check folders and `tools\__pycache__` were absent after cleanup; ports 5181 and 5182 were clear.
+- Removed integrated worktree `C:\Users\raede\Documents\KARDS-multisource-clean-extraction`.
+- Deleted merged local branch `codex/kards-multisource-clean-extraction`.
+- Recovery pointer: `5e48a54`.
+- Stage 6 stop condition:
+  - Current renderer-safe manifest remains exactly the 37 proved icon/package/nation/type elements.
+  - Pak/font/view/HQ/card-back/frame/board sources are now inventoried and copied or indexed where feasible, but remain private reference or unwired candidate material until a clean exporter or captured source plus slot-level visual smoke exists.

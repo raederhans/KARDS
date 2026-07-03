@@ -2,12 +2,12 @@
 
 ## KARDS multi-source clean extraction Stage 6
 
-- Worktree name/path: multi-source clean extraction, `C:\Users\raede\Documents\KARDS-multisource-clean-extraction`
+- Worktree name/path: multi-source clean extraction, `C:\Users\raede\Documents\KARDS-multisource-clean-extraction` (removed after integration)
 - Thread/task: extract and calibrate all feasible card-face, font, package-mark, variable, and inspect/view elements from multiple sources
 - Base branch/base commit: `main`, `36e3d4e`
-- Current branch/HEAD: `codex/kards-multisource-clean-extraction`, `36e3d4e`
+- Current branch/HEAD: merged into `main` at `5e48a54`; local branch deleted after merge
 - Task goal: turn Stage 5's reference inventory into a stricter multi-source extraction report, promoting only deterministic clean outputs to renderer-ready status while retaining official-derived assets privately under `.runtime`
-- Status: ready-for-integration
+- Status: integrated
 - Main changed files:
   - `tools/kards_multisource_extraction.py`
   - `tools/kards_browser_visual_smoke.mjs`
@@ -39,13 +39,25 @@
   - Final `npm run build`: passed, including typecheck and Vite production build
   - Final temp cleanup checks: `.runtime\tmp-malicious-pack`, `.runtime\tmp-malicious-smoke`, `public\.runtime`, and `tools\__pycache__` absent
   - Final port 5181 and 5182 checks: clear
+  - Fast-forward merge into `main`: passed, `36e3d4e..5e48a54`
+  - Merge-result `node --check tools\kards_browser_visual_smoke.mjs`: passed
+  - Merge-result `py -3 -m py_compile tools\kards_multisource_extraction.py`: passed
+  - Merge-result Stage6 generation: passed, 283 extracted/cataloged files, 37 manifest images, 26045 local pak indexed candidates
+  - Merge-result safety guards: Python public-output guard passed, Python manifest-containment guard passed, JS public-output guard passed, JS manifest-containment guard passed
+  - Merge-result Stage6 visual smoke on port 5181: passed, 37/37 elements
+  - Merge-result `npm test`: passed, 7 files and 38 tests
+  - Merge-result `npm run build`: passed, including typecheck and Vite production build
+  - Merge-result temp cleanup checks: `tools\__pycache__`, `.runtime\tmp-malicious-smoke`, `.runtime\tmp-malicious-smoke-output`, and `public\.runtime` absent
+  - Merge-result port 5181 and 5182 checks: clear
+  - `git worktree remove C:\Users\raede\Documents\KARDS-multisource-clean-extraction`: passed
+  - `git branch -d codex/kards-multisource-clean-extraction`: passed
 - Tests not run yet:
-  - main-merge validation after integration
+  - none for Stage 6 closeout before push
 - Potential overlap with other worktrees:
-  - No other active KARDS worktree exists at creation time
+  - No other active KARDS worktree remains after cleanup
   - Future overlap likely with `tools/kards_private_calibration.py` and active replication docs
 - Recommended integration order: integrate after Stage 5 and before full renderer typography/view-effect polish
-- Next action: commit, run integration check, merge to main if clean
+- Next action: continue with full-card typography/font/view-effect work only after a real pak/font exporter or captured inspect-view source exists
 
 ## KARDS card-face/view element extraction Stage 5
 

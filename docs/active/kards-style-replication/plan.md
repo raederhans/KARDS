@@ -173,7 +173,7 @@ The user does not need a generic WWII card generator. The target is a local stat
 - [x] Record variable elements: fonts/text surfaces, number boards, card boards, frames, print overlays, view/inspect effects, package marks, nations, card types, rarities, and HQ layout-only cases.
 - [x] Keep the public renderer manifest limited to deterministic clean assets; keep uncertain assets as references until the source is proved.
 - [x] Run targeted artifact checks and any visual smoke that matches the extracted asset class.
-- [ ] Complete independent review, commit, merge, push, and worktree cleanup.
+- [x] Complete independent review, commit, merge, push, and worktree cleanup.
 
 ## Stage 6 Extraction Boundary
 
@@ -196,3 +196,5 @@ The user does not need a generic WWII card generator. The target is a local stat
 - KardsGen exact slot-size matches: `frame`, `cost-board`, and `command-border`; attack/defense/special/HQ boards need calibration or scaling before renderer wiring. None of these KardsGen candidates may enter `kards-asset-pack.json` until their slot-level smoke exists.
 - Local pak status: `indexed-only-no-extractor`; no `repak`, `UnrealPak`, `FModel`, `umodel`, or `UEViewer` command was available in the current session.
 - Stage6 visual smoke result: 37/37 pass, 0 review, 0 fail; app smoke canvas was `500x702` and nonblank.
+- Merge-result validation on `main` repeated syntax checks, Stage6 generation, safety guard negative checks, Stage6 visual smoke, full unit tests, and production build successfully.
+- Integrated worktree and local Stage6 branch were removed after the fast-forward merge; recovery commit is `5e48a54`.
