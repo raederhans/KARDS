@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Card Forge">
+  <rect width="64" height="64" rx="12" fill="#17140f"/>
+  <rect x="12" y="8" width="40" height="48" rx="5" fill="#d8c18a" stroke="#3a2a18" stroke-width="4"/>
+  <path d="M18 22h28M18 31h20M18 40h24" stroke="#4d3a22" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="45" cy="48" r="7" fill="#8b3329" stroke="#2a180f" stroke-width="3"/>
+</svg>
