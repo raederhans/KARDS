@@ -236,8 +236,28 @@ select:focus {
   box-shadow: 0 0 0 2px rgba(182, 154, 88, 0.18);
 }
 
-input[type="file"] {
-  padding-top: 9px;
+.field-block input[type="file"] {
+  min-height: 44px;
+  height: auto;
+  padding: 6px 8px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 30px;
+  text-overflow: ellipsis;
+}
+
+.field-block input[type="file"]::file-selector-button {
+  height: 30px;
+  margin: 0 9px 0 0;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--text);
+  background: linear-gradient(180deg, #3b3a32, #26251f);
+  font: inherit;
+  font-weight: 700;
+  line-height: 28px;
 }
 
 input[type="range"] {
