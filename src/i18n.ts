@@ -13,8 +13,6 @@ export const UI_TEXT = {
     appSubtitle: "Static custom card-face generator",
     languageToggle: "中文",
     languageToggleAria: "Switch language to Chinese",
-    autosavePaused: "Save JSON to keep changes",
-    scopePill: "No gameplay tools",
     fieldPanel: {
       aria: "Card fields",
       heading: "Fields",
@@ -94,8 +92,6 @@ export const UI_TEXT = {
     appSubtitle: "静态自定义卡面生成器",
     languageToggle: "EN",
     languageToggleAria: "切换到英文界面",
-    autosavePaused: "请导出 JSON 保留修改",
-    scopePill: "仅卡面，无玩法工具",
     fieldPanel: {
       aria: "卡牌字段",
       heading: "字段",

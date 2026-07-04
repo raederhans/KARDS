@@ -37,7 +37,6 @@ function App() {
   const [selectedReferenceSampleId, setSelectedReferenceSampleId] = useState("");
   const [referenceDiff, setReferenceDiff] = useState<ImageDiffMetrics | null>(null);
   const [referenceDiffError, setReferenceDiffError] = useState<string | null>(null);
-  const [autosavePaused, setAutosavePaused] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const assetPackRequestRef = useRef(0);
   const cardEditVersionRef = useRef(0);
@@ -56,7 +55,7 @@ function App() {
   }, [language, text.documentDescription, text.documentTitle]);
 
   useEffect(() => {
-    setAutosavePaused(!saveDraftCard(window.localStorage, card));
+    saveDraftCard(window.localStorage, card);
   }, [card]);
 
   useEffect(() => () => assetPack?.dispose(), [assetPack]);
@@ -329,9 +328,6 @@ function App() {
           <button type="button" className="language-toggle" aria-label={text.languageToggleAria} onClick={toggleLanguage}>
             {text.languageToggle}
           </button>
-          <span className={autosavePaused ? "scope-pill is-warning" : "scope-pill"}>
-            {autosavePaused ? text.autosavePaused : text.scopePill}
-          </span>
         </div>
       </header>
 

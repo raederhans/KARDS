@@ -118,15 +118,6 @@ button:hover,
   font-size: 12px;
 }
 
-.scope-pill {
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  padding: 7px 12px;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
 .language-toggle {
   min-width: 58px;
   min-height: 32px;
@@ -136,11 +127,6 @@ button:hover,
   font-size: 13px;
   font-weight: 800;
   background: linear-gradient(180deg, #302b1d, #171712);
-}
-
-.scope-pill.is-warning {
-  border-color: var(--danger-line);
-  color: #f1c0ad;
 }
 
 .workspace {
