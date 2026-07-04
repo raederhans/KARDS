@@ -870,3 +870,41 @@
    - Continue future keyword visual tuning from the structured `keywords` ids and keep `keywordLine` as derived compatibility text only.
 10. Integration recommendation:
    - Commit and push directly on `main`; no merge or cherry-pick is needed.
+
+## 2026-07-04 Follow-Up Delivery: Card-Pack Set Mark And Edge Cleanup
+
+1. Changed this follow-up:
+   - Removed reference/sample-name parenthetical labels from the set dropdown; it now acts as the card-pack footmark selector.
+   - Renamed the editor field to `卡包` / `Set mark` and kept it positioned beside rarity in the existing form grid.
+   - Added subject-protected transparent extraction for set-mark icons so source-card paper background is removed without erasing small or pale symbols.
+   - Removed the generated dark placeholder/custom card edge; fallback cards now transition directly into the card face when no frame asset is present.
+2. Files touched:
+   - Core files: `src/App.tsx`, `src/components/FieldPanel.tsx`, `src/canvas/cardRenderer.ts`, `src/i18n.ts`, `src/styles.css`.
+   - Test files: `src/i18n.test.ts`, `src/canvas/cardRenderer.test.ts`, `tools/kards_private_calibration_contract_test.py`.
+   - Tooling files: `tools/kards_private_calibration.py`.
+   - Docs: `docs/active/_worktree_registry.md`, `context.md`, `task.md`.
+   - Lessons: `lessons learned.md`.
+3. Diff summary:
+   - Set option labels now come from preset labels only; dev preview sample labels no longer override option text.
+   - `extract_set_mark_subject` uses set-mark corner background sampling and protects subject pixels before clearing connected background.
+   - Renderer fallback no longer draws the dark outer mat or fallback black/light frame strokes.
+4. Commit status:
+   - Committed directly on `main` after final validation.
+5. Base divergence:
+   - Follow-up started from `main` commit `b61a1ae`; no separate implementation worktree was used.
+6. Potential conflicts:
+   - Direct overlap with future changes touching `FieldPanel`, `cardRenderer`, `i18n`, global field-grid CSS, or private official-asset extraction.
+7. Validation:
+   - `py -3 -m py_compile tools\kards_private_calibration.py tools\kards_multisource_extraction.py tools\kards_private_calibration_contract_test.py`: passed.
+   - `py -3 tools\kards_private_calibration_contract_test.py`: passed, 8 tests.
+   - Stage5 regeneration passed: 69 official samples, 163/163 requirements covered, 91 manifest images.
+   - Stage6 regeneration passed: 337 extracted/cataloged private files and 91 renderer-ready images.
+   - Set-mark alpha audit passed: 14 visible set marks have transparent edges and non-empty subject bounding boxes; `only-spawnable` is intentionally fully transparent.
+   - `npm test -- --run`: passed, 11 files and 70 tests.
+   - `npm run build`: passed, including typecheck and Vite production build.
+8. Unverified risks:
+   - No all-card browser pixel regression sweep was run for every set mark; current evidence covers extraction contracts, regenerated local private assets, alpha audit, and build/test health.
+9. Recommended next step:
+   - Continue any visual footmark tuning from the transparent Stage6 set-mark outputs rather than reintroducing baked paper-background crops.
+10. Integration recommendation:
+   - Commit and push directly on `main`; no merge or cherry-pick is needed.

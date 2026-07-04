@@ -14,10 +14,9 @@ type FieldPanelProps = {
   language: Language;
   text: UiText["fieldPanel"];
   onCardChange: (update: CardUpdate) => void;
-  setOptionLabels?: Partial<Record<string, string>>;
 };
 
-export function FieldPanel({ card, language, text, onCardChange, setOptionLabels }: FieldPanelProps) {
+export function FieldPanel({ card, language, text, onCardChange }: FieldPanelProps) {
   const kind = getKind(card.kind);
   const selectedKeywordIds = resolveCardKeywordIds(card);
   const availableKeywords = KEYWORD_PRESETS.filter((keyword) => !selectedKeywordIds.includes(keyword.id));
@@ -252,12 +251,12 @@ export function FieldPanel({ card, language, text, onCardChange, setOptionLabels
           </select>
         </label>
 
-        <label className={setOptionLabels ? "set-select-label is-reference-sample" : undefined}>
+        <label>
           <span>{text.set}</span>
           <select name="card-set" value={card.set} onChange={(event) => update({ set: event.target.value })}>
             {SETS.map((set) => (
               <option key={set.id} value={set.id}>
-                {formatSetOptionLabel(set, language, setOptionLabels)}
+                {translatePresetLabel(language, "set", set.id, set.label)}
               </option>
             ))}
           </select>
@@ -306,16 +305,6 @@ export function FieldPanel({ card, language, text, onCardChange, setOptionLabels
       </div>
     </aside>
   );
-}
-
-function formatSetOptionLabel(
-  set: { id: string; label: string },
-  language: Language,
-  setOptionLabels?: Partial<Record<string, string>>,
-) {
-  const sampleLabel = setOptionLabels?.[set.id];
-  const setLabel = translatePresetLabel(language, "set", set.id, set.label);
-  return sampleLabel ? `${sampleLabel} (${setLabel})` : setLabel;
 }
 
 function NumberField({

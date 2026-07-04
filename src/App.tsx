@@ -154,14 +154,6 @@ function App() {
         : undefined,
     [devPreviewCatalog, isDevPrivatePreviewEnabled, previewCard.set],
   );
-  const setOptionLabels = useMemo(
-    () =>
-      isDevPrivatePreviewEnabled && devPreviewCatalog
-        ? Object.fromEntries(devPreviewCatalog.DEV_PREVIEW_SET_SAMPLES.map((sample) => [sample.set, sample.label]))
-        : undefined,
-    [devPreviewCatalog, isDevPrivatePreviewEnabled],
-  );
-
   useEffect(() => {
     if (!isDevPrivatePreviewEnabled) {
       return;
@@ -321,7 +313,6 @@ function App() {
           language={language}
           text={text.fieldPanel}
           onCardChange={updateCard}
-          setOptionLabels={setOptionLabels}
         />
         <CardCanvas
           card={previewCard}

@@ -122,10 +122,6 @@ function drawCardMat(
   }
 
   roundRect(ctx, 0, 0, CARD_WIDTH, CARD_HEIGHT, 18);
-  ctx.fillStyle = "#12110d";
-  ctx.fill();
-
-  roundRect(ctx, 8, 8, CARD_WIDTH - 16, CARD_HEIGHT - 16, 14);
   ctx.fillStyle = PAPER;
   ctx.fill();
   ctx.restore();
@@ -320,15 +316,6 @@ function drawFrame(
     return;
   }
 
-  ctx.lineWidth = 8;
-  ctx.strokeStyle = "#c3bda8";
-  roundRect(ctx, 4, 4, CARD_WIDTH - 8, CARD_HEIGHT - 8, 16);
-  ctx.stroke();
-
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = "rgba(35, 35, 29, 0.7)";
-  roundRect(ctx, 11, 11, CARD_WIDTH - 22, CARD_HEIGHT - 22, 10);
-  ctx.stroke();
   ctx.restore();
 }
 

@@ -304,10 +304,6 @@ input[type="range"] {
   gap: 12px;
 }
 
-.select-grid .set-select-label.is-reference-sample {
-  grid-column: 1 / -1;
-}
-
 .number-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

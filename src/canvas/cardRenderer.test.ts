@@ -67,6 +67,14 @@ describe("card renderer output", () => {
     expect(calls.clearRect[0]).toEqual([0, 0, CARD_WIDTH, CARD_HEIGHT]);
   });
 
+  it("does not add a generated dark edge frame around placeholder cards", () => {
+    const { canvas, calls } = createFakeCanvas();
+
+    renderCard(canvas, DEFAULT_CARD, null, { disablePrintWear: true });
+
+    expect(calls.fills.some((call) => call.fillStyle === "#12110d")).toBe(false);
+  });
+
   it("covers unit artwork inside the unit artwork rectangle", () => {
     const { canvas, calls } = createFakeCanvas();
     const artworkImage = { naturalWidth: 1000, naturalHeight: 500 } as HTMLImageElement;

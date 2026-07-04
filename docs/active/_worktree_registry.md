@@ -1,5 +1,37 @@
 # Worktree Registry
 
+## KARDS card-pack set mark editor and crop cleanup
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: expose card-pack footmark selection and remove baked set-mark/card-edge artifacts
+- Base branch/base commit: `main`, `b61a1ae`
+- Current branch/HEAD: `main`, set-mark cleanup commit recorded after validation
+- Task goal: make the set/footmark field read as a card-pack selector, remove sample-name parenthetical option text, generate transparent-background set-mark icons, and stop drawing an extra generated dark edge around placeholder/custom cards
+- Status: integrated on main checkout; no separate worktree merge required
+- Main changed files:
+  - Core files: `src/App.tsx`, `src/components/FieldPanel.tsx`, `src/canvas/cardRenderer.ts`, `src/i18n.ts`, `src/styles.css`
+  - Test files: `src/i18n.test.ts`, `src/canvas/cardRenderer.test.ts`, `tools/kards_private_calibration_contract_test.py`
+  - Tooling files: `tools/kards_private_calibration.py`
+  - Runtime/private evidence: `.runtime/qa/set-mark-after-sheet.png` and regenerated `.runtime/kards-private-assets/stage5-card-face-elements`, `.runtime/kards-private-assets/stage6-multisource-clean-extraction` remain gitignored
+  - Docs files: `docs/active/_worktree_registry.md`, `docs/active/kards-style-replication/context.md`, `docs/active/kards-style-replication/task.md`, `lessons learned.md`
+- Shared hotspot files touched: field-panel editor labels, canvas fallback frame rendering, private official-asset generation scripts, global form CSS
+- Validation run:
+  - `py -3 -m py_compile tools\kards_private_calibration.py tools\kards_multisource_extraction.py tools\kards_private_calibration_contract_test.py`: passed
+  - `py -3 tools\kards_private_calibration_contract_test.py`: passed, 8 tests
+  - Stage5 regeneration: passed, 69 official samples, 163/163 requirements covered, 91 manifest images
+  - Stage6 regeneration: passed, 337 extracted/cataloged private files and 91 renderer-ready smoke-safe images
+  - Set-mark alpha audit: passed, 14 visible set marks have transparent edges and non-empty subject bounding boxes; `only-spawnable` is intentionally fully transparent
+  - Contact sheet evidence saved under `.runtime/qa/set-mark-after-sheet.png`
+  - `npm test -- --run`: passed, 11 files and 70 tests
+  - `npm run build`: passed, including typecheck and Vite production build
+- Tests not run:
+  - No full browser pixel regression sweep for every card-pack mark; this pass validates generated alpha, local contact sheet evidence, renderer fallback behavior, and production build
+- Potential overlap with other worktrees:
+  - None detected in the main checkout
+  - Future overlap risk with `FieldPanel`, `cardRenderer`, `i18n`, global form layout, or private asset calibration changes
+- Recommended integration order: commit directly on `main`; this is a local editor/asset-generation correction with no parallel KARDS worktree to merge
+- Next action: push to `origin/main`; future set-mark tuning should keep the set id as the single footmark source and preserve subject-protected transparent crops
+
 ## KARDS multi-keyword picker and renderer
 
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`

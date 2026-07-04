@@ -917,3 +917,27 @@
 - Boundary:
   - No official-derived images or fonts were copied into source, public, or dist.
   - This pass implements structured keyword editing and renderer fitting; it does not rebaseline every official multi-keyword reference card perceptually.
+
+## 2026-07-04 Card-Pack Set Mark And Edge Cleanup
+
+- User review found that the old set field still displayed reference/sample context, such as parenthetical pack information, while the actual editor need is a direct card-pack footmark choice beside rarity.
+- User also found that set-mark icons looked like hard crops with source-card paper background, and placeholder/custom cards had an extra generated dark edge that should not be there.
+- Implemented correction:
+  - Removed the dev sample-name option-label path from `FieldPanel`; set options now render the preset card-pack labels directly.
+  - Renamed the Chinese field label from `系列` to `卡包` and the English label from `Set` to `Set mark`.
+  - Kept `CardSpec.set` as the single source of truth for the card footmark instead of adding a second card-pack field.
+  - Added transparent-background set-mark extraction in `tools/kards_private_calibration.py`, using set-mark corner background sampling plus subject-protection pixels so small or pale marks are not deleted.
+  - Removed the renderer's extra generated dark card-edge fallback; if no frame asset is available, the fallback card now starts directly from the paper/card face.
+- Runtime evidence:
+  - Stage5 private pack regenerated successfully with 69 official samples and 163/163 requirements covered.
+  - Stage6 multisource pack regenerated successfully with 337 extracted/cataloged private files and 91 renderer-ready images.
+  - Set-mark alpha audit confirmed 14 visible set marks have transparent edges and non-empty subject bounding boxes; `only-spawnable` is intentionally fully transparent.
+  - Contact sheet evidence saved under `.runtime/qa/set-mark-after-sheet.png`; it remains private/gitignored.
+- Validation:
+  - `py -3 -m py_compile tools\kards_private_calibration.py tools\kards_multisource_extraction.py tools\kards_private_calibration_contract_test.py`: passed.
+  - `py -3 tools\kards_private_calibration_contract_test.py`: passed, 8 tests.
+  - `npm test -- --run`: passed, 11 files and 70 tests.
+  - `npm run build`: passed, including typecheck and Vite production build.
+- Boundary:
+  - No official-derived images or fonts were copied into source, public, or dist.
+  - This pass changes editor semantics, fallback rendering, and the private local generation path; it does not run a full browser pixel regression sweep for every card-pack mark.

@@ -19,3 +19,4 @@
 - Fixed canvas-editor layouts need explicit scroll ownership: keep the preview and header stable while assigning independent scroll containers to side panels.
 - Dev preview asset-pack URLs must stay aligned with the current renderer-ready private pack; otherwise valid card keys can appear broken because the renderer falls back to text abbreviations after stale asset loads fail.
 - Card-face keywords should use structured ids for editing and regenerate display/export strings from those ids; otherwise localization, duplicate prevention, and canvas text fitting become coupled to stale freeform text.
+- Small card-foot set marks should sample background from their own corners, not the broader card neighborhood; nearby printed texture can otherwise be mistaken for background and erase pale icon subjects.

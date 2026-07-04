@@ -28,6 +28,9 @@ NATION_BACKGROUND_SAMPLE_MARGIN = 6
 NATION_BACKGROUND_DISTANCE_THRESHOLD = 30
 NATION_BACKGROUND_RETRY_DISTANCE_THRESHOLD = 18
 NATION_MIN_SUBJECT_OPAQUE_RATIO = 0.14
+SET_MARK_BACKGROUND_DISTANCE_THRESHOLD = 42
+SET_MARK_SUBJECT_DISTANCE_THRESHOLD = 32
+SET_MARK_MIN_SUBJECT_PIXEL_COUNT = 24
 FORBIDDEN_OUTPUT_SEGMENTS = {"dist", "public", "src"}
 DEFAULT_DATA_FILE = Path(".runtime/stage3/sources/craftsoul-data.json")
 DEFAULT_STAGE3_OUTPUT = Path(".runtime/kards-private-assets/stage3-official-coverage-pack")
@@ -1241,7 +1244,7 @@ def add_manifest_images(
         manifest_seen,
         slot="set-mark",
         file_path=Path("images") / "sets" / f"{set_id}.png",
-        crop_image=crop(image, layout["set-mark"]),
+        crop_image=extract_set_mark_subject(image, layout["set-mark"]),
         filters={"setId": set_id},
     )
 
@@ -1345,6 +1348,70 @@ def extract_nation_mark_subject(
         red, green, blue, _alpha = output_pixels[x, y]
         output_pixels[x, y] = (red, green, blue, 0)
     return output
+
+
+def extract_set_mark_subject(image: Image.Image, rect: tuple[int, int, int, int]) -> Image.Image:
+    mark = crop(image, rect).convert("RGBA")
+    palette = sample_set_mark_background_palette(mark)
+    if not palette:
+        return mark
+
+    protected = protected_set_mark_subject_pixels(mark, palette)
+    transparent = collect_connected_background_pixels(mark, palette, SET_MARK_BACKGROUND_DISTANCE_THRESHOLD, protected)
+    if not transparent:
+        return mark
+
+    output = mark.copy()
+    output_pixels = output.load()
+    for x, y in transparent:
+        red, green, blue, _alpha = output_pixels[x, y]
+        output_pixels[x, y] = (red, green, blue, 0)
+    return output
+
+
+def sample_set_mark_background_palette(mark: Image.Image) -> list[tuple[int, int, int]]:
+    width, height = mark.size
+    pixels = mark.load()
+    corner_size = min(5, width, height)
+    samples: list[tuple[int, int, int]] = []
+
+    for y in range(height):
+        for x in range(width):
+            in_left_corner = x < corner_size
+            in_right_corner = x >= width - corner_size
+            in_top_corner = y < corner_size
+            in_bottom_corner = y >= height - corner_size
+            if not ((in_left_corner or in_right_corner) and (in_top_corner or in_bottom_corner)):
+                continue
+            red, green, blue, alpha = pixels[x, y]
+            if alpha >= 200:
+                samples.append((red, green, blue))
+
+    if not samples:
+        return []
+
+    buckets = Counter((red // 16, green // 16, blue // 16) for red, green, blue in samples)
+    return [((red * 16) + 8, (green * 16) + 8, (blue * 16) + 8) for (red, green, blue), _count in buckets.most_common(3)]
+
+
+def protected_set_mark_subject_pixels(
+    mark: Image.Image,
+    palette: list[tuple[int, int, int]],
+) -> set[tuple[int, int]]:
+    threshold_sq = SET_MARK_SUBJECT_DISTANCE_THRESHOLD * SET_MARK_SUBJECT_DISTANCE_THRESHOLD
+    protected: set[tuple[int, int]] = set()
+    pixels = mark.load()
+    width, height = mark.size
+
+    for y in range(height):
+        for x in range(width):
+            red, green, blue, alpha = pixels[x, y]
+            if alpha < 8:
+                continue
+            if min(color_distance_sq((red, green, blue), color) for color in palette) > threshold_sq:
+                protected.add((x, y))
+
+    return protected if len(protected) >= SET_MARK_MIN_SUBJECT_PIXEL_COUNT else set()
 
 
 def collect_connected_background_pixels(

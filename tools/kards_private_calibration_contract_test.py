@@ -15,6 +15,7 @@ from kards_multisource_extraction import copy_stage5_clean_assets
 from kards_private_calibration import (
     add_manifest_crop,
     extract_nation_mark_subject,
+    extract_set_mark_subject,
     validate_output_dir,
 )
 
@@ -121,6 +122,63 @@ class PrivateCalibrationContractTest(unittest.TestCase):
         output = extract_nation_mark_subject(image, rect, "france", "fighter")
 
         assert_outer_ring_and_clear_corners(self, output)
+
+    def test_set_mark_extraction_clears_paper_background(self) -> None:
+        rect = (8, 8, 28, 28)
+        image = Image.new("RGBA", (44, 44), (210, 202, 176, 255))
+        draw = ImageDraw.Draw(image)
+        draw.polygon(
+            (
+                (rect[0] + 14, rect[1] + 3),
+                (rect[0] + 18, rect[1] + 11),
+                (rect[0] + 26, rect[1] + 12),
+                (rect[0] + 20, rect[1] + 18),
+                (rect[0] + 22, rect[1] + 26),
+                (rect[0] + 14, rect[1] + 21),
+                (rect[0] + 6, rect[1] + 26),
+                (rect[0] + 8, rect[1] + 18),
+                (rect[0] + 2, rect[1] + 12),
+                (rect[0] + 10, rect[1] + 11),
+            ),
+            fill=(75, 76, 70, 255),
+        )
+
+        output = extract_set_mark_subject(image, rect)
+        pixels = output.load()
+
+        self.assertEqual(pixels[0, 0][3], 0)
+        self.assertEqual(pixels[27, 27][3], 0)
+        self.assertGreaterEqual(pixels[14, 14][3], 200)
+
+    def test_set_mark_extraction_preserves_small_light_subject(self) -> None:
+        rect = (8, 8, 28, 28)
+        image = Image.new("RGBA", (44, 44), (210, 202, 176, 255))
+        draw = ImageDraw.Draw(image)
+        draw.line(
+            (
+                (rect[0] + 8, rect[1] + 14),
+                (rect[0] + 20, rect[1] + 14),
+                (rect[0] + 14, rect[1] + 8),
+                (rect[0] + 14, rect[1] + 20),
+            ),
+            fill=(145, 145, 130, 255),
+            width=2,
+        )
+
+        output = extract_set_mark_subject(image, rect)
+        alpha_values = list(output.getchannel("A").tobytes())
+
+        self.assertGreater(sum(1 for alpha in alpha_values if alpha >= 200), 0)
+        self.assertGreater(sum(1 for alpha in alpha_values if alpha == 0), 600)
+
+    def test_set_mark_extraction_clears_empty_paper_crop(self) -> None:
+        rect = (8, 8, 28, 28)
+        image = Image.new("RGBA", (44, 44), (210, 202, 176, 255))
+
+        output = extract_set_mark_subject(image, rect)
+        alpha_values = list(output.getchannel("A").tobytes())
+
+        self.assertEqual(sum(1 for alpha in alpha_values if alpha > 0), 0)
 
 
 def make_mark_fixture() -> tuple[Image.Image, tuple[int, int, int, int]]:
