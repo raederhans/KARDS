@@ -193,11 +193,11 @@ export function ProjectPanel({
         {referenceDiff ? (
           <>
             <p>
-              <span>MAE</span>
+              <span>{text.averageDiff}</span>
               <strong>{referenceDiff.meanAbsoluteError}</strong>
             </p>
             <p>
-              <span>RMSE</span>
+              <span>{text.overallDiff}</span>
               <strong>{referenceDiff.rootMeanSquareError}</strong>
             </p>
             <p>

@@ -1,5 +1,41 @@
 # Worktree Registry
 
+## KARDS GitHub release and Vercel production deployment
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: polish public release copy, publish GitHub release, and deploy to Vercel
+- Base branch/base commit: `main`, `0e00503f6c63668c93880d32688239ba279b06e9`
+- Current branch/HEAD: `main`, release commit recorded after validation
+- Task goal: make the current KARDS Card Forge publish-ready, push the verified state to GitHub, create the first GitHub release, deploy the same project to Vercel, and verify the deployed app loads
+- Status: in-progress
+- Main changed files:
+  - Core files: `index.html`, `src/App.tsx`, `src/components/ProjectPanel.tsx`, `src/i18n.ts`
+  - Test files: `src/i18n.test.ts`
+  - Config files: `.gitignore`, `.vercelignore`
+  - Docs files: `docs/active/kards-github-vercel-release/plan.md`, `docs/active/kards-github-vercel-release/context.md`, `docs/active/kards-github-vercel-release/task.md`, `docs/active/_worktree_registry.md`
+  - Temporary/runtime files: none tracked
+- Shared hotspot files touched: public app shell copy, i18n text contract, project/export panel labels, active worktree registry
+- Validation run:
+  - `git worktree list --porcelain`: only the main checkout
+  - `git fetch origin --prune`: passed
+  - `npm test -- --run src/i18n.test.ts`: passed, 1 file and 5 tests
+  - `npm run typecheck`: passed
+  - `npm test -- --run`: passed, 11 files and 84 tests
+  - `npm run build`: passed, including typecheck and Vite production build
+  - `rg -n "\.runtime|kards-private-assets|stage5|stage6|devPreview|privatePack" dist`: no matches
+  - `git diff --check`: passed with LF-to-CRLF warnings only
+  - GitHub connector secret scanning attempt: repository lacks GitHub Advanced Security, so no GHAS scan result was available
+  - `npx vercel link --yes --project kards-card-forge --scope qiushiyu2003-2073s-projects`: created Vercel project `kards-card-forge`
+  - First `npx vercel deploy --prod --yes --scope qiushiyu2003-2073s-projects`: passed, deployment `dpl_CHkAZRDiYXkW9eqaXrBbJ24kFVu6`, stable alias `https://kards-card-forge.vercel.app`
+  - HTTP probe for `https://kards-card-forge.vercel.app`: returned `200`
+- Tests not run:
+  - Final post-`.vercelignore` deployed URL smoke is pending
+- Potential overlap with other worktrees:
+  - None detected; `git worktree list --porcelain` showed only this checkout
+  - Future overlap risk with app shell, i18n text, project panel controls, gitignore/vercelignore, or release/deploy docs
+- Recommended integration order: commit directly on `main`, push to `origin/main`, create release tag from that commit, then deploy that same commit to Vercel
+- Next action: push, create GitHub release, redeploy production with the clean ignore set, and run remote smoke
+
 ## KARDS card-pack set mark editor and crop cleanup
 
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`

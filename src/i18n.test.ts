@@ -25,6 +25,8 @@ describe("i18n", () => {
   it("localizes user-facing preset labels without changing unknown values", () => {
     expect(UI_TEXT.zh.fieldPanel.set).toBe("卡包");
     expect(UI_TEXT.zh.fieldPanel.officialReference).toBe("官方参考");
+    expect(UI_TEXT.zh.projectPanel.manifest).toBe("风格包文件");
+    expect(UI_TEXT.en.projectPanel.comparePng).toBe("Compare Reference");
     expect(translatePresetLabel("zh", "kind", "tank", "Tank")).toBe("坦克");
     expect(translatePresetLabel("zh", "nation", "us", "United States")).toBe("美国");
     expect(translatePresetLabel("zh", "set", "blood-and-iron", "Blood and Iron")).toBe("血与铁");

@@ -320,7 +320,7 @@ function App() {
         <div>
           <p className="brand-mark">CF</p>
           <div>
-            <h1>Card Forge</h1>
+            <h1>KARDS Card Forge</h1>
             <p>{text.appSubtitle}</p>
           </div>
         </div>

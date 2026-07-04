@@ -1,0 +1,14 @@
+node_modules
+dist
+.runtime
+.vite
+coverage
+docs
+tools
+*.tsbuildinfo
+*.local
+*.log
+__pycache__
+*.pyc
+*.pyo
+src/**/*.test.ts

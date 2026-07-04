@@ -8,3 +8,5 @@ coverage/
 *.log
 __pycache__/
 *.py[cod]
+.vercel
+.env*

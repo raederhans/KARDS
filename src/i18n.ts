@@ -8,9 +8,9 @@ export type Language = (typeof LANGUAGES)[number];
 
 export const UI_TEXT = {
   en: {
-    documentTitle: "Card Forge",
-    documentDescription: "A local static card-face editor for creating custom war-card style images.",
-    appSubtitle: "Static custom card-face generator",
+    documentTitle: "KARDS Card Forge",
+    documentDescription: "A static fan card-face editor for creating custom KARDS-style images.",
+    appSubtitle: "Custom KARDS-style card-face editor",
     languageToggle: "中文",
     languageToggleAria: "Switch language to Chinese",
     fieldPanel: {
@@ -51,12 +51,12 @@ export const UI_TEXT = {
       aria: "Project and export controls",
       heading: "Project",
       scope: "Local only",
-      exportPrivatePng: "Export Private PNG",
+      exportPrivatePng: "Export Local-Pack PNG",
       exportPng: "Export PNG",
       saveJson: "Save JSON",
       openJson: "Open JSON",
-      loadAssets: "Load Assets",
-      comparePng: "Compare PNG",
+      loadAssets: "Load Style Pack",
+      comparePng: "Compare Reference",
       loadReferenceSample: (label: string) => `Load ${label} Sample`,
       loadHqSample: "Load HQ Sample",
       resetCard: "Reset Card",
@@ -69,27 +69,29 @@ export const UI_TEXT = {
       assets: "Assets",
       assetsLoaded: "local pack loaded",
       assetsPlaceholder: "placeholder",
-      manifest: "Manifest",
+      manifest: "Style pack file",
       imageFontCounts: (imageCount: number, fontCount: number) => `${imageCount} images / ${fontCount} fonts`,
-      changed: "Changed",
-      privatePngConfirm: "This PNG includes local asset-pack pixels. Keep the exported image private?",
+      averageDiff: "Avg diff",
+      overallDiff: "Overall diff",
+      changed: "Changed pixels",
+      privatePngConfirm: "This PNG includes pixels from your local style pack. Keep the exported image private?",
       projectTooLarge: "This card project is too large to open. Please choose a JSON file under 8 MB.",
       jsonOpenFailed: "This JSON file could not be opened as a card project.",
       disclaimer:
         "Unofficial non-commercial fan utility. It ships with original placeholder visuals only. Local asset packs and reference images stay in this browser session and are not saved into card JSON.",
     },
     errors: {
-      privatePreviewCatalog: "Could not load the private preview catalog.",
+      privatePreviewCatalog: "Could not load the local reference catalog.",
       localAssetPack: "Could not load the local asset pack.",
-      privateReferencePreview: "Could not load the private reference preview.",
+      privateReferencePreview: "Could not load the local reference preview.",
       referenceCompare: "Could not compare this reference image.",
       loadCardUrl: (url: string) => `Could not load ${url}.`,
     },
   },
   zh: {
-    documentTitle: "Card Forge 卡牌工坊",
-    documentDescription: "本地静态卡面编辑器，用于制作自定义战争卡牌风格图片。",
-    appSubtitle: "静态自定义卡面生成器",
+    documentTitle: "KARDS Card Forge 卡牌工坊",
+    documentDescription: "静态粉丝卡面编辑器，用于制作自定义 KARDS 风格图片。",
+    appSubtitle: "自定义 KARDS 风格卡面编辑器",
     languageToggle: "EN",
     languageToggleAria: "切换到英文界面",
     fieldPanel: {
@@ -130,12 +132,12 @@ export const UI_TEXT = {
       aria: "项目与导出控制",
       heading: "项目",
       scope: "仅本地",
-      exportPrivatePng: "导出私有 PNG",
+      exportPrivatePng: "导出本地包 PNG",
       exportPng: "导出 PNG",
       saveJson: "保存 JSON",
       openJson: "打开 JSON",
-      loadAssets: "加载素材",
-      comparePng: "对比 PNG",
+      loadAssets: "加载风格包",
+      comparePng: "对比参考图",
       loadReferenceSample: (label: string) => `加载 ${label} 示例`,
       loadHqSample: "加载总部示例",
       resetCard: "重置卡牌",
@@ -148,19 +150,21 @@ export const UI_TEXT = {
       assets: "素材",
       assetsLoaded: "已加载本地包",
       assetsPlaceholder: "占位素材",
-      manifest: "清单",
+      manifest: "风格包文件",
       imageFontCounts: (imageCount: number, fontCount: number) => `${imageCount} 张图片 / ${fontCount} 个字体`,
+      averageDiff: "平均差异",
+      overallDiff: "整体差异",
       changed: "变化像素",
-      privatePngConfirm: "这个 PNG 包含本地素材包像素。确认只私下保存这张导出图？",
+      privatePngConfirm: "这个 PNG 包含你本地风格包里的像素。确认只私下保存这张导出图？",
       projectTooLarge: "这个卡牌项目太大，无法打开。请选择 8 MB 以下的 JSON 文件。",
       jsonOpenFailed: "这个 JSON 文件无法作为卡牌项目打开。",
       disclaimer:
         "非官方、非商业的粉丝工具。默认只包含原创占位视觉。本地素材包和参考图只保留在当前浏览器会话中，不会保存进卡牌 JSON。",
     },
     errors: {
-      privatePreviewCatalog: "无法加载私有预览目录。",
+      privatePreviewCatalog: "无法加载本地参考目录。",
       localAssetPack: "无法加载本地素材包。",
-      privateReferencePreview: "无法加载私有参考预览。",
+      privateReferencePreview: "无法加载本地参考预览。",
       referenceCompare: "无法对比这张参考图。",
       loadCardUrl: (url: string) => `无法加载 ${url}。`,
     },
@@ -381,16 +385,22 @@ export function localizeRuntimeMessage(language: Language, message: string): str
     return "每个字体条目都需要 family 和 file。";
   }
 
-  if (message === "Could not load the private preview catalog.") {
-    return "无法加载私有预览目录。";
+  if (
+    message === "Could not load the private preview catalog." ||
+    message === "Could not load the local reference catalog."
+  ) {
+    return "无法加载本地参考目录。";
   }
 
   if (message === "Could not load the local asset pack.") {
     return "无法加载本地素材包。";
   }
 
-  if (message === "Could not load the private reference preview.") {
-    return "无法加载私有参考预览。";
+  if (
+    message === "Could not load the private reference preview." ||
+    message === "Could not load the local reference preview."
+  ) {
+    return "无法加载本地参考预览。";
   }
 
   if (message === "Could not compare this reference image.") {
