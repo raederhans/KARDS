@@ -5,9 +5,9 @@
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
 - Thread/task: research and calibrate KARDS card text fonts for Latin utility text, numeric fields, and Chinese-localized text
 - Base branch/base commit: `main`, `74daf26`
-- Current branch/HEAD: `main`, working tree has validated uncommitted Stage 8 changes
+- Current branch/HEAD: `main`, Stage 8 integrated in committed history; final closeout keeps `main` aligned with `origin/main`
 - Task goal: make title, cost, `K`, attack/defense, keyword labels, and rules text look closer to the current KARDS card style while keeping Chinese readability and private/official font boundaries clear
-- Status: ready-for-integration; commit directly on `main` when accepted, no separate worktree merge is needed
+- Status: integrated-on-main after closeout; no separate worktree merge or cleanup was required
 - Shared hotspot files touched:
   - `package.json`
   - `package-lock.json`
@@ -82,7 +82,7 @@
    - Type = HQ now points the dev reference panel at a Washington HQ image from the existing private data set.
    - Explicit full-sample loading remains available through Project panel `Load T-70 Sample` and `Load HQ Sample` buttons.
 4. Commit status:
-   - Not committed in this pass yet; changes are validated and ready to commit if accepted.
+   - Committed as part of the Stage 8 closeout bundle, then followed by a docs-only registry sync.
 5. Base divergence:
    - Work started from `main` commit `74daf26`; no other active KARDS worktree was found.
 6. Potential conflicts:
@@ -96,15 +96,21 @@
    - Latest in-app Browser verification passed for Set dropdown option `MACCHI C.200 (Blood and Iron)`, matching caption `Official reference: MACCHI C.200` and reference image `macchi_c_200.png`.
    - Latest `npm run test` passed, 8 files and 46 tests.
    - Latest `npm run build` passed, including typecheck and Vite production build.
+   - Closeout independent `code-reviewer` review found no blocking issues.
+   - Closeout independent `architect` review returned `CLEAR`.
+   - Closeout `npm run typecheck`: passed.
+   - Closeout `npm run test`: passed, 8 files and 48 tests.
+   - Closeout `npm run build`: passed, including typecheck and Vite production build.
+   - Closeout `rg` over fresh `dist` for private `.runtime` and sample/reference path strings: no matches.
    - Stage 6 visual smoke is no longer a valid green gate for type-icon/rarity after intentional transformed-presentation changes; latest run is 24 pass / 8 review / 5 fail.
 8. Unverified risks:
    - Exact KARDS typography is still not guaranteed without a confirmed usable Franklin Gothic / official font source.
    - Type-icon and rarity-pip slot smoke need a new presentation-aware baseline.
    - In-app Browser control timed out twice during reload after the set/HQ fix; the same localhost flow was verified with local Playwright instead.
 9. Recommended next step:
-   - Review the visible result in the dev browser, then commit on `main` with the Stage 8 docs and renderer changes together.
+   - Future work should add a presentation-aware visual-smoke rebaseline for transformed type-icon and rarity-pip output.
 10. Integration recommendation:
-   - Direct commit on `main` is appropriate. No rebase, cherry-pick, or worktree cleanup is required.
+   - Completed as a direct `main` integration. No rebase, cherry-pick, or worktree cleanup was required.
 
 ## Stage 7 Visible Preview Calibration Hotfix
 
@@ -694,9 +700,9 @@
 3. Diff summary:
    - Dev-preview sample loading now follows the selected Set sample label, so `DINGO (Oceania Storm)` exposes `Load DINGO Sample`.
 4. Commit status:
-   - Not committed; current Stage 8 worktree is already carrying broader validated uncommitted changes.
+   - Committed with the Stage 8 integration bundle.
 5. Base divergence:
-   - Current branch is `main` at local HEAD `74daf26`; this follow-up is part of the same uncommitted Stage 8 worktree bundle.
+   - Follow-up landed with the same Stage 8 integration on `main`.
 6. Potential conflicts:
    - Direct overlap with any future branch touching `src/App.tsx`, `src/components/ProjectPanel.tsx`, or dev-preview sample catalog behavior.
 7. Validation:
@@ -708,6 +714,6 @@
 8. Unverified risks:
    - No broad transformed-presentation visual-smoke rebaseline was run in this follow-up.
 9. Recommended next step:
-   - Merge/commit this follow-up together with the existing Stage 8 dev-preview catalog changes after user review.
+   - Future work should rebaseline transformed-presentation visual smoke; no DINGO-specific follow-up is pending.
 10. Integration recommendation:
-   - Safe to integrate with the Stage 8 bundle; do not separate it from the dev-preview catalog change unless cherry-picking the whole catalog path.
+   - Integrated with the Stage 8 bundle; do not separate it from the dev-preview catalog change unless cherry-picking the whole catalog path.

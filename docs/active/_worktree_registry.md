@@ -5,9 +5,9 @@
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
 - Thread/task: KARDS card typography research and renderer font calibration
 - Base branch/base commit: `main`, `74daf26`
-- Current branch/HEAD: `main`, working tree has validated uncommitted Stage 8 changes
+- Current branch/HEAD: `main`, Stage 8 integrated in committed history; final closeout keeps `main` aligned with `origin/main`
 - Task goal: choose evidence-backed font stacks for KARDS-like Latin labels/names/numbers and Chinese-localized body text, then calibrate title/cost/stat/keyword/body rendering without bundling official or commercial fonts
-- Status: ready-for-integration; commit directly on `main` when accepted
+- Status: integrated-on-main after closeout; no separate worktree merge or cleanup was required
 - Main changed files:
   - `package.json`
   - `package-lock.json`
@@ -65,6 +65,13 @@
   - Latest `npm run build`: passed, including typecheck and Vite production build
   - Latest `rg` over `dist` for `.runtime/kards-private-assets`, `stage6-cardface-preview`, `stage6-multisource-clean-extraction`, `stage5-card-face-elements`, `Washington.png`, `dingo.card`, and `t70.card`: no matches after moving the private preview catalog behind a dev-only dynamic import
   - Latest Chrome DevTools browser verification: passed for Set `DINGO (Oceania Storm)` and `Load DINGO Sample`; Set-only change left title as `T-70`, explicit sample load changed title to `DINGO`, caption `Official reference: DINGO`, reference image `dingo.png`, embedded artwork summary, and rendered canvas artwork pixel matched the DINGO sample artwork with `pixelDelta=0`
+  - Closeout `git fetch --prune origin`: passed; `origin/main...HEAD` was `0 0` before integration commit
+  - Closeout independent `code-reviewer` review: no blocking issues found
+  - Closeout independent `architect` review: `CLEAR`
+  - Closeout `npm run typecheck`: passed
+  - Closeout `npm run test`: passed, 8 files and 48 tests
+  - Closeout `npm run build`: passed, including typecheck and Vite production build
+  - Closeout `rg` over fresh `dist` for `.runtime/kards-private-assets`, `stage6-cardface-preview`, `stage6-multisource-clean-extraction`, `stage5-card-face-elements`, `Washington.png`, `dingo.card`, and `t70.card`: no matches
 - Tests not run yet:
   - No exact official font extraction or broad multi-card perceptual typography metric in this pass
   - No transformed-presentation visual-smoke rebaseline for type-icon and rarity-pip yet
@@ -72,8 +79,8 @@
 - Potential overlap with other worktrees:
   - No other active KARDS worktree was found
   - Direct future overlap with renderer/layout/font extraction branches and any dev-preview sample/reference selector work
-- Recommended integration order: commit Stage 8 before exact font extraction, so future private font packs can use the new per-role font slots
-- Next action: user/design review of the visible text/type-icon result, then commit on `main`
+- Recommended integration order: completed; Stage 8 landed before exact font extraction, so future private font packs can use the new per-role font slots
+- Next action: future presentation-aware visual-smoke rebaseline for transformed type-icon and rarity-pip output
 
 ## KARDS visible full-card preview Stage 7
 
