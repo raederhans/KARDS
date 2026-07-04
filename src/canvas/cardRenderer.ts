@@ -30,8 +30,8 @@ const DEFAULT_TEXT_FONT = DEFAULT_TITLE_FONT;
 const DARK = "#4f514c";
 const LIGHT = "#cfd5c2";
 const PAPER = "#d8d2bd";
-const TYPE_ICON_PAPER = "#ccc9b6";
-const TYPE_ICON_PAPER_RGB = { r: 204, g: 201, b: 182 };
+const TYPE_ICON_PAPER = PAPER;
+const TYPE_ICON_PAPER_RGB = { r: 216, g: 210, b: 189 };
 const ACTIVATED = "#ce8a31";
 const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/;
 const TYPE_ICON_GLYPH_CACHE = new WeakMap<object, CanvasImageSource>();
@@ -443,12 +443,12 @@ function drawTypeIcon(
 
   ctx.save();
   const rect = layout.typeIcon;
-  if (drawTypeIconAsset(ctx, options, rect, assetContext)) {
+  drawTypeIconBoard(ctx, rect, options, assetContext);
+  if (drawTypeIconGlyphAsset(ctx, options, rect, assetContext)) {
     ctx.restore();
     return;
   }
 
-  drawTypeIconBoard(ctx, rect);
   ctx.fillStyle = TYPE_ICON_PAPER;
   ctx.font = `800 ${kind === "order" || kind === "countermeasure" ? 34 : 22}px ${fonts.utility}`;
   ctx.textAlign = "center";
@@ -711,7 +711,18 @@ function drawRarityPipShape(ctx: CanvasRenderingContext2D, rect: Rect): void {
   ctx.fill();
 }
 
-function drawTypeIconBoard(ctx: CanvasRenderingContext2D, rect: Rect): void {
+function drawTypeIconBoard(
+  ctx: CanvasRenderingContext2D,
+  rect: Rect,
+  options: RenderCardOptions,
+  assetContext: CardRenderAssetContext,
+): void {
+  const boardImage = options.assets?.resolveImage("type-icon-board", assetContext);
+  if (boardImage) {
+    ctx.drawImage(boardImage, rect.x, rect.y, rect.width, rect.height);
+    return;
+  }
+
   const border = Math.max(4, Math.round(Math.min(rect.width, rect.height) * 0.075));
   ctx.fillStyle = TYPE_ICON_PAPER;
   roundRect(ctx, rect.x, rect.y, rect.width, rect.height, 9);
@@ -721,21 +732,24 @@ function drawTypeIconBoard(ctx: CanvasRenderingContext2D, rect: Rect): void {
   ctx.fill();
 }
 
-function drawTypeIconAsset(
+function drawTypeIconGlyphAsset(
   ctx: CanvasRenderingContext2D,
   options: RenderCardOptions,
   rect: Rect,
   assetContext: CardRenderAssetContext,
 ): boolean {
-  const image = options.assets?.resolveImage("type-icon", assetContext);
+  const glyphLayer = options.assets?.resolveImage("type-icon-glyph", assetContext);
+  const legacyLayer = glyphLayer ? undefined : options.assets?.resolveImage("type-icon", assetContext);
+  const image = glyphLayer ?? legacyLayer;
   if (!image) {
     return false;
   }
 
-  drawTypeIconBoard(ctx, rect);
-
   const sourceSize = getCanvasImageSize(image, rect);
-  const glyphImage = createTypeIconGlyphImage(image, sourceSize) ?? image;
+  const glyphImage = glyphLayer ?? createTypeIconGlyphImage(image, sourceSize);
+  if (!glyphImage) {
+    return false;
+  }
   const sourceInsetX = Math.max(1, Math.round(sourceSize.width * 0.14));
   const sourceInsetY = Math.max(1, Math.round(sourceSize.height * 0.14));
   const sourceWidth = Math.max(1, sourceSize.width - sourceInsetX * 2);

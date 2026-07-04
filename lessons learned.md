@@ -12,3 +12,4 @@
 - KARDS typography calibration should not use one global font knob: keep Latin labels/names, numeric costs/stats, and CJK body text as separate roles, and treat commercial/official font files as private user-supplied assets unless their redistribution rights are explicit.
 - Dev preview reference panes should be catalog-backed instead of hard-coded to one card; otherwise valid field changes can look broken because the official reference never moves.
 - Dev-only private preview catalogs should be dynamically imported behind `import.meta.env.DEV`; static imports can leave `.runtime` private path strings in production bundles even when the runtime branch is disabled.
+- Unit type icons should keep board and glyph as separate render layers; recoloring one combined crop forces the dark board and paper-colored glyph to drift against each other.

@@ -15,6 +15,8 @@ export const CARD_RENDER_ASSET_SLOTS = [
   "defense-board",
   "hq-defense-board",
   "type-icon",
+  "type-icon-board",
+  "type-icon-glyph",
 ] as const;
 
 export type CardRenderAssetSlot = (typeof CARD_RENDER_ASSET_SLOTS)[number];

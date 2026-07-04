@@ -9,8 +9,13 @@
       "nationId": "britain"
     },
     {
-      "slot": "type-icon",
-      "file": "images/types/tank.png",
+      "slot": "type-icon-board",
+      "file": "images/types/unit-board.png",
+      "template": "unit"
+    },
+    {
+      "slot": "type-icon-glyph",
+      "file": "images/types/tank-glyph.png",
       "kind": "tank"
     },
     {

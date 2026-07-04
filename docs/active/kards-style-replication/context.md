@@ -763,3 +763,29 @@
   - `rg` over `dist` for `.runtime/kards-private-assets`, `stage6-cardface-preview`, `stage6-multisource-clean-extraction`, `stage5-card-face-elements`, `Washington.png`, `dingo.card`, and `t70.card`: no matches.
 - Boundary:
   - DINGO artwork remains private runtime data under `.runtime`; it was not copied into `src`, `public`, or the default production bundle.
+
+## 2026-07-04 Stage 8 Type Icon Layer Split
+
+- User review found the remaining type icon color problem was structural, not just a palette mismatch:
+  - the dark rounded lower board and the paper-colored unit glyph were still treated as one source element in the renderer contract;
+  - adjusting opacity, alpha, or the legacy `type-icon` image could make either the board or glyph closer, but not both at the same time;
+  - HQ needed the same layered treatment: board art stays below while generated values/text stay above.
+- Implemented correction:
+  - Added renderer asset slots `type-icon-board` and `type-icon-glyph`.
+  - Changed type icon rendering to always draw the bottom board first, then draw a resolved glyph layer above it.
+  - Kept legacy `type-icon` support as a compatibility input; when only the old combined crop exists, the renderer derives a paper-colored glyph mask from it, and falls back to generated text instead of drawing the combined crop if the mask cannot be produced.
+  - Matched type icon paper tone to the card base `PAPER` color so the border and glyph no longer use the older grey-tinted paper value.
+  - Kept HQ defense board as a bottom asset layer while numeric value and `HQ` label remain generated text above it.
+  - Updated the private asset-pack manifest example to show split `type-icon-board` and `type-icon-glyph` inputs without mixing them with the legacy combined slot.
+- Validation:
+  - Independent code-review subagent initially requested changes for a legacy combined-crop fallback, overlapping smoke-slot support, and a weak HQ order assertion; all three were accepted and fixed before final validation.
+  - `npx vitest run src/canvas/cardRenderer.test.ts src/canvas/renderAssets.test.ts`: passed, 2 files and 21 tests.
+  - `npm run typecheck`: passed.
+  - `npm test`: passed, 8 files and 50 tests.
+  - `npm run build`: passed, including typecheck and Vite production build.
+  - HTTP check on existing dev server `http://127.0.0.1:5173/`: passed with `200`.
+  - `rg` over `dist` for private `.runtime`/sample/reference path strings: no matches.
+  - `git diff --check`: passed with Windows LF-to-CRLF warnings only.
+- Boundary:
+  - No official-derived image/font assets were copied into `src`, `public`, or `dist`.
+  - This pass fixes layer semantics and local color treatment; it does not perform a new transformed-presentation visual-smoke rebaseline, and the old raw slot-identity smoke should not be used to validate overlapping board/glyph split slots.

@@ -1,5 +1,36 @@
 # Worktree Registry
 
+## KARDS type icon layer split
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: split KARDS unit type icon board/glyph rendering and keep HQ board/text layered
+- Base branch/base commit: `main`, `5b21eeb`
+- Current branch/HEAD: `main`, closeout commit to be recorded in git history after validation
+- Task goal: stop treating the rounded type-icon board and paper-colored unit glyph as one recolored image, so changing card kind swaps only the glyph while the board layer remains stable
+- Status: ready-for-integration on main checkout; no separate worktree merge required
+- Main changed files:
+  - Core files: `src/canvas/cardRenderer.ts`, `src/canvas/renderAssets.ts`
+  - Test files: `src/canvas/cardRenderer.test.ts`, `src/canvas/renderAssets.test.ts`
+  - Tool/docs files: `docs/active/kards-style-replication/asset-pack-manifest.example.json`, `docs/active/kards-style-replication/context.md`, `docs/active/_worktree_registry.md`, `lessons learned.md`
+- Shared hotspot files touched: Canvas renderer, renderer asset-slot contract, visual smoke slot resolver, active style-replication docs
+- Validation run:
+  - `git worktree list --porcelain`: only main checkout
+  - Independent code-review subagent: request-changes findings accepted and fixed before final validation
+  - `npx vitest run src/canvas/cardRenderer.test.ts src/canvas/renderAssets.test.ts`: passed, 2 files and 21 tests
+  - `npm run typecheck`: passed
+  - `npm test`: passed, 8 files and 50 tests
+  - `npm run build`: passed, including typecheck and Vite production build
+  - HTTP check on `http://127.0.0.1:5173/`: passed with `200`
+  - `rg` over `dist` for private `.runtime`/sample/reference path strings: no matches
+  - `git diff --check`: passed with LF-to-CRLF warnings only
+- Tests not run:
+  - No transformed-presentation visual-smoke rebaseline for the new split `type-icon-board`/`type-icon-glyph` slots; old raw slot-identity smoke remains unsuitable for overlapping split-layer validation
+- Potential overlap with other worktrees:
+  - None detected; `git worktree list --porcelain` showed only the main checkout
+  - Future overlap risk with renderer/layout/font extraction branches and visual-smoke rebaseline work
+- Recommended integration order: commit this renderer-slot contract before any future extracted-material or presentation-smoke rebaseline, because later packs can target the split slots directly
+- Next action: commit and push the main checkout changes
+
 ## KARDS typography calibration Stage 8
 
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`

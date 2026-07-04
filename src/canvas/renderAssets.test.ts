@@ -14,6 +14,8 @@ const assetContext: CardRenderAssetContext = {
 describe("card render asset resolver", () => {
   it("accepts only known renderer asset slots", () => {
     expect(isCardRenderAssetSlot("frame")).toBe(true);
+    expect(isCardRenderAssetSlot("type-icon-board")).toBe(true);
+    expect(isCardRenderAssetSlot("type-icon-glyph")).toBe(true);
     expect(isCardRenderAssetSlot("unknown-official-slot")).toBe(false);
   });
 

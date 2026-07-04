@@ -196,7 +196,7 @@ describe("card renderer output", () => {
     expect(bodyCall?.[2]).toBe(580);
   });
 
-  it("clips local type icon assets to the rounded icon silhouette", () => {
+  it("does not redraw legacy combined type icon crops when glyph masking is unavailable", () => {
     const { canvas, calls } = createFakeCanvas();
     const localImage = { width: 84, height: 78 } as CanvasImageSource;
     const assets = createStaticAssetResolver([{ slot: "type-icon", kind: "tank", image: localImage }]);
@@ -204,9 +204,62 @@ describe("card renderer output", () => {
     renderCard(canvas, DEFAULT_CARD, null, { assets, disablePrintWear: true });
 
     const iconDraw = calls.drawImageStyles.find((call) => call.image === localImage);
-    expect(iconDraw?.width).toBeLessThan(84);
-    expect(iconDraw?.height).toBeLessThan(78);
-    expect(iconDraw?.clipDepth).toBeGreaterThan(0);
+    expect(iconDraw).toBeUndefined();
+    expect(calls.fillText.some(([text]) => text === "TNK")).toBe(true);
+  });
+
+  it("draws unit type icon boards below separately resolved glyph layers", () => {
+    const { canvas, calls } = createFakeCanvas();
+    const boardImage = { width: 84, height: 82 } as CanvasImageSource;
+    const tankGlyph = { width: 84, height: 78 } as CanvasImageSource;
+    const fighterGlyph = { width: 84, height: 78 } as CanvasImageSource;
+    const assets = createStaticAssetResolver([
+      { slot: "type-icon-board", template: "unit", image: boardImage },
+      { slot: "type-icon-glyph", kind: "tank", image: tankGlyph },
+      { slot: "type-icon-glyph", kind: "fighter", image: fighterGlyph },
+    ]);
+
+    renderCard(canvas, DEFAULT_CARD, null, { assets, disablePrintWear: true });
+    renderCard(canvas, { ...DEFAULT_CARD, kind: "fighter" }, null, { assets, disablePrintWear: true });
+
+    const boardDraws = calls.drawImage.filter(([image]) => image === boardImage);
+    const tankGlyphDraws = calls.drawImageStyles.filter((call) => call.image === tankGlyph);
+    const fighterGlyphDraws = calls.drawImageStyles.filter((call) => call.image === fighterGlyph);
+
+    expect(boardDraws).toHaveLength(2);
+    expect(tankGlyphDraws).toHaveLength(1);
+    expect(fighterGlyphDraws).toHaveLength(1);
+    expect(calls.drawImage.findIndex(([image]) => image === boardImage)).toBeLessThan(
+      calls.drawImage.findIndex(([image]) => image === tankGlyph),
+    );
+  });
+
+  it("keeps HQ defense board art below generated HQ text and values", () => {
+    const { canvas, calls } = createFakeCanvas();
+    const boardImage = { width: 168, height: 112 } as CanvasImageSource;
+    const assets = createStaticAssetResolver([{ slot: "hq-defense-board", template: "hq", image: boardImage }]);
+    const hqCard: CardSpec = {
+      ...DEFAULT_CARD,
+      kind: "hq",
+      costs: {},
+      stats: { hqDefense: 20 },
+      keywordLine: "HQ",
+    };
+
+    renderCard(canvas, hqCard, null, { assets, disablePrintWear: true });
+
+    const boardIndex = calls.drawImage.findIndex(([image]) => image === boardImage);
+    const hqLabel = calls.fillText.find(([text]) => text === "HQ");
+    const hqValue = calls.fillText.find(([text]) => text === "20");
+    const boardOpIndex = calls.operations.findIndex((op) => op.kind === "drawImage" && op.value === boardImage);
+    const labelOpIndex = calls.operations.findIndex((op) => op.kind === "fillText" && op.value === "HQ");
+    const valueOpIndex = calls.operations.findIndex((op) => op.kind === "fillText" && op.value === "20");
+
+    expect(boardIndex).toBeGreaterThanOrEqual(0);
+    expect(hqLabel).toBeDefined();
+    expect(hqValue).toBeDefined();
+    expect(boardOpIndex).toBeLessThan(labelOpIndex);
+    expect(boardOpIndex).toBeLessThan(valueOpIndex);
   });
 
   it("draws limited rarity pips with a subtle fan perspective", () => {
@@ -248,6 +301,7 @@ function createFakeCanvas() {
     fillText: unknown[][];
     fillTextStyles: Array<{ text: unknown; font: string; fillStyle: string; scaleX: number }>;
     drawImageStyles: Array<{ image: unknown; centerX: number; centerY: number; width: number; height: number; rotation: number; clipDepth: number }>;
+    operations: Array<{ kind: "drawImage" | "fillText"; value: unknown }>;
   } = {
     clearRect: [],
     drawImage: [],
@@ -255,6 +309,7 @@ function createFakeCanvas() {
     fillText: [],
     fillTextStyles: [],
     drawImageStyles: [],
+    operations: [],
   };
 
   const gradient = { addColorStop() {} };
@@ -315,6 +370,7 @@ function createFakeCanvas() {
     },
     drawImage(...args: unknown[]) {
       calls.drawImage.push(args);
+      calls.operations.push({ kind: "drawImage", value: args[0] });
       const [, ...drawArgs] = args;
       const [x = 0, y = 0, width = 0, height = 0] =
         args.length >= 9 ? drawArgs.slice(4, 8) : drawArgs.slice(0, 4);
@@ -332,6 +388,7 @@ function createFakeCanvas() {
       const [, x = 0, y = 0] = args;
       calls.fillText.push([args[0], transform.x + Number(x) * transform.scaleX, transform.y + Number(y), ...args.slice(3)]);
       calls.fillTextStyles.push({ text: args[0], font, fillStyle, scaleX: transform.scaleX });
+      calls.operations.push({ kind: "fillText", value: args[0] });
     },
     createLinearGradient() {
       return gradient;
