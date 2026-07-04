@@ -55,7 +55,7 @@ const UNIT_LAYOUT: CardFaceLayout = {
   artwork: { x: 12, y: 99, width: 476, height: 426 },
   nameBar: { x: 98, y: 13, width: 390, height: 86 },
   splitter: { x: 98, y: 91, width: 390, height: 8 },
-  costBoard: { x: 12, y: 13, width: 86, height: 86 },
+  costBoard: { x: 12, y: 13, width: 78, height: 78 },
   title: { x: 265, y: 56, maxWidth: 320, size: 45 },
   nationCenter: { x: 450, y: 52 },
   nationSize: 54,

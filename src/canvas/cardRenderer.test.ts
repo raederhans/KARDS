@@ -120,6 +120,15 @@ describe("card renderer output", () => {
     expect(calls.fillRect).not.toContainEqual([8, 489, 484, 160]);
   });
 
+  it("draws a darker unit cost board with gaps and no inner outline", () => {
+    const { canvas, calls } = createFakeCanvas();
+
+    renderCard(canvas, DEFAULT_CARD, null, { disablePrintWear: true });
+
+    expect(calls.fillRectStyles).toContainEqual({ x: 12, y: 13, width: 78, height: 78, fillStyle: "#3f423b" });
+    expect(calls.strokeRect).not.toContainEqual([14, 15, 74, 74]);
+  });
+
   it("leaves the nation mark blank for custom cards", () => {
     const { canvas, calls } = createFakeCanvas();
     const customMark = { width: 40, height: 40 } as CanvasImageSource;
@@ -209,8 +218,8 @@ describe("card renderer output", () => {
     renderCard(canvas, { ...DEFAULT_CARD, title: "T-70", costs: { deployment: 2, operation: 1 }, stats: { attack: 3, defense: 2 } }, null);
 
     const titleStyle = calls.fillTextStyles.find((call) => call.text === "T-70");
-    const deploymentStyle = calls.fillTextStyles.find((call) => call.text === "2" && call.font.includes("78px"));
-    const deploymentCall = calls.fillText.find(([text, , y]) => text === "2" && y === 60);
+    const deploymentStyle = calls.fillTextStyles.find((call) => call.text === "2" && call.font.includes("72px"));
+    const deploymentCall = calls.fillText.find(([text]) => text === "2");
     const kreditCall = calls.fillText.find(([text]) => text === "K");
     const operationStyle = calls.fillTextStyles.find((call) => call.text === "1");
     const operationCall = calls.fillText.find(([text]) => text === "1");
@@ -220,13 +229,18 @@ describe("card renderer output", () => {
 
     expect(titleStyle?.scaleX).toBeGreaterThan(1);
     expect(titleStyle?.scaleX).toBeLessThanOrEqual(1.12);
-    expect(deploymentStyle?.scaleX).toBeGreaterThan(1.1);
+    expect(deploymentStyle?.scaleX).toBeGreaterThan(1.05);
+    expect(deploymentStyle?.scaleX).toBeLessThanOrEqual(1.12);
+    expect(deploymentStyle?.scaleY).toBeCloseTo(1.06);
     expect(operationStyle?.scaleX).toBeGreaterThan(1.1);
+    expect(operationStyle?.scaleY).toBeCloseTo(1.08);
+    expect(calls.fillTextStyles.find((call) => call.text === "K")?.scaleY).toBeCloseTo(1.08);
     expect(attackStyle?.scaleX).toBeGreaterThan(1.15);
-    expect(deploymentCall?.[1]).toBe(45);
-    expect(kreditCall?.[1]).toBe(79);
-    expect(operationCall?.[1]).toBe(79);
-    expect(Number(operationCall?.[2]) - Number(kreditCall?.[2])).toBe(27);
+    expect(deploymentCall?.[1]).toBeCloseTo(41.6, 1);
+    expect(deploymentCall?.[2]).toBeCloseTo(56.7, 1);
+    expect(kreditCall?.[1]).toBeCloseTo(73.2, 1);
+    expect(operationCall?.[1]).toBeCloseTo(73.2, 1);
+    expect(Number(operationCall?.[2]) - Number(kreditCall?.[2])).toBeCloseTo(28.9, 1);
     expect(attackCall?.[2]).toBe(516);
     expect(defenseCall?.[2]).toBe(516);
     expect(deploymentStyle?.font).toContain("Yantramanav");
@@ -397,7 +411,7 @@ describe("card renderer output", () => {
     renderCard(canvas, DEFAULT_CARD, null, { assets, disablePrintWear: true });
 
     expect(calls.drawImage).toContainEqual([localImage, 0, 0, CARD_WIDTH, CARD_HEIGHT]);
-    expect(calls.drawImage).toContainEqual([localImage, 12, 13, 86, 86]);
+    expect(calls.drawImage).toContainEqual([localImage, 12, 13, 78, 78]);
     expect(calls.fillText.some(([text]) => text === String(DEFAULT_CARD.costs.deployment))).toBe(true);
   });
 });
@@ -411,8 +425,10 @@ function createFakeCanvas() {
     clearRect: Array<[number, number, number, number]>;
     drawImage: unknown[][];
     fillRect: Array<[number, number, number, number]>;
+    fillRectStyles: Array<{ x: number; y: number; width: number; height: number; fillStyle: unknown }>;
+    strokeRect: Array<[number, number, number, number]>;
     fillText: unknown[][];
-    fillTextStyles: Array<{ text: unknown; font: string; fillStyle: string; scaleX: number }>;
+    fillTextStyles: Array<{ text: unknown; font: string; fillStyle: string; scaleX: number; scaleY: number }>;
     drawImageStyles: Array<{ image: unknown; centerX: number; centerY: number; width: number; height: number; rotation: number; clipDepth: number }>;
     operations: Array<{ kind: "drawImage" | "fillText"; value: unknown }>;
     fills: Array<{ fillStyle: unknown }>;
@@ -421,6 +437,8 @@ function createFakeCanvas() {
     clearRect: [],
     drawImage: [],
     fillRect: [],
+    fillRectStyles: [],
+    strokeRect: [],
     fillText: [],
     fillTextStyles: [],
     drawImageStyles: [],
@@ -432,7 +450,7 @@ function createFakeCanvas() {
   const gradient = { addColorStop() {} };
   let font = "400 24px Arial, sans-serif";
   let fillStyle = "";
-  let transform = { x: 0, y: 0, scaleX: 1, rotation: 0, clipDepth: 0 };
+  let transform = { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0, clipDepth: 0 };
   const transformStack: Array<typeof transform> = [];
   let currentPath: CanvasPathPoint[] = [];
   const ctx = {
@@ -457,7 +475,7 @@ function createFakeCanvas() {
       transformStack.push({ ...transform });
     },
     restore() {
-      transform = transformStack.pop() ?? { x: 0, y: 0, scaleX: 1, rotation: 0, clipDepth: 0 };
+      transform = transformStack.pop() ?? { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0, clipDepth: 0 };
     },
     beginPath() {
       currentPath = [];
@@ -485,18 +503,21 @@ function createFakeCanvas() {
     },
     arcTo() {},
     translate(x: number, y: number) {
-      transform = { ...transform, x: transform.x + x * transform.scaleX, y: transform.y + y };
+      transform = { ...transform, x: transform.x + x * transform.scaleX, y: transform.y + y * transform.scaleY };
     },
-    scale(x: number) {
-      transform = { ...transform, scaleX: transform.scaleX * x };
+    scale(x: number, y = 1) {
+      transform = { ...transform, scaleX: transform.scaleX * x, scaleY: transform.scaleY * y };
     },
     rotate(angle: number) {
       transform = { ...transform, rotation: transform.rotation + angle };
     },
     fillRect(x: number, y: number, width: number, height: number) {
       calls.fillRect.push([x, y, width, height]);
+      calls.fillRectStyles.push({ x, y, width, height, fillStyle });
     },
-    strokeRect() {},
+    strokeRect(x: number, y: number, width: number, height: number) {
+      calls.strokeRect.push([x, y, width, height]);
+    },
     clearRect(x: number, y: number, width: number, height: number) {
       calls.clearRect.push([x, y, width, height]);
     },
@@ -509,17 +530,17 @@ function createFakeCanvas() {
       calls.drawImageStyles.push({
         image: args[0],
         centerX: transform.x + (Number(x) + Number(width) / 2) * transform.scaleX,
-        centerY: transform.y + Number(y) + Number(height) / 2,
+        centerY: transform.y + (Number(y) + Number(height) / 2) * transform.scaleY,
         width: Number(width) * transform.scaleX,
-        height: Number(height),
+        height: Number(height) * transform.scaleY,
         rotation: transform.rotation,
         clipDepth: transform.clipDepth,
       });
     },
     fillText(...args: unknown[]) {
       const [, x = 0, y = 0] = args;
-      calls.fillText.push([args[0], transform.x + Number(x) * transform.scaleX, transform.y + Number(y), ...args.slice(3)]);
-      calls.fillTextStyles.push({ text: args[0], font, fillStyle, scaleX: transform.scaleX });
+      calls.fillText.push([args[0], transform.x + Number(x) * transform.scaleX, transform.y + Number(y) * transform.scaleY, ...args.slice(3)]);
+      calls.fillTextStyles.push({ text: args[0], font, fillStyle, scaleX: transform.scaleX, scaleY: transform.scaleY });
       calls.operations.push({ kind: "fillText", value: args[0] });
     },
     createLinearGradient() {

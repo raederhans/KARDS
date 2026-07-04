@@ -12,11 +12,18 @@ describe("card face layout", () => {
 
     expect(layout.template).toBe("unit");
     expect(layout.artwork).toEqual({ x: 12, y: 99, width: 476, height: 426 });
+    expect(layout.nameBar).toEqual({ x: 98, y: 13, width: 390, height: 86 });
+    expect(layout.costBoard).toEqual({ x: 12, y: 13, width: 78, height: 78 });
+    const nameBar = layout.nameBar!;
+    const costBoard = layout.costBoard!;
+
     expect(layout.attackBoard).toEqual({ x: 88, y: 468, width: 82, height: 82 });
     expect(layout.typeIcon).toEqual({ x: 208, y: 473, width: 84, height: 82 });
     expect(layout.defenseBoard).toEqual({ x: 330, y: 473, width: 82, height: 82 });
     expect(layout.rarity).toEqual({ x: 222, y: 675, width: 56, height: 20 });
     expect(layout.setAnchor).toEqual({ x: 488, y: 692 });
+    expect(nameBar.x - (costBoard.x + costBoard.width)).toBe(8);
+    expect(layout.artwork.y - (costBoard.y + costBoard.height)).toBe(8);
   });
 
   it("uses the command artwork geometry for orders and countermeasures", () => {

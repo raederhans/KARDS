@@ -35,6 +35,7 @@ const PAPER = "#d8d2bd";
 const TYPE_ICON_PAPER = PAPER;
 const TYPE_ICON_PAPER_RGB = { r: 216, g: 210, b: 189 };
 const TYPE_ICON_BOARD_DARK = "#41433d";
+const COST_BOARD_DARK = "#3f423b";
 const ACTIVATED = "#ce8a31";
 const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/;
 const TYPE_ICON_GLYPH_CACHE = new WeakMap<object, CanvasImageSource>();
@@ -243,35 +244,34 @@ function drawCostBoard(
   ctx.save();
   const hasAsset = drawAsset(ctx, options, "cost-board", rect, assetContext);
   if (!hasAsset) {
-    ctx.fillStyle = DARK;
+    ctx.fillStyle = COST_BOARD_DARK;
     ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-    ctx.strokeStyle = "rgba(223, 222, 196, 0.75)";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(rect.x + 2, rect.y + 2, rect.width - 4, rect.height - 4);
   }
 
   const deploymentText = String(deployment ?? 0);
-  const deploymentSize = deploymentText.length > 1 ? 58 : 78;
-  const costScale = getTextScale(deploymentText, 1.22, 1.02);
-  const deploymentCenterX = rect.x + 33;
-  const sideCostCenterX = rect.x + 67;
-  const sideCostTopY = rect.y + 31;
-  const sideCostBottomY = rect.y + 58;
+  const deploymentSize = deploymentText.length > 1 ? 52 : 72;
+  const costScale = getTextScale(deploymentText, 1.12, 1);
+  const deploymentScaleY = 1.06;
+  const sideCostScaleY = 1.08;
+  const deploymentCenterX = rect.x + rect.width * 0.38;
+  const sideCostCenterX = rect.x + rect.width * 0.785;
+  const sideCostTopY = rect.y + rect.height * 0.32;
+  const sideCostBottomY = rect.y + rect.height * 0.69;
   ctx.fillStyle = LIGHT;
   ctx.font = `900 ${deploymentSize}px ${fonts.cost}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  fillScaledText(ctx, deploymentText, deploymentCenterX, rect.y + 47, costScale);
+  fillScaledText(ctx, deploymentText, deploymentCenterX, rect.y + rect.height * 0.56, costScale, deploymentScaleY);
 
   ctx.fillStyle = ACTIVATED;
   ctx.font = `900 27px ${fonts.cost}`;
-  fillScaledText(ctx, "K", sideCostCenterX, sideCostTopY, 1.15);
+  fillScaledText(ctx, "K", sideCostCenterX, sideCostTopY, 1.15, sideCostScaleY);
 
   if (operation !== undefined) {
     ctx.fillStyle = LIGHT;
     const operationText = String(operation);
     ctx.font = `900 27px ${fonts.cost}`;
-    fillScaledText(ctx, operationText, sideCostCenterX, sideCostBottomY, getTextScale(operationText, 1.14, 1.02));
+    fillScaledText(ctx, operationText, sideCostCenterX, sideCostBottomY, getTextScale(operationText, 1.14, 1.02), sideCostScaleY);
   }
   ctx.restore();
 }
@@ -763,15 +763,15 @@ function splitLongToken(ctx: TextMeasureContext, token: string, maxWidth: number
   return chunks;
 }
 
-function fillScaledText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, scaleX = 1): void {
-  if (scaleX === 1) {
+function fillScaledText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, scaleX = 1, scaleY = 1): void {
+  if (scaleX === 1 && scaleY === 1) {
     ctx.fillText(text, x, y);
     return;
   }
 
   ctx.save();
   ctx.translate(x, y);
-  ctx.scale(scaleX, 1);
+  ctx.scale(scaleX, scaleY);
   ctx.fillText(text, 0, 0);
   ctx.restore();
 }
