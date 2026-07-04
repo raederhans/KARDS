@@ -22,3 +22,4 @@
 - Small card-foot set marks should sample background from their own corners, not the broader card neighborhood; nearby printed texture can otherwise be mistaken for background and erase pale icon subjects.
 - Thin-line card-foot set marks need per-set preservation rules instead of one global threshold; otherwise fixing detailed icons can reintroduce background texture into already-clean marks.
 - Rarity foot marks are not one-size-fits-all: keep standard/limited as single repeated pips, but crop elite/special as natural-size subject groups so elite wings and silver-pip gloss are preserved without stretching.
+- Asset-backed canvas layers should not return before shared overlay details are drawn; otherwise official slot assets can silently skip seams, masks, or separators that fallback rendering still shows.

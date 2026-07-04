@@ -190,13 +190,12 @@ function drawNameBar(
   }
 
   ctx.save();
-  if (drawAsset(ctx, options, "unit-name-bar", layout.nameBar, assetContext)) {
-    ctx.restore();
-    return;
+  const hasNameBarAsset = drawAsset(ctx, options, "unit-name-bar", layout.nameBar, assetContext);
+  if (!hasNameBarAsset) {
+    ctx.fillStyle = accent;
+    ctx.fillRect(layout.nameBar.x, layout.nameBar.y, layout.nameBar.width, layout.nameBar.height);
   }
 
-  ctx.fillStyle = accent;
-  ctx.fillRect(layout.nameBar.x, layout.nameBar.y, layout.nameBar.width, layout.nameBar.height);
   if (layout.splitter) {
     ctx.fillStyle = "rgba(205, 213, 194, 0.72)";
     ctx.fillRect(layout.splitter.x, layout.splitter.y, layout.splitter.width, layout.splitter.height);

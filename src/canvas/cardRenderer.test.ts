@@ -129,6 +129,37 @@ describe("card renderer output", () => {
     expect(calls.strokeRect).not.toContainEqual([14, 15, 74, 74]);
   });
 
+  it("keeps an independent unit header seam above the artwork", () => {
+    const { canvas, calls } = createFakeCanvas();
+
+    renderCard(canvas, DEFAULT_CARD, null, { disablePrintWear: true });
+
+    expect(calls.fillRectStyles).toContainEqual({
+      x: 98,
+      y: 91,
+      width: 390,
+      height: 8,
+      fillStyle: "rgba(205, 213, 194, 0.72)",
+    });
+  });
+
+  it("draws the unit header seam even when a name-bar asset is present", () => {
+    const { canvas, calls } = createFakeCanvas();
+    const nameBarImage = { width: 390, height: 86 } as CanvasImageSource;
+    const assets = createStaticAssetResolver([{ slot: "unit-name-bar", template: "unit", image: nameBarImage }]);
+
+    renderCard(canvas, DEFAULT_CARD, null, { assets, disablePrintWear: true });
+
+    expect(calls.drawImage).toContainEqual([nameBarImage, 98, 13, 390, 86]);
+    expect(calls.fillRectStyles).toContainEqual({
+      x: 98,
+      y: 91,
+      width: 390,
+      height: 8,
+      fillStyle: "rgba(205, 213, 194, 0.72)",
+    });
+  });
+
   it("leaves the nation mark blank for custom cards", () => {
     const { canvas, calls } = createFakeCanvas();
     const customMark = { width: 40, height: 40 } as CanvasImageSource;
