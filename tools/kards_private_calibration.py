@@ -31,6 +31,15 @@ NATION_MIN_SUBJECT_OPAQUE_RATIO = 0.14
 SET_MARK_BACKGROUND_DISTANCE_THRESHOLD = 42
 SET_MARK_SUBJECT_DISTANCE_THRESHOLD = 32
 SET_MARK_MIN_SUBJECT_PIXEL_COUNT = 24
+DETAILED_SET_MARK_SUBJECT_DISTANCE_THRESHOLD = 16
+DETAILED_SET_MARK_IDS = {
+    "legions",
+    "naval-warfare",
+    "special",
+    "theaters-of-war",
+    "winter-war",
+    "world-at-war",
+}
 FORBIDDEN_OUTPUT_SEGMENTS = {"dist", "public", "src"}
 DEFAULT_DATA_FILE = Path(".runtime/stage3/sources/craftsoul-data.json")
 DEFAULT_STAGE3_OUTPUT = Path(".runtime/kards-private-assets/stage3-official-coverage-pack")
@@ -1244,7 +1253,7 @@ def add_manifest_images(
         manifest_seen,
         slot="set-mark",
         file_path=Path("images") / "sets" / f"{set_id}.png",
-        crop_image=extract_set_mark_subject(image, layout["set-mark"]),
+        crop_image=extract_set_mark_subject(image, layout["set-mark"], set_id),
         filters={"setId": set_id},
     )
 
@@ -1350,13 +1359,17 @@ def extract_nation_mark_subject(
     return output
 
 
-def extract_set_mark_subject(image: Image.Image, rect: tuple[int, int, int, int]) -> Image.Image:
+def extract_set_mark_subject(
+    image: Image.Image,
+    rect: tuple[int, int, int, int],
+    set_id: str = "",
+) -> Image.Image:
     mark = crop(image, rect).convert("RGBA")
     palette = sample_set_mark_background_palette(mark)
     if not palette:
         return mark
 
-    protected = protected_set_mark_subject_pixels(mark, palette)
+    protected = protected_set_mark_subject_pixels(mark, palette, set_id)
     transparent = collect_connected_background_pixels(mark, palette, SET_MARK_BACKGROUND_DISTANCE_THRESHOLD, protected)
     if not transparent:
         return mark
@@ -1397,8 +1410,14 @@ def sample_set_mark_background_palette(mark: Image.Image) -> list[tuple[int, int
 def protected_set_mark_subject_pixels(
     mark: Image.Image,
     palette: list[tuple[int, int, int]],
+    set_id: str = "",
 ) -> set[tuple[int, int]]:
-    threshold_sq = SET_MARK_SUBJECT_DISTANCE_THRESHOLD * SET_MARK_SUBJECT_DISTANCE_THRESHOLD
+    threshold = (
+        DETAILED_SET_MARK_SUBJECT_DISTANCE_THRESHOLD
+        if set_id in DETAILED_SET_MARK_IDS
+        else SET_MARK_SUBJECT_DISTANCE_THRESHOLD
+    )
+    threshold_sq = threshold * threshold
     protected: set[tuple[int, int]] = set()
     pixels = mark.load()
     width, height = mark.size

@@ -14,9 +14,23 @@ type FieldPanelProps = {
   language: Language;
   text: UiText["fieldPanel"];
   onCardChange: (update: CardUpdate) => void;
+  referenceSamples?: {
+    id: string;
+    label: string;
+  }[];
+  selectedReferenceSampleId?: string;
+  onReferenceSampleSelect?: (sampleId: string) => void;
 };
 
-export function FieldPanel({ card, language, text, onCardChange }: FieldPanelProps) {
+export function FieldPanel({
+  card,
+  language,
+  text,
+  onCardChange,
+  referenceSamples = [],
+  selectedReferenceSampleId = "",
+  onReferenceSampleSelect,
+}: FieldPanelProps) {
   const kind = getKind(card.kind);
   const selectedKeywordIds = resolveCardKeywordIds(card);
   const availableKeywords = KEYWORD_PRESETS.filter((keyword) => !selectedKeywordIds.includes(keyword.id));
@@ -303,6 +317,23 @@ export function FieldPanel({ card, language, text, onCardChange }: FieldPanelPro
           />
         ) : null}
       </div>
+
+      {referenceSamples.length && onReferenceSampleSelect ? (
+        <label className="field-block">
+          <span>{text.officialReference}</span>
+          <select
+            name="official-reference-sample"
+            value={selectedReferenceSampleId}
+            onChange={(event) => onReferenceSampleSelect(event.target.value)}
+          >
+            {referenceSamples.map((sample) => (
+              <option key={sample.id} value={sample.id}>
+                {sample.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
     </aside>
   );
 }

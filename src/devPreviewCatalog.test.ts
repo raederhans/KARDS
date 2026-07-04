@@ -3,9 +3,11 @@ import { DEFAULT_CARD } from "./cardModel";
 import {
   DEV_PREVIEW_ASSET_PACK_URL,
   DEV_PREVIEW_HQ_SAMPLE,
+  DEV_PREVIEW_REFERENCE_SAMPLES,
   DEV_PREVIEW_SET_SAMPLES,
   getDefaultDevPreviewSample,
   getDevPreviewReferenceForCard,
+  getDevPreviewSampleById,
   getDevPreviewSampleByKind,
   getDevPreviewSampleForCard,
   getDevPreviewSampleBySet,
@@ -25,6 +27,7 @@ describe("dev preview sample catalog", () => {
     const implementedOfficialSets = SETS.filter((set) => set.id !== "custom");
 
     expect(DEV_PREVIEW_SET_SAMPLES).toHaveLength(implementedOfficialSets.length);
+    expect(DEV_PREVIEW_REFERENCE_SAMPLES.length).toBeGreaterThan(DEV_PREVIEW_SET_SAMPLES.length);
     for (const set of implementedOfficialSets) {
       expect(sampleSets.has(set.id)).toBe(true);
     }
@@ -32,6 +35,7 @@ describe("dev preview sample catalog", () => {
 
   it("returns the expected default, set, and HQ samples", () => {
     expect(getDefaultDevPreviewSample().id).toBe("t70");
+    expect(getDevPreviewSampleById("hold_the_line")?.labelZh).toBe("坚守阵线");
     expect(getDevPreviewSampleBySet("allegiance")?.id).toBe("a26_invader");
     expect(getDevPreviewSampleBySet("blood-and-iron")?.id).toBe("macchi_c_200");
     expect(getDevPreviewSampleBySet("oceania-storm")?.id).toBe("dingo");

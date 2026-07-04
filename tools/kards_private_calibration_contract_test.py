@@ -171,6 +171,37 @@ class PrivateCalibrationContractTest(unittest.TestCase):
         self.assertGreater(sum(1 for alpha in alpha_values if alpha >= 200), 0)
         self.assertGreater(sum(1 for alpha in alpha_values if alpha == 0), 600)
 
+    def test_detailed_set_mark_extraction_preserves_faint_linework(self) -> None:
+        rect = (8, 8, 28, 28)
+        image = Image.new("RGBA", (44, 44), (210, 202, 176, 255))
+        draw = ImageDraw.Draw(image)
+        draw.ellipse(
+            (
+                rect[0] + 5,
+                rect[1] + 5,
+                rect[0] + 23,
+                rect[1] + 23,
+            ),
+            outline=(190, 190, 170, 255),
+            width=2,
+        )
+        draw.line(
+            (
+                (rect[0] + 14, rect[1] + 5),
+                (rect[0] + 14, rect[1] + 23),
+                (rect[0] + 5, rect[1] + 14),
+                (rect[0] + 23, rect[1] + 14),
+            ),
+            fill=(190, 190, 170, 255),
+            width=1,
+        )
+
+        output = extract_set_mark_subject(image, rect, "world-at-war")
+        alpha_values = list(output.getchannel("A").tobytes())
+
+        self.assertGreater(sum(1 for alpha in alpha_values if alpha >= 200), 40)
+        self.assertGreater(sum(1 for alpha in alpha_values if alpha == 0), 500)
+
     def test_set_mark_extraction_clears_empty_paper_crop(self) -> None:
         rect = (8, 8, 28, 28)
         image = Image.new("RGBA", (44, 44), (210, 202, 176, 255))

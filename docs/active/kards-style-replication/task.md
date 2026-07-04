@@ -908,3 +908,46 @@
    - Continue any visual footmark tuning from the transparent Stage6 set-mark outputs rather than reintroducing baked paper-background crops.
 10. Integration recommendation:
    - Commit and push directly on `main`; no merge or cherry-pick is needed.
+
+## 2026-07-04 Follow-Up Delivery: Official Reference Picker And Detailed Set Marks
+
+1. Changed this follow-up:
+   - Added a dedicated official reference selector back into the editor as `官方参考`, separate from the editable card-pack footmark selector.
+   - Expanded the dev official-reference catalog to 69 card samples plus the HQ sample, with localized Chinese sample names.
+   - Made selecting a reference update only the comparison/reference card; loading that sample into the editable card remains an explicit project-panel action.
+   - Preserved more linework for detailed footmarks: `legions`, `naval-warfare`, `special`, `theaters-of-war`, `winter-war`, and `world-at-war`.
+   - Regenerated the private Stage5 and Stage6 local asset packs after the extraction change.
+2. Files touched:
+   - Core files: `src/App.tsx`, `src/components/FieldPanel.tsx`, `src/components/ProjectPanel.tsx`, `src/devPreviewCatalog.ts`, `src/i18n.ts`.
+   - Test files: `src/devPreviewCatalog.test.ts`, `src/i18n.test.ts`, `tools/kards_private_calibration_contract_test.py`.
+   - Tooling files: `tools/kards_private_calibration.py`.
+   - Docs: `docs/active/_worktree_registry.md`, `context.md`, `task.md`.
+   - Lessons: `lessons learned.md`.
+3. Diff summary:
+   - `CardSpec.set` remains the custom card footmark source, while `selectedReferenceSampleId` controls the official reference image independently.
+   - The dev preview catalog now has a broad localized reference list and a smaller set-sample compatibility list derived from it.
+   - Detailed set marks use a narrower subject-distance threshold only when their set id is in the detailed preservation list.
+4. Commit status:
+   - Committed directly on `main` after final validation.
+5. Base divergence:
+   - Follow-up started from `main` commit `c860025`; no separate implementation worktree was used.
+6. Potential conflicts:
+   - Direct overlap with future changes touching `App`, `FieldPanel`, `ProjectPanel`, `devPreviewCatalog`, localized field labels, or private official-asset extraction.
+7. Validation:
+   - `npm test -- --run src/devPreviewCatalog.test.ts src/i18n.test.ts`: passed, 2 files and 12 tests.
+   - `py -3 -m py_compile tools\kards_private_calibration.py tools\kards_multisource_extraction.py tools\kards_private_calibration_contract_test.py`: passed.
+   - `py -3 tools\kards_private_calibration_contract_test.py`: passed, 9 tests.
+   - Stage5 regeneration passed: 69 official samples, 163/163 requirements covered, 91 manifest images.
+   - Stage6 regeneration passed: 337 extracted/cataloged private files and 91 renderer-ready images.
+   - Set-mark detail audit saved `.runtime/qa/set-mark-detail-legions-after.png` and confirmed detailed marks retain visible subjects with transparent backgrounds.
+   - `npm run typecheck`: passed.
+   - `npm test -- --run`: passed, 11 files and 70 tests.
+   - `npm run build`: passed, including typecheck and Vite production build.
+   - HTTP probe for `http://127.0.0.1:5173/`: passed with status 200.
+8. Unverified risks:
+   - No full perceptual browser sweep was run across every official reference sample or every card-pack footmark.
+   - The detailed preservation list is intentionally explicit; newly discovered thin-line footmarks should be added by set id after visual review.
+9. Recommended next step:
+   - Continue reference-card calibration through `DEV_PREVIEW_REFERENCE_SAMPLES`; do not overload the card-pack selector with sample-loading behavior again.
+10. Integration recommendation:
+   - Commit and push directly on `main`; no merge or cherry-pick is needed.

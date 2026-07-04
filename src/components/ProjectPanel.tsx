@@ -23,8 +23,8 @@ type ProjectPanelProps = {
   referenceDiffError: string | null;
   onAssetPackLoad: (files: FileList | null) => void;
   onReferenceCompare: (file: File | null) => void;
-  onSetSampleLoad?: () => void;
-  setSampleLabel?: string;
+  onReferenceSampleLoad?: () => void;
+  referenceSampleLabel?: string;
   onHqSampleLoad?: () => void;
 };
 
@@ -41,8 +41,8 @@ export function ProjectPanel({
   referenceDiffError,
   onAssetPackLoad,
   onReferenceCompare,
-  onSetSampleLoad,
-  setSampleLabel,
+  onReferenceSampleLoad,
+  referenceSampleLabel,
   onHqSampleLoad,
 }: ProjectPanelProps) {
   function exportPng() {
@@ -134,9 +134,9 @@ export function ProjectPanel({
           {text.comparePng}
           <input name="reference-card-image" type="file" accept="image/*" onChange={compareReference} />
         </label>
-        {onSetSampleLoad && setSampleLabel ? (
-          <button type="button" onClick={onSetSampleLoad}>
-            {text.loadSetSample(setSampleLabel)}
+        {onReferenceSampleLoad && referenceSampleLabel ? (
+          <button type="button" onClick={onReferenceSampleLoad}>
+            {text.loadReferenceSample(referenceSampleLabel)}
           </button>
         ) : null}
         {onHqSampleLoad ? (

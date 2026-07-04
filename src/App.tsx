@@ -11,6 +11,7 @@ import {
   getLocalizedDefaultCard,
   getNextLanguage,
   saveLanguage,
+  translatePresetLabel,
   type Language,
 } from "./i18n";
 import { loadDraftCard, saveDraftCard } from "./storage";
@@ -33,6 +34,7 @@ function App() {
   const [devPreviewCatalog, setDevPreviewCatalog] = useState<DevPreviewCatalogModule | null>(null);
   const [assetPackError, setAssetPackError] = useState<string | null>(null);
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
+  const [selectedReferenceSampleId, setSelectedReferenceSampleId] = useState("");
   const [referenceDiff, setReferenceDiff] = useState<ImageDiffMetrics | null>(null);
   const [referenceDiffError, setReferenceDiffError] = useState<string | null>(null);
   const [autosavePaused, setAutosavePaused] = useState(false);
@@ -142,17 +144,25 @@ function App() {
   );
   const referenceSample = useMemo(
     () =>
-      isDevPrivatePreviewEnabled && devPreviewCatalog
-        ? devPreviewCatalog.getDevPreviewSampleForCard(previewCard)
+      isDevPrivatePreviewEnabled && devPreviewCatalog && selectedReferenceSampleId
+        ? devPreviewCatalog.getDevPreviewSampleById(selectedReferenceSampleId)
         : undefined,
-    [devPreviewCatalog, isDevPrivatePreviewEnabled, previewCard.kind, previewCard.set],
+    [devPreviewCatalog, isDevPrivatePreviewEnabled, selectedReferenceSampleId],
   );
-  const selectedSetSample = useMemo(
+  const referenceSampleOptions = useMemo(
     () =>
       isDevPrivatePreviewEnabled && devPreviewCatalog
-        ? devPreviewCatalog.getDevPreviewSampleBySet(previewCard.set)
-        : undefined,
-    [devPreviewCatalog, isDevPrivatePreviewEnabled, previewCard.set],
+        ? devPreviewCatalog.DEV_PREVIEW_REFERENCE_SAMPLES.map((sample) => ({
+            id: sample.id,
+            label: `${localizedReferenceSampleTitle(sample, language)} · ${translatePresetLabel(
+              language,
+              "set",
+              sample.set,
+              sample.set,
+            )}`,
+          }))
+        : [],
+    [devPreviewCatalog, isDevPrivatePreviewEnabled, language],
   );
   useEffect(() => {
     if (!isDevPrivatePreviewEnabled) {
@@ -227,6 +237,7 @@ function App() {
       }
       setAssetPack(loadedPack);
       setCard(normalizeCardSpec(sampleCard));
+      setSelectedReferenceSampleId(sample.id);
       setReferenceImageUrl(sample.referenceUrl);
     } catch (error) {
       if (requestId !== assetPackRequestRef.current) {
@@ -238,12 +249,28 @@ function App() {
     }
   }
 
-  async function handleSetSampleLoad() {
-    if (!selectedSetSample) {
+  function handleReferenceSampleSelect(sampleId: string) {
+    if (!devPreviewCatalog) {
       return;
     }
 
-    await loadDevPreviewSample(selectedSetSample);
+    const sample = devPreviewCatalog.getDevPreviewSampleById(sampleId);
+    if (!sample) {
+      return;
+    }
+
+    setSelectedReferenceSampleId(sample.id);
+    setReferenceImageUrl(sample.referenceUrl);
+    setReferenceDiff(null);
+    setReferenceDiffError(null);
+  }
+
+  async function handleReferenceSampleLoad() {
+    if (!referenceSample) {
+      return;
+    }
+
+    await loadDevPreviewSample(referenceSample);
   }
 
   async function handleHqSampleLoad() {
@@ -313,6 +340,9 @@ function App() {
           language={language}
           text={text.fieldPanel}
           onCardChange={updateCard}
+          referenceSamples={referenceSampleOptions}
+          selectedReferenceSampleId={referenceSample?.id}
+          onReferenceSampleSelect={handleReferenceSampleSelect}
         />
         <CardCanvas
           card={previewCard}
@@ -321,7 +351,7 @@ function App() {
           canvasRef={canvasRef}
           renderOptions={renderOptions}
           referenceImageUrl={referenceImageUrl}
-          referenceLabel={referenceSample?.label}
+          referenceLabel={referenceSample ? localizedReferenceSampleTitle(referenceSample, language) : undefined}
           onCropChange={(crop) =>
             updateCard((currentCard) => ({
               ...currentCard,
@@ -354,13 +384,17 @@ function App() {
           referenceDiffError={referenceDiffError}
           onAssetPackLoad={handleAssetPackLoad}
           onReferenceCompare={handleReferenceCompare}
-          onSetSampleLoad={selectedSetSample ? handleSetSampleLoad : undefined}
-          setSampleLabel={selectedSetSample?.label}
+          onReferenceSampleLoad={referenceSample ? handleReferenceSampleLoad : undefined}
+          referenceSampleLabel={referenceSample ? localizedReferenceSampleTitle(referenceSample, language) : undefined}
           onHqSampleLoad={isDevPrivatePreviewEnabled && devPreviewCatalog ? handleHqSampleLoad : undefined}
         />
       </div>
     </main>
   );
+}
+
+function localizedReferenceSampleTitle(sample: DevPreviewSample, language: Language): string {
+  return language === "zh" ? sample.labelZh ?? sample.label : sample.label;
 }
 
 export default App;

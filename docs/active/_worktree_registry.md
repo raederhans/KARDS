@@ -697,3 +697,44 @@
 - Recommended integration order: integrate this Stage 1 geometry pass before any asset-pack UX, official-material calibration, or typography extraction work
 - Delivery package: `docs/active/kards-style-replication/task.md`
 - Next action: future Stage 2 can decide the official-asset/font policy boundary before adding any asset-pack UX
+
+## KARDS official reference picker and detailed set-mark recovery
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: KARDS set-mark detail recovery and official reference selector split
+- Base branch/base commit: `main`, `c860025`
+- Current branch/HEAD: `main`, direct follow-up delivery commit
+- Task goal: restore thin-line details in over-cleaned card-pack footmark icons and make official card references a separate picker from the custom card-pack selector
+- Status: integrated
+- Main changed files:
+  - `src/App.tsx`
+  - `src/components/FieldPanel.tsx`
+  - `src/components/ProjectPanel.tsx`
+  - `src/devPreviewCatalog.ts`
+  - `src/devPreviewCatalog.test.ts`
+  - `src/i18n.ts`
+  - `src/i18n.test.ts`
+  - `tools/kards_private_calibration.py`
+  - `tools/kards_private_calibration_contract_test.py`
+  - `docs/active/kards-style-replication/context.md`
+  - `docs/active/kards-style-replication/task.md`
+  - `docs/active/_worktree_registry.md`
+  - `lessons learned.md`
+- Shared hotspot files touched: app state wiring, field panel controls, project panel dev-preview action, dev private preview catalog, private asset extraction tooling
+- Validation run:
+  - `npm test -- --run src/devPreviewCatalog.test.ts src/i18n.test.ts`: passed, 2 files and 12 tests
+  - `py -3 -m py_compile tools\kards_private_calibration.py tools\kards_multisource_extraction.py tools\kards_private_calibration_contract_test.py`: passed
+  - `py -3 tools\kards_private_calibration_contract_test.py`: passed, 9 tests
+  - Stage5 regeneration passed: 69 official samples, 163/163 requirements covered, 91 manifest images
+  - Stage6 regeneration passed: 337 extracted/cataloged private files and 91 renderer-ready images
+  - Set-mark detail audit saved `.runtime/qa/set-mark-detail-legions-after.png` and confirmed `legions`, `naval-warfare`, `special`, `theaters-of-war`, `winter-war`, and `world-at-war` remain non-empty with transparent backgrounds
+  - `npm run typecheck`: passed
+  - `npm test -- --run`: passed, 11 files and 70 tests
+  - `npm run build`: passed, including typecheck and Vite production build
+  - HTTP probe for `http://127.0.0.1:5173/`: passed, status 200
+- Tests not run:
+  - No full perceptual browser regression sweep was run for every official reference sample or every card-pack footmark
+- Potential overlap with other worktrees: none detected in this checkout; future overlap risk is highest for `FieldPanel`, `App`, `devPreviewCatalog`, and private extraction tooling
+- Recommended integration order: this follow-up is self-contained and should stay after the card-pack set mark cleanup commit
+- Delivery package: `docs/active/kards-style-replication/task.md`
+- Next action: continue visual tuning from the separated official-reference selector and per-set detail-preservation list, without reusing the card-pack selector for reference loading

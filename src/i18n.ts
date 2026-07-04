@@ -37,6 +37,7 @@ export const UI_TEXT = {
       attack: "Attack",
       defense: "Defense",
       hqDefense: "HQ defense",
+      officialReference: "Official reference",
       invalidArtwork: "Please choose a PNG, JPEG, or WebP image under 5 MB.",
     },
     canvas: {
@@ -58,7 +59,7 @@ export const UI_TEXT = {
       openJson: "Open JSON",
       loadAssets: "Load Assets",
       comparePng: "Compare PNG",
-      loadSetSample: (label: string) => `Load ${label} Sample`,
+      loadReferenceSample: (label: string) => `Load ${label} Sample`,
       loadHqSample: "Load HQ Sample",
       resetCard: "Reset Card",
       output: "Output",
@@ -117,6 +118,7 @@ export const UI_TEXT = {
       attack: "攻击",
       defense: "防御",
       hqDefense: "总部防御",
+      officialReference: "官方参考",
       invalidArtwork: "请选择 5 MB 以下的 PNG、JPEG 或 WebP 图片。",
     },
     canvas: {
@@ -138,7 +140,7 @@ export const UI_TEXT = {
       openJson: "打开 JSON",
       loadAssets: "加载素材",
       comparePng: "对比 PNG",
-      loadSetSample: (label: string) => `加载 ${label} 示例`,
+      loadReferenceSample: (label: string) => `加载 ${label} 示例`,
       loadHqSample: "加载总部示例",
       resetCard: "重置卡牌",
       output: "输出",

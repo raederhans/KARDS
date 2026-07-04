@@ -941,3 +941,29 @@
 - Boundary:
   - No official-derived images or fonts were copied into source, public, or dist.
   - This pass changes editor semantics, fallback rendering, and the private local generation path; it does not run a full browser pixel regression sweep for every card-pack mark.
+
+## 2026-07-04 Official Reference Picker And Set-Mark Detail Recovery
+
+- User review found that several card-pack footmarks were cleaned too aggressively: naval warfare, special, theaters of war, winter war, world at war, and then legions all needed more subject detail preserved.
+- User also found that the previous official card reference selector had effectively disappeared after separating the editable card-pack field; the card-pack selector should control the custom card footmark, while official card references should be a separate calibration aid.
+- Implemented correction:
+  - Added a per-set detailed extraction list in `tools/kards_private_calibration.py` for thin-line set marks: `legions`, `naval-warfare`, `special`, `theaters-of-war`, `winter-war`, and `world-at-war`.
+  - Kept the background clearing algorithm the same, but lowered the subject-protection distance only for those detailed marks so pale linework survives without relaxing every icon.
+  - Expanded `DEV_PREVIEW_REFERENCE_SAMPLES` to 69 official card references plus the HQ sample, with Chinese labels taken from the local CraftSoul-derived data.
+  - Kept `DEV_PREVIEW_SET_SAMPLES` as a small representative list for set coverage, while the editor now exposes a separate `官方参考` dropdown in the left panel.
+  - Selecting an official reference now changes only the reference image; loading that reference into the current card remains an explicit action in the project panel.
+- Runtime evidence:
+  - Stage5 private pack regenerated successfully with 69 official samples and 163/163 requirements covered.
+  - Stage6 multisource pack regenerated successfully with 337 extracted/cataloged private files and 91 renderer-ready images.
+  - Set-mark detail audit saved `.runtime/qa/set-mark-detail-legions-after.png`; the detailed marks have visible subjects and transparent backgrounds.
+- Validation:
+  - `npm test -- --run src/devPreviewCatalog.test.ts src/i18n.test.ts`: passed, 2 files and 12 tests.
+  - `py -3 -m py_compile tools\kards_private_calibration.py tools\kards_multisource_extraction.py tools\kards_private_calibration_contract_test.py`: passed.
+  - `py -3 tools\kards_private_calibration_contract_test.py`: passed, 9 tests.
+  - `npm run typecheck`: passed.
+  - `npm test -- --run`: passed, 11 files and 70 tests.
+  - `npm run build`: passed, including typecheck and Vite production build.
+  - HTTP probe for `http://127.0.0.1:5173/`: passed with status 200.
+- Boundary:
+  - No official-derived images or fonts were copied into source, public, or dist.
+  - This pass changes dev-preview selection, localized reference labels, and the private local generation path; it does not run a full perceptual browser regression for all reference samples.
