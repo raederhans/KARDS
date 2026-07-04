@@ -216,3 +216,24 @@ The user does not need a generic WWII card generator. The target is a local stat
 - This stage proves the visible dev preview is now an honest full-card side-by-side calibration surface.
 - It still does not claim perfect KARDS equivalence. Remaining gaps are official font extraction, title/cost exact typography, footer/print-wear lighting, and clean atlas/pak-derived UI layers.
 - Official-derived and derived preview pixels remain under `.runtime`; they are not committed or bundled into `src`, `public`, or default `dist`.
+
+## Stage 8 Typography Calibration
+
+- [x] Broaden font research beyond local GitHub sources into forum/community references and custom-card templates.
+- [x] Separate the evidence for Latin KARDS typography, numeric/stat typography, and Chinese fallback typography instead of treating all card text as one font.
+- [x] Add role-specific font slots for title/body/keyword/cost/stat/utility so later private font packs can override only the needed text layer.
+- [x] Recalibrate visible unit title, cost, operation cost, keyword, body, and stat rendering around condensed Latin text and wider CJK text.
+- [x] Add bundled open-font replacements for the default browser path: Libre Franklin for Franklin-like labels and Yantramanav for cost/stat numerals.
+- [x] Rework cost-board grouping so deployment cost, `K`, and operation cost use explicit centers instead of scattered magic positions.
+- [x] Round-mask unit type-icon assets onto a paper-colored border with a dark inner board and reshape rarity pips toward the visible reference instead of preserving flat slot crops.
+- [x] Keep dev-preview Set changes safe as field edits while exposing a dynamic `Load {selected set sample} Sample` action for representative cards such as DINGO.
+- [x] Add focused renderer regression coverage for keyword font/color behavior.
+- [x] Run targeted tests, full tests, typecheck, production build, browser reload, and the Stage 6 visual smoke against the current private pack.
+
+## Stage 8 Typography Boundary
+
+- Best current public evidence points to Franklin Gothic Demi/Condensed style for Latin KARDS card labels and names, with a custom-card template also listing Yantramanav Bold for deployment cost and attack/defense numerals.
+- For Chinese card text, use Source Han Sans SC / Noto Sans SC / Microsoft YaHei UI as the practical CJK stack. The Chinese KardsGen README says Source Han Sans is visually closer, while its current generator defaults to Microsoft YaHei UI.
+- Do not bundle commercial Franklin Gothic files or official-derived font/assets into `src`, `public`, or default `dist`.
+- The current implementation is a better browser/font-stack approximation, not a proof of exact official typography. Exact matching still needs a legally usable font file or a private local font pack plus multi-sample visual calibration.
+- Stage 8 intentionally breaks the old exact element-slot smoke for type icons and rarity pips because their rendered geometry is no longer a flat, untransformed crop. The next visual-smoke pass should separate "raw extracted slot identity" from "final card-face transformed presentation."

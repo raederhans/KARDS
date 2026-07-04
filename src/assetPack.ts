@@ -10,7 +10,7 @@ import type { CardKind } from "./types";
 import type { CardTemplate } from "./canvas/layout";
 
 export const LOCAL_ASSET_PACK_MANIFEST = "kards-asset-pack.json";
-const FONT_ROLES = new Set(["title", "body", "utility"]);
+const FONT_ROLES = new Set(["title", "body", "keyword", "cost", "stat", "utility"]);
 
 type AssetPackImageManifestEntry = {
   slot: CardRenderAssetSlot;

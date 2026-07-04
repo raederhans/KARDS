@@ -1,5 +1,111 @@
 # KARDS Style Replication Task Notes
 
+## Stage 8 Typography Calibration
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: research and calibrate KARDS card text fonts for Latin utility text, numeric fields, and Chinese-localized text
+- Base branch/base commit: `main`, `74daf26`
+- Current branch/HEAD: `main`, working tree has validated uncommitted Stage 8 changes
+- Task goal: make title, cost, `K`, attack/defense, keyword labels, and rules text look closer to the current KARDS card style while keeping Chinese readability and private/official font boundaries clear
+- Status: ready-for-integration; commit directly on `main` when accepted, no separate worktree merge is needed
+- Shared hotspot files touched:
+  - `package.json`
+  - `package-lock.json`
+  - `src/main.tsx`
+  - `src/canvas/cardRenderer.ts`
+  - `src/canvas/layout.ts`
+  - `src/canvas/layout.test.ts`
+  - `src/canvas/renderAssets.ts`
+  - `src/assetPack.ts`
+  - `src/canvas/cardRenderer.test.ts`
+  - active replication docs
+- Tests run:
+  - `npx vitest run src/canvas/cardRenderer.test.ts src/assetPack.test.ts`: passed, 19 tests
+  - `npx vitest run src/canvas/cardRenderer.test.ts src/canvas/layout.test.ts src/assetPack.test.ts`: passed, 25 tests
+  - Latest `npx vitest run src/canvas/cardRenderer.test.ts src/canvas/layout.test.ts src/assetPack.test.ts`: passed, 25 tests after type-icon mask and stat-baseline alignment
+  - `npm run typecheck`: passed
+  - Latest `npm run typecheck`: passed after type-icon mask and stat-baseline alignment
+  - `npm run test`: passed, 7 files and 42 tests
+  - `npm run build`: passed, including typecheck and Vite production build
+  - Latest `npm run test`: passed, 7 files and 42 tests
+  - Latest `npm run build`: passed, including typecheck and Vite production build
+  - Browser reload against `http://127.0.0.1:5174/`: passed, generated canvas and official reference image stayed `500x702`
+  - Browser font checks after restarting Vite 5174: `Yantramanav 900` and `Libre Franklin 800` loaded
+  - Browser screenshot: `.runtime/qa/stage8-cost-group-adjusted.png`
+  - Browser select verification: `card-kind=fighter` and `card-set=blood-and-iron` both applied through real select controls, then restored to `tank/base`
+  - Browser screenshot after type-icon masking: `.runtime/qa/stage8-type-icon-mask-full.png`
+  - Browser screenshot after paper-colored type-icon border correction: `.runtime/qa/stage8-type-icon-paper-border-full.png`
+  - Browser screenshot after paper-tone glyph correction: `.runtime/qa/stage8-type-icon-paper-glyph-full.png`
+  - `git diff --check`: passed with LF-to-CRLF warnings only
+  - Stage 6 visual smoke on port 5183 with output `.runtime/kards-visual-smoke-calibration/font-pass`: initially passed, 37/37 slots, 0 review, 0 fail before type-icon/rarity presentation changes
+  - Stage 6 visual smoke on port 5184 after type-icon/rarity presentation changes: failed as an outdated element-slot identity gate, 24 pass / 8 review / 5 fail
+- Tests not run:
+  - No exact official font extraction, because no legally usable Franklin Gothic or KARDS font file was available in the repo.
+  - No broad visual-perceptual font metric yet; this pass is a targeted approximation and regression guard.
+  - No updated slot-smoke baseline for transformed type-icon and rarity-pip presentation yet.
+- Potential overlap with other worktrees:
+  - `git worktree list` showed only the main checkout.
+  - Future direct overlap with renderer/layout/font-pack branches touching the same Canvas text paths.
+- Recommended integration order:
+  - Commit this typography pass before any exact font extraction or atlas pass so later work can use the new per-role font override slots.
+
+## Stage 8 Delivery Package Draft
+
+1. Changed this phase:
+   - Researched current public/community KARDS font evidence beyond GitHub.
+   - Split renderer font handling into title/body/keyword/cost/stat/utility roles.
+   - Added bundled Libre Franklin and Yantramanav font packages for the default browser path.
+   - Added horizontal text scaling and size/placement tweaks for title, costs, keyword, body, and stats.
+   - Rounded/masked type-icon presentation, removed the resource background gradient from unit type icons, and added a slight rarity-pip fan effect.
+   - Restored the type-icon paper-colored outer border while keeping the dark inner board and masked glyph.
+   - Tuned type-icon border/glyph color through a dedicated paper-tone constant and increased glyph opacity so the icon no longer reads as grey.
+   - Bottom-aligned attack and defense numerals and reduced the over-stretched unit title scale.
+   - Replaced the hard-coded T-70 dev reference with a set-to-sample catalog covering all implemented official set ids.
+   - Added a Washington HQ dev reference sample from the private Stage 6 HQ reference data.
+   - Kept Set and Type edits from replacing the current draft; those controls now only move the right-side dev reference.
+   - Aligned visible dev sample labels with the actual card-face titles, showed those labels in the Set dropdown, and showed the active reference title in the Official reference caption.
+   - Added focused keyword, cost-group, stat-position, type-icon clipping, and rarity-perspective regression coverage.
+   - Added focused dev preview catalog coverage so set/reference wiring cannot silently collapse back to Base-only behavior.
+2. Files touched:
+   - Core files: `package.json`, `package-lock.json`, `src/main.tsx`, `src/App.tsx`, `src/components/CardCanvas.tsx`, `src/components/ProjectPanel.tsx`, `src/devPreviewCatalog.ts`, `src/canvas/cardRenderer.ts`, `src/canvas/layout.ts`, `src/canvas/renderAssets.ts`, `src/assetPack.ts`, `src/styles.css`.
+   - Test files: `src/canvas/cardRenderer.test.ts`, `src/canvas/layout.test.ts`, `src/devPreviewCatalog.test.ts`.
+   - Docs: `docs/active/kards-style-replication/plan.md`, `context.md`, `task.md`, `docs/active/_worktree_registry.md`.
+   - Lessons: `lessons learned.md`.
+   - Temporary/private files: `.runtime/kards-visual-smoke-calibration/font-pass/**`, `.runtime/qa/stage8-cost-group-adjusted.png`, `.runtime/qa/set-reference-follow-fix.png`; gitignored.
+3. Diff summary:
+   - Production behavior remains Canvas-only and ships no official or commercial font files.
+   - Asset packs can now override `keyword`, `cost`, and `stat` fonts independently.
+   - Default browser rendering uses open bundled fonts for the first time instead of depending only on locally installed system fonts.
+   - Cost-board grouping, stat baseline, type-icon silhouette/paper-border masking, and rarity pip perspective now follow the visible reference more closely.
+   - Dev preview Set and Type changes now preserve the current draft card while moving the right-side Official reference to the matching set/type reference.
+   - The Set dropdown now shows sample-first labels such as `MACCHI C.200 (Blood and Iron)`, and the right-side reference caption includes the exact sample title.
+   - Type = HQ now points the dev reference panel at a Washington HQ image from the existing private data set.
+   - Explicit full-sample loading remains available through Project panel `Load T-70 Sample` and `Load HQ Sample` buttons.
+4. Commit status:
+   - Not committed in this pass yet; changes are validated and ready to commit if accepted.
+5. Base divergence:
+   - Work started from `main` commit `74daf26`; no other active KARDS worktree was found.
+6. Potential conflicts:
+   - Moderate conflict risk with any future branch editing `src/canvas/cardRenderer.ts`, `src/canvas/layout.ts`, or asset-pack font typing.
+7. Validation:
+   - Targeted tests, typecheck, full unit tests, production build, browser reload, and browser font checks passed.
+   - Real browser select controls were checked for `fighter` and `blood-and-iron`; the state path works, while the set mark remains visually tiny at normal zoom.
+   - Set/reference fix targeted tests passed: `npx vitest run src/devPreviewCatalog.test.ts src/cardModel.test.ts`, 8 tests.
+   - Local Playwright fallback on `http://127.0.0.1:5174/` passed for initial T-70 / `t70.png`, Set `blood-and-iron` preserving T-70 while moving the reference to `macchi_c_200.png`, Set `custom` clearing the reference, Type `hq` showing the HQ field with `Washington.png`, `Load HQ Sample` loading Washington with `hqDefense=20`, and `?privatePack=off` hiding private preview UI.
+   - In-app Browser verification passed for Set `blood-and-iron`: caption `Official reference: MACCHI C.200`, reference image `macchi_c_200.png`, no console warn/error.
+   - Latest in-app Browser verification passed for Set dropdown option `MACCHI C.200 (Blood and Iron)`, matching caption `Official reference: MACCHI C.200` and reference image `macchi_c_200.png`.
+   - Latest `npm run test` passed, 8 files and 46 tests.
+   - Latest `npm run build` passed, including typecheck and Vite production build.
+   - Stage 6 visual smoke is no longer a valid green gate for type-icon/rarity after intentional transformed-presentation changes; latest run is 24 pass / 8 review / 5 fail.
+8. Unverified risks:
+   - Exact KARDS typography is still not guaranteed without a confirmed usable Franklin Gothic / official font source.
+   - Type-icon and rarity-pip slot smoke need a new presentation-aware baseline.
+   - In-app Browser control timed out twice during reload after the set/HQ fix; the same localhost flow was verified with local Playwright instead.
+9. Recommended next step:
+   - Review the visible result in the dev browser, then commit on `main` with the Stage 8 docs and renderer changes together.
+10. Integration recommendation:
+   - Direct commit on `main` is appropriate. No rebase, cherry-pick, or worktree cleanup is required.
+
 ## Stage 7 Visible Preview Calibration Hotfix
 
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
@@ -571,3 +677,37 @@
    - Implement the precision layout pass on top of `master`, using fixed layout tables and programmatic placeholder layers first.
 10. Integration recommendation:
    - This documentation is safe to commit directly on `master`. Stage 1 implementation should follow as a separate commit.
+
+## 2026-07-04 Follow-Up Delivery: DINGO Set Sample Loader
+
+1. Changed this follow-up:
+   - Replaced the fixed Project-panel `Load T-70 Sample` action with a dynamic `Load {selected set sample} Sample` action.
+   - Kept Set changes as safe field edits that do not overwrite the current draft card until the user clicks the load button.
+   - Confirmed DINGO's private sample JSON already includes embedded artwork and that the UI can now load it.
+   - Moved the private preview catalog behind a dev-only dynamic import so production `dist` no longer contains private runtime path strings.
+   - Added pure state regression coverage for Set-only edits and stale private sample requests.
+2. Files touched:
+   - Core files: `src/App.tsx`, `src/components/ProjectPanel.tsx`, `src/devPreviewCatalog.ts`, `src/devPreviewState.ts`.
+   - Test files: `src/devPreviewCatalog.test.ts`.
+   - Docs: `docs/active/_worktree_registry.md`, `docs/active/kards-style-replication/context.md`, `docs/active/kards-style-replication/task.md`.
+   - Private runtime evidence: `.runtime/kards-private-assets/**` read only.
+3. Diff summary:
+   - Dev-preview sample loading now follows the selected Set sample label, so `DINGO (Oceania Storm)` exposes `Load DINGO Sample`.
+4. Commit status:
+   - Not committed; current Stage 8 worktree is already carrying broader validated uncommitted changes.
+5. Base divergence:
+   - Current branch is `main` at local HEAD `74daf26`; this follow-up is part of the same uncommitted Stage 8 worktree bundle.
+6. Potential conflicts:
+   - Direct overlap with any future branch touching `src/App.tsx`, `src/components/ProjectPanel.tsx`, or dev-preview sample catalog behavior.
+7. Validation:
+   - `npm run typecheck`: passed.
+   - `npm run test`: passed, 8 files and 48 tests.
+   - `npm run build`: passed.
+   - `rg` over `dist` for private `.runtime/kards-private-assets` and sample/reference path strings: no matches.
+   - Browser DevTools smoke confirmed Set-only change leaves title as `T-70`, `Load DINGO Sample` changes title to `DINGO`, `Official reference: DINGO` appears, artwork is embedded, and `pixelDelta=0` between rendered canvas artwork and the DINGO sample artwork.
+8. Unverified risks:
+   - No broad transformed-presentation visual-smoke rebaseline was run in this follow-up.
+9. Recommended next step:
+   - Merge/commit this follow-up together with the existing Stage 8 dev-preview catalog changes after user review.
+10. Integration recommendation:
+   - Safe to integrate with the Stage 8 bundle; do not separate it from the dev-preview catalog change unless cherry-picking the whole catalog path.

@@ -578,3 +578,188 @@
   - `.runtime` private official-derived and derived-preview images remain gitignored.
   - Temporary Playwright/Pillow helper scripts were removed after use.
   - This stage creates an honest visible calibration surface; it is not a final pixel-perfect replica.
+
+## 2026-07-03 Stage 8 Typography Research And Calibration
+
+- Task grade: standard. The change touches the Canvas text renderer, asset-pack font roles, layout size constants, focused renderer tests, and active task docs.
+- First-principles target:
+  - The visible mismatch is not mainly card geometry now; it is that text fields behave like a generic UI font.
+  - KARDS card text has at least three different typography jobs: narrow Latin labels/names, heavy compact numeric costs/stats, and readable localized body text.
+  - Chinese users need a CJK font stack that reads naturally without forcing every Latin label into a wide CJK face.
+- External evidence gathered:
+  - Reddit `r/kards` font thread: community answer identifies Franklin Gothic Demi Condensed, with bold used for card names.
+  - Biathlon Analytics custom-card template: lists ITC Franklin Gothic Demi Condensed for description/title text, Yantramanav Bold for attack/defense and deployment cost, and Franklin Gothic Condensed for cost letters and unit names.
+  - KardsGen README: latest public release line is `1.6 Dec 1, 2025`; its Chinese notes say Source Han Sans is the most visually faithful, while the current bundled/default generator uses Microsoft YaHei UI.
+  - Noto and Source Han Sans references confirm open CJK font families suitable for product use or user-provided local packs.
+- Local font inventory:
+  - Windows has Arial Narrow and Microsoft YaHei UI available.
+  - Local Noto Sans CJK variable fonts are present under `C:\Windows\Fonts`.
+  - Franklin Gothic was not found locally, so the renderer must use font-stack names and allow a future private font pack to supply exact faces.
+- Implementation:
+  - Added role-specific render font slots: `keyword`, `cost`, and `stat`, alongside existing `title`, `body`, and `utility`.
+  - Changed default text stacks to prefer Franklin/Arial Narrow style for Latin utility text and Source Han/Noto/YaHei style for Chinese body text.
+  - Added horizontal text scaling so Latin labels can look narrower while CJK text keeps readable proportions.
+  - Darkened keyword labels to card-text color instead of nation accent color, matching the official reference more closely.
+  - Raised the unit title size from `39` to `44` and recalibrated cost/stat/keyword sizes around the T-70 comparison.
+- Validation:
+  - `npx vitest run src/canvas/cardRenderer.test.ts src/assetPack.test.ts`: passed, 18 tests.
+  - `npm run typecheck`: passed.
+  - `npm run test`: passed, 7 files and 40 tests.
+  - `npm run build`: passed, including typecheck and Vite build.
+  - Browser reload at `http://127.0.0.1:5174/`: passed; generated and reference canvases/images remained `500x702`.
+  - `npm run smoke:visual:kards -- --pack "C:\Users\raede\Documents\KARDS\.runtime\kards-private-assets\stage6-multisource-clean-extraction" --output "C:\Users\raede\Documents\KARDS\.runtime\kards-visual-smoke-calibration\font-pass" --port 5183`: passed, 37/37 slots, 0 review, 0 fail.
+- Boundary:
+  - No official font files, official assets, or commercial fonts were committed or bundled.
+  - This pass improves the default approximation and creates font-role override points. Exact official typography remains blocked on a legally usable exact font source and broader sample calibration.
+
+## 2026-07-03 Stage 8 Follow-Up Visual Corrections
+
+- User review found the first Stage 8 font pass still looked too unchanged in the browser and identified precise visible issues:
+  - deployment cost was too narrow/centered with too much empty space;
+  - `K` and operation cost should read as a tighter right-side group;
+  - attack/defense numerals were slightly too high;
+  - tank type icon needed a rounded lower silhouette instead of a pointed bottom;
+  - `Guard` was too large;
+  - rarity pips needed a slight perspective/fan effect.
+- Implemented corrections:
+  - Added `@fontsource/libre-franklin` and `@fontsource/yantramanav`; imported the needed Latin weights in `src/main.tsx`.
+  - Changed numeric rendering to use Yantramanav and horizontal stretch rather than narrowing.
+  - Moved attack/defense numerals down by 6 px.
+  - Reduced `Guard` from `30px/900` to `27px/800`.
+  - Changed unit type icon layout to `x=208,y=468,w=84,h=78` and clipped type-icon assets to a rounded rectangle.
+  - Changed rarity pip fallback/asset presentation to a slight fan rotation with a raised center.
+  - Adjusted cost board centers: deployment center `rect.x + 33`; `K` and operation center both `rect.x + 67`; vertical gap reduced to 27 px.
+- Browser/runtime evidence:
+  - Restarted the `5174` Vite dev server after installing font packages, because the old server was running before the new packages existed.
+  - In-app browser `http://127.0.0.1:5174/` was reloaded; `document.fonts.check` confirmed `Yantramanav 900` and `Libre Franklin 800` available.
+  - Screenshot saved to `.runtime/qa/stage8-cost-group-adjusted.png`.
+- Validation:
+  - `npx vitest run src/canvas/cardRenderer.test.ts src/canvas/layout.test.ts src/assetPack.test.ts`: passed, 25 tests.
+  - `npm run typecheck`: passed.
+  - `npm run test`: passed, 7 files and 42 tests.
+  - `npm run build`: passed, including typecheck and Vite production build.
+  - `npm run smoke:visual:kards -- --pack "C:\Users\raede\Documents\KARDS\.runtime\kards-private-assets\stage6-multisource-clean-extraction" --output "C:\Users\raede\Documents\KARDS\.runtime\kards-visual-smoke-calibration\font-pass" --port 5184`: failed as an old element-slot identity gate, with 24 pass / 8 review / 5 fail. Failures are concentrated in type-icon and rarity-pip transformations that Stage 8 intentionally changed.
+- Boundary:
+  - Do not call the Stage 6 element-slot smoke green after these presentation-layer changes.
+  - Next calibration should either rebaseline type-icon/rarity transformed presentation or split the smoke into raw slot identity versus final card-face presentation.
+
+## 2026-07-03 Stage 8 Follow-Up Micro-Alignment
+
+- User review found the second Stage 8 pass still had visible issues:
+  - attack numeral needed to move down so `3` and `2` share a visual bottom baseline;
+  - stat numerals needed slightly more horizontal weight while the title `T-70` was over-stretched;
+  - unit type icons for fighter/bomber/tank still carried asset-background artifacts, extra border/gradient, and a slightly wrong vertical placement;
+  - set switching needed verification because the visible lower-right mark is tiny.
+- Implemented corrections:
+  - Lowered attack/special-attack text by passing a per-board stat baseline offset while leaving defense at the existing baseline.
+  - Increased stat numeral horizontal scale to `1.18` and reduced unit title scale from `1.20` to `1.12`.
+  - Moved unit type icon geometry to `x=208,y=473,w=84,h=82`, aligning its bottom with the defense-board bottom.
+  - Replaced type-icon asset drawing with a paper-colored rounded border, dark inner board, and bright-pixel glyph mask, so the resource's own dark gradient/background is not painted into the final card.
+  - Verified browser controls: `card-kind` switched to `fighter`, `card-set` switched to `blood-and-iron`, then both were restored to `tank/base`.
+  - Confirmed the private Stage 6 preview manifest contains `fighter`, `bomber`, and `blood-and-iron` slot entries.
+- Browser/runtime evidence:
+  - In-app browser `http://127.0.0.1:5174/` was reloaded after the renderer changes.
+  - Screenshot saved to `.runtime/qa/stage8-type-icon-mask-full.png`.
+  - An attempted canvas crop screenshot missed the card and captured background only; it is not used as visual evidence.
+- Validation:
+  - `npx vitest run src/canvas/cardRenderer.test.ts src/canvas/layout.test.ts src/assetPack.test.ts`: passed, 25 tests.
+  - `npm run typecheck`: passed.
+  - `npm run test`: passed, 7 files and 42 tests.
+  - `npm run build`: passed, including typecheck and Vite production build.
+  - `git diff --check`: passed with Windows LF-to-CRLF warnings only.
+- Boundary:
+  - The set control path is working; the remaining concern is visual legibility of a very small set mark at normal zoom, not a failed state update.
+  - Type-icon rendering now intentionally masks asset pixels; the old raw slot-identity smoke still needs a presentation-aware replacement before it can be used as a green gate again.
+
+## 2026-07-03 Stage 8 Type-Icon Border Color Fix
+
+- User review clarified that the unit type icon should keep the light outline, but the outline must be the paper/card-bottom color rather than a dark or separate-looking border.
+- Implemented correction:
+  - `drawTypeIconBoard` now paints a paper-colored outer rounded shape and a dark inner rounded board.
+  - Fallback type glyphs and masked type-icon glyph pixels now use the same paper-color family instead of the previous grey-green `LIGHT`.
+  - Kept the current type-icon position and bottom alignment; this pass changes color/border treatment only.
+- Browser/runtime evidence:
+  - Reloaded in-app browser `http://127.0.0.1:5174/`.
+  - Screenshot saved to `.runtime/qa/stage8-type-icon-paper-border-full.png`.
+- Validation:
+  - `npx vitest run src/canvas/cardRenderer.test.ts src/canvas/layout.test.ts`: passed, 21 tests.
+  - `npm run typecheck`: passed.
+  - `npm run test`: passed, 7 files and 42 tests.
+  - `npm run build`: passed, including typecheck and Vite production build.
+  - `git diff --check`: passed with Windows LF-to-CRLF warnings only.
+
+## 2026-07-03 Stage 8 Type-Icon Paper Tone Tuning
+
+- User review clarified that the type-icon outer border and inner glyph should both read as exposed paper/base-layer color; the prior glyph still looked too grey because its alpha was too low over the dark inner board.
+- Implemented correction:
+  - Added a dedicated `TYPE_ICON_PAPER` color so type-icon paper tone can be tuned without changing the whole card's paper fill.
+  - Used the same paper-tone RGB for the masked glyph and increased glyph alpha from the source luma, avoiding the translucent grey result.
+  - Kept the type-icon position, border structure, and dark inner board unchanged.
+- Browser/runtime evidence:
+  - Reloaded in-app browser `http://127.0.0.1:5174/`.
+  - Screenshot saved to `.runtime/qa/stage8-type-icon-paper-glyph-full.png`.
+- Validation:
+  - `npx vitest run src/canvas/cardRenderer.test.ts src/canvas/layout.test.ts`: passed, 21 tests.
+  - `npm run typecheck`: passed.
+  - `npm run test`: passed, 7 files and 42 tests.
+  - `npm run build`: passed, including typecheck and Vite production build.
+
+## 2026-07-03 Stage 8 Set And HQ Reference Fix
+
+- User review found that changing the Set control from Base to sets such as Allegiance or Blood and Iron appeared to do nothing, and the right-side Official reference stayed on T-70.
+- Root cause:
+  - `card.set` did update, but the dev preview reference URL was hard-coded to the T-70 reference image.
+  - The local private sample data already had representative cards for all 15 implemented official set ids, but the app had no catalog connecting the Set control to those samples.
+  - HQ renderer/layout support existed, and Stage 6 had private KARDS-Assets HQ references, but the dev preview did not expose a real HQ reference sample.
+- Implemented correction:
+  - Added `src/devPreviewCatalog.ts` as the dev-only mapping from set id to representative sample JSON and official reference PNG.
+  - Kept the Field panel Set and Type selectors as normal field edits, so changing them does not overwrite the current draft card.
+  - Added App-level dev reference resolution from the current `card.kind` and `card.set`, so only the right-side Official reference follows the selection.
+  - Aligned dev sample labels with the actual card-face titles, surfaced those labels in the Set dropdown, and surfaced the selected reference title in the Official reference caption.
+  - Wired Type = HQ to the private Stage 6 `references/kards-assets/hq2/Washington.png` reference.
+  - Kept explicit full-sample loading on Project panel buttons: `Load T-70 Sample` and `Load HQ Sample`.
+  - Added `src/devPreviewCatalog.test.ts` to ensure all non-custom set presets have sample coverage, reference resolution follows set/kind, and the HQ sample points to Washington.
+- Browser/runtime evidence:
+  - In-app Browser control repeatedly timed out during reload after the code change, so rendered validation used a local Playwright fallback against the same `http://127.0.0.1:5174/` server.
+  - Playwright fallback confirmed initial `base/tank/T-70` reference, then Set = `blood-and-iron` preserved the current `T-70` draft while changing the reference to `macchi_c_200.png`.
+  - Reviewer fix: switching Set to `custom` clears the prior reference instead of leaving a stale set image visible.
+  - The same fallback confirmed Type = `hq` preserved the current draft, showed the HQ defense field, and changed the reference to `Washington.png`.
+  - The fallback confirmed `Load HQ Sample` loads the Washington HQ draft with `hqDefense=20` and the Washington reference.
+  - The fallback also confirmed `?privatePack=off` shows no private reference image and no private sample buttons.
+  - In-app Browser verification confirmed Set = `blood-and-iron` shows caption `Official reference: MACCHI C.200`, loads `macchi_c_200.png`, and reports no console warn/error.
+  - Follow-up in-app Browser verification confirmed the Set dropdown itself shows `MACCHI C.200 (Blood and Iron)`, matching the caption and reference image.
+  - Screenshot saved to `.runtime/qa/set-reference-follow-fix.png`.
+- Validation:
+  - `npx vitest run src/devPreviewCatalog.test.ts`: passed, 4 tests.
+  - `npx vitest run src/devPreviewCatalog.test.ts src/cardModel.test.ts`: passed, 8 tests before the label-alignment test was added.
+  - `npm run typecheck`: passed.
+  - `npm run test`: passed, 8 files and 46 tests.
+  - `npm run build`: passed, including typecheck and Vite production build.
+- Boundary:
+  - Official-derived card/reference pixels remain under `.runtime` and are not committed or bundled as source assets.
+  - The new catalog is a dev reference resolver plus explicit sample loader, not a production card database.
+
+## 2026-07-04 Stage 8 DINGO Set-Sample Load Fix
+
+- User review reported that DINGO seemed to be missing its original artwork.
+- Finding:
+  - The private runtime sample `.runtime/kards-private-assets/stage6-multisource-clean-extraction/samples/dingo.card.json` already includes DINGO title/body/stats and embedded artwork data.
+  - The private reference images also exist at `references/cards/dingo.png` and `references/artwork/dingo.png`.
+  - The confusing UI behavior was that changing Set only moved the right-side Official reference; the Project panel still only exposed a fixed `Load T-70 Sample` button, so there was no obvious way to load the currently selected set's full DINGO sample into the generated card.
+- Implemented correction:
+  - `App.tsx` now resolves the current selected Set sample separately from the reference sample.
+  - `ProjectPanel.tsx` now shows a dynamic `Load {sample label} Sample` button, so Set = `DINGO (Oceania Storm)` exposes `Load DINGO Sample`.
+  - `devPreviewState.ts` extracts the card-update and stale-request guard logic so it can be covered without a heavy React test harness.
+  - `devPreviewCatalog.test.ts` now asserts `oceania-storm` resolves to `dingo`, its reference resolves to `dingo.png`, Set-only edits preserve the current draft content, and stale sample loads are rejected after newer requests or user edits.
+  - Review follow-up removed the static `devPreviewCatalog` import from `App.tsx`; the private catalog is now dynamically imported only when the dev private preview is enabled, so production `dist` no longer contains private `.runtime/kards-private-assets` path strings.
+- Browser/runtime evidence:
+  - Chrome DevTools validation on `http://127.0.0.1:5174/` selected `DINGO (Oceania Storm)`, clicked `Load DINGO Sample`, and confirmed title `DINGO`, caption `Official reference: DINGO`, reference image `dingo.png`, and summary `Artwork embedded in JSON`.
+  - Canvas pixel evidence confirmed the rendered card's center artwork pixel matched the DINGO sample artwork center pixel exactly: `pixelDelta=0`.
+  - Follow-up Chrome DevTools validation after the dynamic import change confirmed Set-only change left the title as `T-70`, then `Load DINGO Sample` changed the title to `DINGO` with `pixelDelta=0`.
+- Validation:
+  - `npm run typecheck`: passed.
+  - `npm run test`: passed, 8 files and 48 tests.
+  - `npm run build`: passed, including typecheck and Vite production build.
+  - `rg` over `dist` for `.runtime/kards-private-assets`, `stage6-cardface-preview`, `stage6-multisource-clean-extraction`, `stage5-card-face-elements`, `Washington.png`, `dingo.card`, and `t70.card`: no matches.
+- Boundary:
+  - DINGO artwork remains private runtime data under `.runtime`; it was not copied into `src`, `public`, or the default production bundle.

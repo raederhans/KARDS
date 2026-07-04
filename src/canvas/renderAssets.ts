@@ -54,6 +54,9 @@ export type CardRenderAssets = {
 export type CardRenderFontSet = {
   title?: string;
   body?: string;
+  keyword?: string;
+  cost?: string;
+  stat?: string;
   utility?: string;
 };
 

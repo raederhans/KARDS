@@ -1,5 +1,80 @@
 # Worktree Registry
 
+## KARDS typography calibration Stage 8
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: KARDS card typography research and renderer font calibration
+- Base branch/base commit: `main`, `74daf26`
+- Current branch/HEAD: `main`, working tree has validated uncommitted Stage 8 changes
+- Task goal: choose evidence-backed font stacks for KARDS-like Latin labels/names/numbers and Chinese-localized body text, then calibrate title/cost/stat/keyword/body rendering without bundling official or commercial fonts
+- Status: ready-for-integration; commit directly on `main` when accepted
+- Main changed files:
+  - `package.json`
+  - `package-lock.json`
+  - `src/main.tsx`
+  - `src/assetPack.ts`
+  - `src/App.tsx`
+  - `src/components/CardCanvas.tsx`
+  - `src/components/ProjectPanel.tsx`
+  - `src/devPreviewCatalog.ts`
+  - `src/devPreviewCatalog.test.ts`
+  - `src/devPreviewState.ts`
+  - `src/canvas/cardRenderer.test.ts`
+  - `src/canvas/cardRenderer.ts`
+  - `src/canvas/layout.test.ts`
+  - `src/canvas/layout.ts`
+  - `src/canvas/renderAssets.ts`
+  - `src/styles.css`
+  - `docs/active/kards-style-replication/plan.md`
+  - `docs/active/kards-style-replication/context.md`
+  - `docs/active/kards-style-replication/task.md`
+  - `docs/active/_worktree_registry.md`
+  - `lessons learned.md`
+- Shared hotspot files touched: Canvas renderer/layout, asset-pack font role schema, App dev-preview state, CardCanvas reference caption, Project panel controls, active task docs
+- Validation run so far:
+  - `git worktree list`: only main checkout
+  - `npx vitest run src/canvas/cardRenderer.test.ts src/assetPack.test.ts`: passed, 19 tests
+  - `npx vitest run src/canvas/cardRenderer.test.ts src/canvas/layout.test.ts src/assetPack.test.ts`: passed, 25 tests
+  - `npm run typecheck`: passed
+  - Latest `npm run typecheck`: passed after type-icon mask and stat-baseline alignment
+  - `npm run test`: passed, 7 files and 42 tests
+  - `npm run build`: passed, including typecheck and Vite production build
+  - Latest `npm run test`: passed, 7 files and 42 tests
+  - Latest `npm run build`: passed, including typecheck and Vite production build
+  - Browser reload on `http://127.0.0.1:5174/`: passed, generated canvas and official reference image stayed `500x702`
+  - Restarted Vite 5174 after installing bundled font packages; browser checks confirmed `Yantramanav 900` and `Libre Franklin 800`
+  - Screenshot saved: `.runtime/qa/stage8-cost-group-adjusted.png`
+  - Browser select verification: `card-kind=fighter` and `card-set=blood-and-iron` applied through real select controls, then restored to `tank/base`
+  - Screenshot saved: `.runtime/qa/stage8-type-icon-mask-full.png`
+  - Screenshot saved after paper-colored type-icon border correction: `.runtime/qa/stage8-type-icon-paper-border-full.png`
+  - Screenshot saved after paper-tone glyph correction: `.runtime/qa/stage8-type-icon-paper-glyph-full.png`
+  - `git diff --check`: passed with LF-to-CRLF warnings only
+  - `npm run smoke:visual:kards -- --pack "C:\Users\raede\Documents\KARDS\.runtime\kards-private-assets\stage6-multisource-clean-extraction" --output "C:\Users\raede\Documents\KARDS\.runtime\kards-visual-smoke-calibration\font-pass" --port 5183`: initially passed, 37/37 slots, 0 review, 0 fail before transformed type-icon/rarity changes
+  - Latest same visual smoke on port 5184: failed as an outdated raw slot-identity gate after intentional type-icon/rarity presentation changes, 24 pass / 8 review / 5 fail
+  - `npx vitest run src/devPreviewCatalog.test.ts src/cardModel.test.ts`: passed, 8 tests
+  - Playwright fallback on `http://127.0.0.1:5174/`: passed for initial T-70 / `t70.png`, Set `blood-and-iron` preserving T-70 while moving the reference to `macchi_c_200.png`, Set `custom` clearing the reference, Type `hq` showing the HQ field with `Washington.png`, `Load HQ Sample` loading Washington with `hqDefense=20`, and `?privatePack=off` hiding private preview UI
+  - Screenshot saved: `.runtime/qa/set-reference-follow-fix.png`
+  - Latest `npm run typecheck`: passed after set/HQ reference catalog wiring
+  - Latest `npx vitest run src/devPreviewCatalog.test.ts`: passed, 4 tests after aligning visible sample labels with card-face titles
+  - Latest `npm run test`: passed, 8 files and 46 tests
+  - Latest `npm run build`: passed, including typecheck and Vite production build
+  - In-app Browser verification on `http://127.0.0.1:5174/`: passed for Set `blood-and-iron`; caption `Official reference: MACCHI C.200`, reference image `macchi_c_200.png`, no console warn/error
+  - Latest in-app Browser verification: passed for Set dropdown option `MACCHI C.200 (Blood and Iron)`, matching caption `Official reference: MACCHI C.200` and reference image `macchi_c_200.png`
+  - Latest `npm run typecheck`: passed after replacing the fixed T-70 sample load button with the dynamic selected-Set sample loader
+  - Latest `npm run test`: passed, 8 files and 48 tests after adding Set-only/stale-request regression coverage
+  - Latest `npm run build`: passed, including typecheck and Vite production build
+  - Latest `rg` over `dist` for `.runtime/kards-private-assets`, `stage6-cardface-preview`, `stage6-multisource-clean-extraction`, `stage5-card-face-elements`, `Washington.png`, `dingo.card`, and `t70.card`: no matches after moving the private preview catalog behind a dev-only dynamic import
+  - Latest Chrome DevTools browser verification: passed for Set `DINGO (Oceania Storm)` and `Load DINGO Sample`; Set-only change left title as `T-70`, explicit sample load changed title to `DINGO`, caption `Official reference: DINGO`, reference image `dingo.png`, embedded artwork summary, and rendered canvas artwork pixel matched the DINGO sample artwork with `pixelDelta=0`
+- Tests not run yet:
+  - No exact official font extraction or broad multi-card perceptual typography metric in this pass
+  - No transformed-presentation visual-smoke rebaseline for type-icon and rarity-pip yet
+  - Earlier in-app Browser validation after the first set/HQ fix timed out during reload twice; later in-app Browser/Chrome DevTools checks succeeded for the set label/reference flow and the DINGO selected-Set sample load flow
+- Potential overlap with other worktrees:
+  - No other active KARDS worktree was found
+  - Direct future overlap with renderer/layout/font extraction branches and any dev-preview sample/reference selector work
+- Recommended integration order: commit Stage 8 before exact font extraction, so future private font packs can use the new per-role font slots
+- Next action: user/design review of the visible text/type-icon result, then commit on `main`
+
 ## KARDS visible full-card preview Stage 7
 
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`

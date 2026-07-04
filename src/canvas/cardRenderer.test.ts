@@ -125,6 +125,46 @@ describe("card renderer output", () => {
     expect(calls.fillText.some(([text]) => text === "   ")).toBe(false);
   });
 
+  it("renders keyword labels as dark card text instead of nation-colored labels", () => {
+    const { canvas, calls } = createFakeCanvas();
+
+    renderCard(canvas, { ...DEFAULT_CARD, keywordLine: "GUARD" }, null);
+
+    const keywordStyle = calls.fillTextStyles.find((call) => call.text === "Guard");
+    expect(keywordStyle?.fillStyle).toBe("#4f514c");
+    expect(keywordStyle?.font).toContain("27px");
+    expect(keywordStyle?.font).toContain("Libre Franklin");
+  });
+
+  it("widens the official-style title, cost, and stat text instead of compressing it", () => {
+    const { canvas, calls } = createFakeCanvas();
+
+    renderCard(canvas, { ...DEFAULT_CARD, title: "T-70", costs: { deployment: 2, operation: 1 }, stats: { attack: 3, defense: 2 } }, null);
+
+    const titleStyle = calls.fillTextStyles.find((call) => call.text === "T-70");
+    const deploymentStyle = calls.fillTextStyles.find((call) => call.text === "2" && call.font.includes("78px"));
+    const deploymentCall = calls.fillText.find(([text, , y]) => text === "2" && y === 60);
+    const kreditCall = calls.fillText.find(([text]) => text === "K");
+    const operationStyle = calls.fillTextStyles.find((call) => call.text === "1");
+    const operationCall = calls.fillText.find(([text]) => text === "1");
+    const attackStyle = calls.fillTextStyles.find((call) => call.text === "3");
+    const attackCall = calls.fillText.find(([text]) => text === "3");
+    const defenseCall = calls.fillText.find(([text, , y]) => text === "2" && y === 516);
+
+    expect(titleStyle?.scaleX).toBeGreaterThan(1);
+    expect(titleStyle?.scaleX).toBeLessThanOrEqual(1.12);
+    expect(deploymentStyle?.scaleX).toBeGreaterThan(1.1);
+    expect(operationStyle?.scaleX).toBeGreaterThan(1.1);
+    expect(attackStyle?.scaleX).toBeGreaterThan(1.15);
+    expect(deploymentCall?.[1]).toBe(45);
+    expect(kreditCall?.[1]).toBe(79);
+    expect(operationCall?.[1]).toBe(79);
+    expect(Number(operationCall?.[2]) - Number(kreditCall?.[2])).toBe(27);
+    expect(attackCall?.[2]).toBe(516);
+    expect(defenseCall?.[2]).toBe(516);
+    expect(deploymentStyle?.font).toContain("Yantramanav");
+  });
+
   it("keeps keyword cards from drawing body text into the footer area", () => {
     const { canvas, calls } = createFakeCanvas();
     const card: CardSpec = {
@@ -156,19 +196,30 @@ describe("card renderer output", () => {
     expect(bodyCall?.[2]).toBe(580);
   });
 
-  it("draws limited rarity pips on integer pixels", () => {
+  it("clips local type icon assets to the rounded icon silhouette", () => {
     const { canvas, calls } = createFakeCanvas();
-    const localImage = { width: 9, height: 12 } as CanvasImageSource;
+    const localImage = { width: 84, height: 78 } as CanvasImageSource;
+    const assets = createStaticAssetResolver([{ slot: "type-icon", kind: "tank", image: localImage }]);
+
+    renderCard(canvas, DEFAULT_CARD, null, { assets, disablePrintWear: true });
+
+    const iconDraw = calls.drawImageStyles.find((call) => call.image === localImage);
+    expect(iconDraw?.width).toBeLessThan(84);
+    expect(iconDraw?.height).toBeLessThan(78);
+    expect(iconDraw?.clipDepth).toBeGreaterThan(0);
+  });
+
+  it("draws limited rarity pips with a subtle fan perspective", () => {
+    const { canvas, calls } = createFakeCanvas();
+    const localImage = { width: 8, height: 13 } as CanvasImageSource;
     const assets = createStaticAssetResolver([{ slot: "rarity-pip", rarityId: "limited", image: localImage }]);
 
     renderCard(canvas, { ...DEFAULT_CARD, rarity: "limited" }, null, { assets, disablePrintWear: true });
 
-    const pipDraws = calls.drawImage.filter(([image]) => image === localImage);
-    expect(pipDraws).toEqual([
-      [localImage, 233, 679, 9, 12],
-      [localImage, 246, 679, 9, 12],
-      [localImage, 259, 679, 9, 12],
-    ]);
+    const pipDraws = calls.drawImageStyles.filter((call) => call.image === localImage);
+    expect(pipDraws.map((call) => call.rotation)).toEqual([-0.08, 0, 0.08]);
+    expect(pipDraws[1].centerY).toBeLessThan(pipDraws[0].centerY);
+    expect(pipDraws[1].centerY).toBeLessThan(pipDraws[2].centerY);
   });
 
   it("draws local asset-pack layers without replacing dynamic text values", () => {
@@ -195,17 +246,29 @@ function createFakeCanvas() {
     drawImage: unknown[][];
     fillRect: Array<[number, number, number, number]>;
     fillText: unknown[][];
+    fillTextStyles: Array<{ text: unknown; font: string; fillStyle: string; scaleX: number }>;
+    drawImageStyles: Array<{ image: unknown; centerX: number; centerY: number; width: number; height: number; rotation: number; clipDepth: number }>;
   } = {
     clearRect: [],
     drawImage: [],
     fillRect: [],
     fillText: [],
+    fillTextStyles: [],
+    drawImageStyles: [],
   };
 
   const gradient = { addColorStop() {} };
   let font = "400 24px Arial, sans-serif";
+  let fillStyle = "";
+  let transform = { x: 0, y: 0, scaleX: 1, rotation: 0, clipDepth: 0 };
+  const transformStack: Array<typeof transform> = [];
   const ctx = {
-    fillStyle: "",
+    get fillStyle() {
+      return fillStyle;
+    },
+    set fillStyle(value: string) {
+      fillStyle = value;
+    },
     strokeStyle: "",
     get font() {
       return font;
@@ -217,17 +280,32 @@ function createFakeCanvas() {
     textBaseline: "alphabetic",
     lineWidth: 1,
     globalAlpha: 1,
-    save() {},
-    restore() {},
+    save() {
+      transformStack.push({ ...transform });
+    },
+    restore() {
+      transform = transformStack.pop() ?? { x: 0, y: 0, scaleX: 1, rotation: 0, clipDepth: 0 };
+    },
     beginPath() {},
     closePath() {},
-    clip() {},
+    clip() {
+      transform = { ...transform, clipDepth: transform.clipDepth + 1 };
+    },
     fill() {},
     stroke() {},
     rect() {},
     moveTo() {},
     lineTo() {},
     arcTo() {},
+    translate(x: number, y: number) {
+      transform = { ...transform, x: transform.x + x * transform.scaleX, y: transform.y + y };
+    },
+    scale(x: number) {
+      transform = { ...transform, scaleX: transform.scaleX * x };
+    },
+    rotate(angle: number) {
+      transform = { ...transform, rotation: transform.rotation + angle };
+    },
     fillRect(x: number, y: number, width: number, height: number) {
       calls.fillRect.push([x, y, width, height]);
     },
@@ -237,9 +315,23 @@ function createFakeCanvas() {
     },
     drawImage(...args: unknown[]) {
       calls.drawImage.push(args);
+      const [, ...drawArgs] = args;
+      const [x = 0, y = 0, width = 0, height = 0] =
+        args.length >= 9 ? drawArgs.slice(4, 8) : drawArgs.slice(0, 4);
+      calls.drawImageStyles.push({
+        image: args[0],
+        centerX: transform.x + (Number(x) + Number(width) / 2) * transform.scaleX,
+        centerY: transform.y + Number(y) + Number(height) / 2,
+        width: Number(width) * transform.scaleX,
+        height: Number(height),
+        rotation: transform.rotation,
+        clipDepth: transform.clipDepth,
+      });
     },
     fillText(...args: unknown[]) {
-      calls.fillText.push(args);
+      const [, x = 0, y = 0] = args;
+      calls.fillText.push([args[0], transform.x + Number(x) * transform.scaleX, transform.y + Number(y), ...args.slice(3)]);
+      calls.fillTextStyles.push({ text: args[0], font, fillStyle, scaleX: transform.scaleX });
     },
     createLinearGradient() {
       return gradient;

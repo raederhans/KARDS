@@ -7,13 +7,13 @@ describe("card face layout", () => {
     expect(CARD_HEIGHT).toBe(702);
   });
 
-  it("uses the unit artwork and stat-row geometry from the research baseline", () => {
+  it("uses the unit artwork and stat-row geometry from the visible reference baseline", () => {
     const layout = getCardFaceLayout("tank");
 
     expect(layout.template).toBe("unit");
     expect(layout.artwork).toEqual({ x: 12, y: 99, width: 476, height: 426 });
     expect(layout.attackBoard).toEqual({ x: 88, y: 468, width: 82, height: 82 });
-    expect(layout.typeIcon).toEqual({ x: 208, y: 473, width: 84, height: 72 });
+    expect(layout.typeIcon).toEqual({ x: 208, y: 473, width: 84, height: 82 });
     expect(layout.defenseBoard).toEqual({ x: 330, y: 473, width: 82, height: 82 });
     expect(layout.rarity).toEqual({ x: 222, y: 675, width: 56, height: 20 });
     expect(layout.setAnchor).toEqual({ x: 488, y: 692 });

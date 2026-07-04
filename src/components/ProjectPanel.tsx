@@ -19,7 +19,9 @@ type ProjectPanelProps = {
   referenceDiffError: string | null;
   onAssetPackLoad: (files: FileList | null) => void;
   onReferenceCompare: (file: File | null) => void;
-  onStage6SampleLoad?: () => void;
+  onSetSampleLoad?: () => void;
+  setSampleLabel?: string;
+  onHqSampleLoad?: () => void;
 };
 
 export function ProjectPanel({
@@ -32,7 +34,9 @@ export function ProjectPanel({
   referenceDiffError,
   onAssetPackLoad,
   onReferenceCompare,
-  onStage6SampleLoad,
+  onSetSampleLoad,
+  setSampleLabel,
+  onHqSampleLoad,
 }: ProjectPanelProps) {
   function exportPng() {
     const canvas = canvasRef.current;
@@ -126,9 +130,14 @@ export function ProjectPanel({
           Compare PNG
           <input name="reference-card-image" type="file" accept="image/*" onChange={compareReference} />
         </label>
-        {onStage6SampleLoad ? (
-          <button type="button" onClick={onStage6SampleLoad}>
-            Reload T-70 Reference
+        {onSetSampleLoad && setSampleLabel ? (
+          <button type="button" onClick={onSetSampleLoad}>
+            Load {setSampleLabel} Sample
+          </button>
+        ) : null}
+        {onHqSampleLoad ? (
+          <button type="button" onClick={onHqSampleLoad}>
+            Load HQ Sample
           </button>
         ) : null}
         <button type="button" className="danger-action" onClick={() => onCardChange(DEFAULT_CARD)}>

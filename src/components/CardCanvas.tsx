@@ -10,6 +10,7 @@ type CardCanvasProps = {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   renderOptions?: RenderCardOptions;
   referenceImageUrl?: string | null;
+  referenceLabel?: string | null;
 };
 
 type DragState = {
@@ -27,6 +28,7 @@ export function CardCanvas({
   canvasRef,
   renderOptions,
   referenceImageUrl,
+  referenceLabel,
 }: CardCanvasProps) {
   const [dragState, setDragState] = useState<DragState | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
@@ -129,7 +131,7 @@ export function CardCanvas({
         {referenceImageUrl ? (
           <figure className="card-preview-frame">
             <img className="reference-card-image" src={referenceImageUrl} alt="Official reference card" />
-            <figcaption>Official reference</figcaption>
+            <figcaption>{referenceLabel ? `Official reference: ${referenceLabel}` : "Official reference"}</figcaption>
           </figure>
         ) : null}
       </div>

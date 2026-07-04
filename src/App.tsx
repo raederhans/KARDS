@@ -4,22 +4,20 @@ import { CardCanvas } from "./components/CardCanvas";
 import { FieldPanel } from "./components/FieldPanel";
 import { ProjectPanel } from "./components/ProjectPanel";
 import { loadAssetPackFromFiles, loadAssetPackFromUrl, type LoadedAssetPack } from "./assetPack";
+import { applyCardUpdate, shouldApplyDevPreviewSampleResult } from "./devPreviewState";
 import { loadDraftCard, saveDraftCard } from "./storage";
 import type { CardSpec, CardUpdate } from "./types";
 import { compareCanvasToReferenceFile, type ImageDiffMetrics } from "./visualDiff";
 import "./styles.css";
 
-const DEV_STAGE6_ASSET_PACK_URL =
-  "/.runtime/kards-private-assets/stage6-cardface-preview/kards-asset-pack.json";
-const DEV_STAGE6_SAMPLE_CARD_URL =
-  "/.runtime/kards-private-assets/stage6-multisource-clean-extraction/samples/t70.card.json";
-const DEV_STAGE6_SAMPLE_REFERENCE_URL =
-  "/.runtime/kards-private-assets/stage5-card-face-elements/references/cards/t70.png";
+type DevPreviewCatalogModule = typeof import("./devPreviewCatalog");
+type DevPreviewSample = import("./devPreviewCatalog").DevPreviewSample;
 
 function App() {
   const [card, setCard] = useState<CardSpec>(() => loadDraftCard(window.localStorage, DEFAULT_CARD));
   const [artworkImage, setArtworkImage] = useState<HTMLImageElement | null>(null);
   const [assetPack, setAssetPack] = useState<LoadedAssetPack | null>(null);
+  const [devPreviewCatalog, setDevPreviewCatalog] = useState<DevPreviewCatalogModule | null>(null);
   const [assetPackError, setAssetPackError] = useState<string | null>(null);
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
   const [referenceDiff, setReferenceDiff] = useState<ImageDiffMetrics | null>(null);
@@ -27,8 +25,11 @@ function App() {
   const [autosavePaused, setAutosavePaused] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const assetPackRequestRef = useRef(0);
+  const cardEditVersionRef = useRef(0);
   const isMountedRef = useRef(true);
-  const didLoadDevStage6PreviewRef = useRef(false);
+  const didLoadDevPreviewRef = useRef(false);
+  const isDevPrivatePreviewEnabled =
+    import.meta.env.DEV && new URLSearchParams(window.location.search).get("privatePack") !== "off";
 
   useEffect(() => {
     setAutosavePaused(!saveDraftCard(window.localStorage, card));
@@ -74,17 +75,40 @@ function App() {
   }, [card.artwork.dataUrl]);
 
   useEffect(() => {
-    if (!import.meta.env.DEV || new URLSearchParams(window.location.search).get("privatePack") === "off") {
+    if (!isDevPrivatePreviewEnabled) {
       return;
     }
 
-    if (didLoadDevStage6PreviewRef.current) {
+    let cancelled = false;
+    void import("./devPreviewCatalog")
+      .then((catalog) => {
+        if (!cancelled && isMountedRef.current) {
+          setDevPreviewCatalog(catalog);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAssetPackError("Could not load the private preview catalog.");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isDevPrivatePreviewEnabled]);
+
+  useEffect(() => {
+    if (!isDevPrivatePreviewEnabled || !devPreviewCatalog) {
       return;
     }
-    didLoadDevStage6PreviewRef.current = true;
 
-    void loadDevStage6Preview();
-  }, []);
+    if (didLoadDevPreviewRef.current) {
+      return;
+    }
+    didLoadDevPreviewRef.current = true;
+
+    void loadDevPreviewSample(devPreviewCatalog.getDefaultDevPreviewSample());
+  }, [devPreviewCatalog, isDevPrivatePreviewEnabled]);
 
   const previewCard = useMemo(() => normalizeCardSpec(card), [card]);
   const renderOptions = useMemo(
@@ -94,12 +118,46 @@ function App() {
     }),
     [assetPack],
   );
+  const referenceSample = useMemo(
+    () =>
+      isDevPrivatePreviewEnabled && devPreviewCatalog
+        ? devPreviewCatalog.getDevPreviewSampleForCard(previewCard)
+        : undefined,
+    [devPreviewCatalog, isDevPrivatePreviewEnabled, previewCard.kind, previewCard.set],
+  );
+  const selectedSetSample = useMemo(
+    () =>
+      isDevPrivatePreviewEnabled && devPreviewCatalog
+        ? devPreviewCatalog.getDevPreviewSampleBySet(previewCard.set)
+        : undefined,
+    [devPreviewCatalog, isDevPrivatePreviewEnabled, previewCard.set],
+  );
+  const setOptionLabels = useMemo(
+    () =>
+      isDevPrivatePreviewEnabled && devPreviewCatalog
+        ? Object.fromEntries(devPreviewCatalog.DEV_PREVIEW_SET_SAMPLES.map((sample) => [sample.set, sample.label]))
+        : undefined,
+    [devPreviewCatalog, isDevPrivatePreviewEnabled],
+  );
+
+  useEffect(() => {
+    if (!isDevPrivatePreviewEnabled) {
+      return;
+    }
+
+    const nextReferenceUrl = referenceSample?.referenceUrl ?? null;
+    if (nextReferenceUrl === referenceImageUrl) {
+      return;
+    }
+
+    setReferenceImageUrl(nextReferenceUrl);
+    setReferenceDiff(null);
+    setReferenceDiffError(null);
+  }, [isDevPrivatePreviewEnabled, referenceImageUrl, referenceSample]);
 
   function updateCard(update: CardUpdate) {
-    setCard((currentCard) => {
-      const normalizedCurrent = normalizeCardSpec(currentCard);
-      return normalizeCardSpec(typeof update === "function" ? update(normalizedCurrent) : update);
-    });
+    cardEditVersionRef.current += 1;
+    setCard((currentCard) => applyCardUpdate(currentCard, update));
   }
 
   async function handleAssetPackLoad(files: FileList | null) {
@@ -125,40 +183,67 @@ function App() {
     }
   }
 
-  async function loadDevStage6Preview() {
+  async function loadDevPreviewSample(sample: DevPreviewSample) {
+    if (!devPreviewCatalog) {
+      return;
+    }
+
     const requestId = assetPackRequestRef.current + 1;
+    const cardEditVersionAtStart = cardEditVersionRef.current;
     assetPackRequestRef.current = requestId;
     setAssetPackError(null);
     setReferenceDiff(null);
     setReferenceDiffError(null);
     try {
       const [loadedPack, sampleCard] = await Promise.all([
-        loadAssetPackFromUrl(DEV_STAGE6_ASSET_PACK_URL),
-        loadDevStage6SampleCard(),
+        loadAssetPackFromUrl(devPreviewCatalog.DEV_PREVIEW_ASSET_PACK_URL),
+        loadDevPreviewSampleCard(sample),
       ]);
-      if (!isMountedRef.current || requestId !== assetPackRequestRef.current) {
+      if (!shouldApplyDevPreviewSampleResult({
+        isMounted: isMountedRef.current,
+        requestId,
+        activeRequestId: assetPackRequestRef.current,
+        cardEditVersionAtStart,
+        currentCardEditVersion: cardEditVersionRef.current,
+      })) {
         loadedPack.dispose();
         return;
       }
       setAssetPack(loadedPack);
       setCard(normalizeCardSpec(sampleCard));
-      setReferenceImageUrl(DEV_STAGE6_SAMPLE_REFERENCE_URL);
+      setReferenceImageUrl(sample.referenceUrl);
     } catch (error) {
       if (requestId !== assetPackRequestRef.current) {
         return;
       }
-      setAssetPackError(error instanceof Error ? error.message : "Could not load the Stage 6 private preview.");
+      setAssetPackError(error instanceof Error ? error.message : "Could not load the private reference preview.");
     }
   }
 
-  async function handleStage6SampleLoad() {
-    await loadDevStage6Preview();
+  async function handleSetSampleLoad() {
+    if (!selectedSetSample) {
+      return;
+    }
+
+    await loadDevPreviewSample(selectedSetSample);
   }
 
-  async function loadDevStage6SampleCard(): Promise<CardSpec> {
-    const response = await fetch(DEV_STAGE6_SAMPLE_CARD_URL, { cache: "no-store" });
+  async function handleHqSampleLoad() {
+    if (!devPreviewCatalog) {
+      return;
+    }
+
+    await loadDevPreviewSample(devPreviewCatalog.DEV_PREVIEW_HQ_SAMPLE);
+  }
+
+  async function loadDevPreviewSampleCard(sample: DevPreviewSample): Promise<CardSpec> {
+    if ("card" in sample) {
+      return sample.card;
+    }
+
+    const response = await fetch(sample.cardUrl, { cache: "no-store" });
     if (!response.ok) {
-      throw new Error(`Could not load ${DEV_STAGE6_SAMPLE_CARD_URL}.`);
+      throw new Error(`Could not load ${sample.cardUrl}.`);
     }
     return normalizeCardSpec(await response.json());
   }
@@ -194,13 +279,14 @@ function App() {
       </header>
 
       <div className="workspace">
-        <FieldPanel card={previewCard} onCardChange={updateCard} />
+        <FieldPanel card={previewCard} onCardChange={updateCard} setOptionLabels={setOptionLabels} />
         <CardCanvas
           card={previewCard}
           artworkImage={artworkImage}
           canvasRef={canvasRef}
           renderOptions={renderOptions}
           referenceImageUrl={referenceImageUrl}
+          referenceLabel={referenceSample?.label}
           onCropChange={(crop) =>
             updateCard((currentCard) => ({
               ...currentCard,
@@ -230,7 +316,9 @@ function App() {
           referenceDiffError={referenceDiffError}
           onAssetPackLoad={handleAssetPackLoad}
           onReferenceCompare={handleReferenceCompare}
-          onStage6SampleLoad={import.meta.env.DEV ? handleStage6SampleLoad : undefined}
+          onSetSampleLoad={selectedSetSample ? handleSetSampleLoad : undefined}
+          setSampleLabel={selectedSetSample?.label}
+          onHqSampleLoad={isDevPrivatePreviewEnabled && devPreviewCatalog ? handleHqSampleLoad : undefined}
         />
       </div>
     </main>

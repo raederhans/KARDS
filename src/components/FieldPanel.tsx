@@ -11,9 +11,10 @@ import {
 type FieldPanelProps = {
   card: CardSpec;
   onCardChange: (update: CardUpdate) => void;
+  setOptionLabels?: Partial<Record<string, string>>;
 };
 
-export function FieldPanel({ card, onCardChange }: FieldPanelProps) {
+export function FieldPanel({ card, onCardChange, setOptionLabels }: FieldPanelProps) {
   const kind = getKind(card.kind);
 
   function update(next: Partial<CardSpec>) {
@@ -201,12 +202,12 @@ export function FieldPanel({ card, onCardChange }: FieldPanelProps) {
           </select>
         </label>
 
-        <label>
+        <label className={setOptionLabels ? "set-select-label is-reference-sample" : undefined}>
           <span>Set</span>
           <select name="card-set" value={card.set} onChange={(event) => update({ set: event.target.value })}>
             {SETS.map((set) => (
               <option key={set.id} value={set.id}>
-                {set.label}
+                {formatSetOptionLabel(set, setOptionLabels)}
               </option>
             ))}
           </select>
@@ -255,6 +256,11 @@ export function FieldPanel({ card, onCardChange }: FieldPanelProps) {
       </div>
     </aside>
   );
+}
+
+function formatSetOptionLabel(set: { id: string; label: string }, setOptionLabels?: Partial<Record<string, string>>) {
+  const sampleLabel = setOptionLabels?.[set.id];
+  return sampleLabel ? `${sampleLabel} (${set.label})` : set.label;
 }
 
 function NumberField({

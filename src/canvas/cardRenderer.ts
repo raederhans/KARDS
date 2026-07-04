@@ -18,11 +18,23 @@ import type {
 export { CARD_HEIGHT, CARD_WIDTH, getArtworkRect } from "./layout";
 export { isPointInsideArtwork } from "./layout";
 
-const DEFAULT_TEXT_FONT = "'Arial Narrow', 'Roboto Condensed', Arial, sans-serif";
+const LATIN_CONDENSED_FONT =
+  "'Libre Franklin', 'Franklin Gothic Demi Cond', 'Franklin Gothic Demi Condensed', 'Franklin Gothic Medium Cond', 'Arial Narrow', 'Roboto Condensed'";
+const NUMERIC_CARD_FONT = "'Yantramanav', 'Libre Franklin', 'Arial Narrow', 'Roboto Condensed'";
+const CJK_CARD_FONT = "'Noto Sans SC', 'Source Han Sans SC', 'Microsoft YaHei UI', 'Microsoft YaHei', 'PingFang SC', 'Hiragino Sans GB'";
+const DEFAULT_TITLE_FONT = `${LATIN_CONDENSED_FONT}, ${CJK_CARD_FONT}, sans-serif`;
+const DEFAULT_BODY_FONT = `${CJK_CARD_FONT}, ${LATIN_CONDENSED_FONT}, sans-serif`;
+const DEFAULT_UTILITY_FONT = `${LATIN_CONDENSED_FONT}, ${CJK_CARD_FONT}, sans-serif`;
+const DEFAULT_NUMERIC_FONT = `${NUMERIC_CARD_FONT}, ${CJK_CARD_FONT}, sans-serif`;
+const DEFAULT_TEXT_FONT = DEFAULT_TITLE_FONT;
 const DARK = "#4f514c";
 const LIGHT = "#cfd5c2";
 const PAPER = "#d8d2bd";
+const TYPE_ICON_PAPER = "#ccc9b6";
+const TYPE_ICON_PAPER_RGB = { r: 204, g: 201, b: 182 };
 const ACTIVATED = "#ce8a31";
+const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/;
+const TYPE_ICON_GLYPH_CACHE = new WeakMap<object, CanvasImageSource>();
 
 type TextMeasureContext = Pick<CanvasRenderingContext2D, "font" | "measureText">;
 
@@ -82,7 +94,7 @@ export function renderCard(
   drawSet(ctx, layout, set.mark, options, assetContext, fonts);
   drawValues(ctx, layout, card, options, assetContext, fonts);
   drawTypeIcon(ctx, layout, card.kind, kind.symbol, options, assetContext, fonts);
-  drawText(ctx, layout, card, nation.accent, fonts);
+  drawText(ctx, layout, card, fonts);
   if (!options.disablePrintWear) {
     drawPrintWear(ctx);
   }
@@ -232,21 +244,27 @@ function drawCostBoard(
   }
 
   const deploymentText = String(deployment ?? 0);
-  const deploymentSize = deploymentText.length > 1 ? 52 : 70;
+  const deploymentSize = deploymentText.length > 1 ? 58 : 78;
+  const costScale = getTextScale(deploymentText, 1.22, 1.02);
+  const deploymentCenterX = rect.x + 33;
+  const sideCostCenterX = rect.x + 67;
+  const sideCostTopY = rect.y + 31;
+  const sideCostBottomY = rect.y + 58;
   ctx.fillStyle = LIGHT;
-  ctx.font = `800 ${deploymentSize}px ${fonts.utility}`;
+  ctx.font = `900 ${deploymentSize}px ${fonts.cost}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(deploymentText, rect.x + 35, rect.y + 47);
+  fillScaledText(ctx, deploymentText, deploymentCenterX, rect.y + 47, costScale);
 
   ctx.fillStyle = ACTIVATED;
-  ctx.font = `800 24px ${fonts.utility}`;
-  ctx.fillText("K", rect.x + 66, rect.y + 27);
+  ctx.font = `900 27px ${fonts.cost}`;
+  fillScaledText(ctx, "K", sideCostCenterX, sideCostTopY, 1.15);
 
   if (operation !== undefined) {
     ctx.fillStyle = LIGHT;
-    ctx.font = `800 24px ${fonts.utility}`;
-    ctx.fillText(String(operation), rect.x + 68, rect.y + 64);
+    const operationText = String(operation);
+    ctx.font = `900 27px ${fonts.cost}`;
+    fillScaledText(ctx, operationText, sideCostCenterX, sideCostBottomY, getTextScale(operationText, 1.14, 1.02));
   }
   ctx.restore();
 }
@@ -318,19 +336,28 @@ function drawRarity(
 
   ctx.save();
   const pipCount = getRarityPipCount(rarityId);
-  const pipWidth = 9;
+  const pipWidth = 8;
+  const pipHeight = 13;
   const gap = 4;
   const totalWidth = pipCount * pipWidth + (pipCount - 1) * gap;
   const startX = Math.round(layout.rarity.x + (layout.rarity.width - totalWidth) / 2);
   ctx.fillStyle = color;
   let usedPipAsset = false;
   for (let i = 0; i < pipCount; i += 1) {
-    const pipRect = { x: startX + i * (pipWidth + gap), y: layout.rarity.y + 4, width: pipWidth, height: layout.rarity.height - 8 };
+    const centerOffset = i - (pipCount - 1) / 2;
+    const centerX = startX + i * (pipWidth + gap) + pipWidth / 2;
+    const centerY = layout.rarity.y + 9 + Math.abs(centerOffset) * 1.1;
+    const rotation = centerOffset * 0.08;
+    const pipRect = { x: -pipWidth / 2, y: -pipHeight / 2, width: pipWidth, height: pipHeight };
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(rotation);
     const hasPipAsset = drawAsset(ctx, options, "rarity-pip", pipRect, assetContext);
     usedPipAsset = hasPipAsset || usedPipAsset;
     if (!hasPipAsset) {
-      ctx.fillRect(pipRect.x, pipRect.y, pipRect.width, pipRect.height);
+      drawRarityPipShape(ctx, pipRect);
     }
+    ctx.restore();
   }
   if (!usedPipAsset) {
     ctx.strokeStyle = "rgba(79, 81, 76, 0.35)";
@@ -395,6 +422,7 @@ function drawValues(
       options,
       assetContext,
       fonts,
+      7,
     );
   }
   drawStatBoard(ctx, layout.defenseBoard, card.stats.defense, "", 52, "defense-board", options, assetContext, fonts);
@@ -415,17 +443,13 @@ function drawTypeIcon(
 
   ctx.save();
   const rect = layout.typeIcon;
-  if (drawAsset(ctx, options, "type-icon", rect, assetContext)) {
+  if (drawTypeIconAsset(ctx, options, rect, assetContext)) {
     ctx.restore();
     return;
   }
 
-  ctx.fillStyle = DARK;
-  ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-  ctx.strokeStyle = "rgba(223, 222, 196, 0.75)";
-  ctx.lineWidth = 3;
-  ctx.strokeRect(rect.x + 2, rect.y + 2, rect.width - 4, rect.height - 4);
-  ctx.fillStyle = LIGHT;
+  drawTypeIconBoard(ctx, rect);
+  ctx.fillStyle = TYPE_ICON_PAPER;
   ctx.font = `800 ${kind === "order" || kind === "countermeasure" ? 34 : 22}px ${fonts.utility}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
@@ -437,7 +461,6 @@ function drawText(
   ctx: CanvasRenderingContext2D,
   layout: CardFaceLayout,
   card: CardSpec,
-  accent: string,
   fonts: ResolvedRenderFonts,
 ): void {
   const keywordLine = card.keywordLine?.trim();
@@ -448,26 +471,36 @@ function drawText(
 
   if (layout.title) {
     ctx.fillStyle = shouldUseDarkTitle(card.nation) ? DARK : LIGHT;
-    fitText(ctx, card.title.toUpperCase(), layout.title.x, layout.title.y, layout.title.maxWidth, layout.title.size, fonts.title);
+    fitText(
+      ctx,
+      card.title.toUpperCase(),
+      layout.title.x,
+      layout.title.y,
+      layout.title.maxWidth,
+      layout.title.size,
+      fonts.title,
+      getTextScale(card.title, 1.12, 1.02),
+    );
   } else if (layout.text.titleY !== undefined) {
     ctx.fillStyle = DARK;
-    fitText(ctx, card.title.toUpperCase(), 250, layout.text.titleY, 340, 32, fonts.title);
+    fitText(ctx, card.title.toUpperCase(), 250, layout.text.titleY, 340, 36, fonts.title, getTextScale(card.title, 1.08, 1.02));
   }
 
   if (keywordLine) {
-    ctx.fillStyle = accent;
-    ctx.font = `800 27px ${fonts.utility}`;
-    ctx.fillText(formatKeywordLine(keywordLine), 250, layout.text.keywordY);
+    const formattedKeywordLine = formatKeywordLine(keywordLine);
+    ctx.fillStyle = DARK;
+    ctx.font = `800 27px ${fonts.keyword}`;
+    fillScaledText(ctx, formattedKeywordLine, 250, layout.text.keywordY, getTextScale(formattedKeywordLine, 1.02, 1));
   }
 
   ctx.fillStyle = DARK;
-  ctx.font = `400 24px ${fonts.body}`;
+  ctx.font = `500 24px ${fonts.body}`;
   const bodyY = keywordLine ? layout.text.bodyY : layout.text.keywordY;
   const bodyMaxLines = Math.max(
     1,
     Math.min(layout.text.maxLines, Math.floor((layout.text.bodyBottomY - bodyY) / layout.text.lineHeight) + 1),
   );
-  drawWrappedText(ctx, card.body, 250, bodyY, layout.text.maxWidth, layout.text.lineHeight, bodyMaxLines);
+  drawWrappedText(ctx, card.body, 250, bodyY, layout.text.maxWidth, layout.text.lineHeight, bodyMaxLines, getTextScale(card.body, 0.96, 1));
   ctx.restore();
 }
 
@@ -481,6 +514,7 @@ function drawStatBoard(
   options: RenderCardOptions,
   assetContext: CardRenderAssetContext,
   fonts: ResolvedRenderFonts,
+  valueYOffset = 2,
 ): void {
   ctx.save();
   const hasAsset = drawAsset(ctx, options, assetSlot, rect, assetContext);
@@ -500,13 +534,14 @@ function drawStatBoard(
   }
 
   ctx.fillStyle = LIGHT;
-  ctx.font = `800 ${fontSize}px ${fonts.utility}`;
+  const valueText = String(value ?? 0);
+  ctx.font = `900 ${fontSize + 2}px ${fonts.stat}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(String(value ?? 0), rect.x + rect.width / 2, rect.y + rect.height / 2 - 4);
+  fillScaledText(ctx, valueText, rect.x + rect.width / 2, rect.y + rect.height / 2 + valueYOffset, getTextScale(valueText, 1.18, 1.02));
   if (label) {
-    ctx.font = `800 14px ${fonts.utility}`;
-    ctx.fillText(label, rect.x + rect.width / 2, rect.y + rect.height - 22);
+    ctx.font = `900 14px ${fonts.stat}`;
+    fillScaledText(ctx, label, rect.x + rect.width / 2, rect.y + rect.height - 22, getTextScale(label, 1.08, 1.02));
   }
   ctx.restore();
 }
@@ -531,11 +566,12 @@ function drawWrappedText(
   maxWidth: number,
   lineHeight: number,
   maxLines: number,
+  scaleX = 1,
 ): void {
-  const lines = createWrappedTextLines(ctx, text, maxWidth, maxLines);
+  const lines = createWrappedTextLines(ctx, text, maxWidth, maxLines, scaleX);
 
   lines.forEach((wrappedLine, index) => {
-    ctx.fillText(wrappedLine, x, y + index * lineHeight);
+    fillScaledText(ctx, wrappedLine, x, y + index * lineHeight, scaleX);
   });
 }
 
@@ -544,15 +580,16 @@ export function createWrappedTextLines(
   text: string,
   maxWidth: number,
   maxLines: number,
+  scaleX = 1,
 ): string[] {
-  const words = text.split(/\s+/).filter(Boolean).flatMap((word) => splitLongToken(ctx, word, maxWidth));
+  const words = text.split(/\s+/).filter(Boolean).flatMap((word) => splitLongToken(ctx, word, maxWidth, scaleX));
   const lines: string[] = [];
   let line = "";
   let usedWordCount = 0;
 
   for (const word of words) {
     const testLine = line ? `${line} ${word}` : word;
-    if (ctx.measureText(testLine).width > maxWidth && line) {
+    if (measureScaledText(ctx, testLine, scaleX) > maxWidth && line) {
       lines.push(line);
       line = word;
       if (lines.length === maxLines) {
@@ -568,10 +605,10 @@ export function createWrappedTextLines(
     lines.push(line);
   }
 
-  const wrappedLines = lines.map((wrappedLine) => truncateToWidth(ctx, wrappedLine, maxWidth));
+  const wrappedLines = lines.map((wrappedLine) => truncateToWidth(ctx, wrappedLine, maxWidth, scaleX));
   if (usedWordCount < words.length && wrappedLines.length > 0) {
     const lastLineIndex = wrappedLines.length - 1;
-    wrappedLines[lastLineIndex] = appendEllipsisToWidth(ctx, wrappedLines[lastLineIndex], maxWidth);
+    wrappedLines[lastLineIndex] = appendEllipsisToWidth(ctx, wrappedLines[lastLineIndex], maxWidth, scaleX);
   }
 
   return wrappedLines;
@@ -585,10 +622,11 @@ function fitText(
   maxWidth: number,
   initialSize: number,
   fontFamily = DEFAULT_TEXT_FONT,
+  scaleX = 1,
 ): void {
-  const size = getFittedFontSize(ctx, text, maxWidth, initialSize, 18, fontFamily);
+  const size = getFittedFontSize(ctx, text, maxWidth, initialSize, 18, fontFamily, scaleX);
   ctx.font = `800 ${size}px ${fontFamily}`;
-  ctx.fillText(truncateToWidth(ctx, text, maxWidth), x, y);
+  fillScaledText(ctx, truncateToWidth(ctx, text, maxWidth, scaleX), x, y, scaleX);
 }
 
 export function getFittedFontSize(
@@ -598,11 +636,12 @@ export function getFittedFontSize(
   initialSize: number,
   minimumSize: number,
   fontFamily = DEFAULT_TEXT_FONT,
+  scaleX = 1,
 ): number {
   let size = initialSize;
   while (size > minimumSize) {
     ctx.font = `800 ${size}px ${fontFamily}`;
-    if (ctx.measureText(text).width <= maxWidth) {
+    if (measureScaledText(ctx, text, scaleX) <= maxWidth) {
       break;
     }
     size -= 1;
@@ -610,24 +649,24 @@ export function getFittedFontSize(
   return size;
 }
 
-export function truncateToWidth(ctx: TextMeasureContext, text: string, maxWidth: number): string {
-  if (ctx.measureText(text).width <= maxWidth) {
+export function truncateToWidth(ctx: TextMeasureContext, text: string, maxWidth: number, scaleX = 1): string {
+  if (measureScaledText(ctx, text, scaleX) <= maxWidth) {
     return text;
   }
 
-  return appendEllipsisToWidth(ctx, text, maxWidth);
+  return appendEllipsisToWidth(ctx, text, maxWidth, scaleX);
 }
 
-function appendEllipsisToWidth(ctx: TextMeasureContext, text: string, maxWidth: number): string {
+function appendEllipsisToWidth(ctx: TextMeasureContext, text: string, maxWidth: number, scaleX = 1): string {
   let truncatedText = text;
-  while (truncatedText.length > 1 && ctx.measureText(`${truncatedText}...`).width > maxWidth) {
+  while (truncatedText.length > 1 && measureScaledText(ctx, `${truncatedText}...`, scaleX) > maxWidth) {
     truncatedText = truncatedText.slice(0, -1);
   }
   return `${truncatedText}...`;
 }
 
-function splitLongToken(ctx: TextMeasureContext, token: string, maxWidth: number): string[] {
-  if (ctx.measureText(token).width <= maxWidth) {
+function splitLongToken(ctx: TextMeasureContext, token: string, maxWidth: number, scaleX = 1): string[] {
+  if (measureScaledText(ctx, token, scaleX) <= maxWidth) {
     return [token];
   }
 
@@ -635,7 +674,7 @@ function splitLongToken(ctx: TextMeasureContext, token: string, maxWidth: number
   let chunk = "";
   for (const char of token) {
     const testChunk = `${chunk}${char}`;
-    if (chunk && ctx.measureText(testChunk).width > maxWidth) {
+    if (chunk && measureScaledText(ctx, testChunk, scaleX) > maxWidth) {
       chunks.push(chunk);
       chunk = char;
     } else {
@@ -647,6 +686,148 @@ function splitLongToken(ctx: TextMeasureContext, token: string, maxWidth: number
     chunks.push(chunk);
   }
   return chunks;
+}
+
+function fillScaledText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, scaleX = 1): void {
+  if (scaleX === 1) {
+    ctx.fillText(text, x, y);
+    return;
+  }
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scaleX, 1);
+  ctx.fillText(text, 0, 0);
+  ctx.restore();
+}
+
+function drawRarityPipShape(ctx: CanvasRenderingContext2D, rect: Rect): void {
+  ctx.beginPath();
+  ctx.moveTo(rect.x + 1, rect.y);
+  ctx.lineTo(rect.x + rect.width - 1, rect.y);
+  ctx.lineTo(rect.x + rect.width, rect.y + rect.height);
+  ctx.lineTo(rect.x, rect.y + rect.height);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawTypeIconBoard(ctx: CanvasRenderingContext2D, rect: Rect): void {
+  const border = Math.max(4, Math.round(Math.min(rect.width, rect.height) * 0.075));
+  ctx.fillStyle = TYPE_ICON_PAPER;
+  roundRect(ctx, rect.x, rect.y, rect.width, rect.height, 9);
+  ctx.fill();
+  ctx.fillStyle = DARK;
+  roundRect(ctx, rect.x + border, rect.y + border, rect.width - border * 2, rect.height - border * 2, 5);
+  ctx.fill();
+}
+
+function drawTypeIconAsset(
+  ctx: CanvasRenderingContext2D,
+  options: RenderCardOptions,
+  rect: Rect,
+  assetContext: CardRenderAssetContext,
+): boolean {
+  const image = options.assets?.resolveImage("type-icon", assetContext);
+  if (!image) {
+    return false;
+  }
+
+  drawTypeIconBoard(ctx, rect);
+
+  const sourceSize = getCanvasImageSize(image, rect);
+  const glyphImage = createTypeIconGlyphImage(image, sourceSize) ?? image;
+  const sourceInsetX = Math.max(1, Math.round(sourceSize.width * 0.14));
+  const sourceInsetY = Math.max(1, Math.round(sourceSize.height * 0.14));
+  const sourceWidth = Math.max(1, sourceSize.width - sourceInsetX * 2);
+  const sourceHeight = Math.max(1, sourceSize.height - sourceInsetY * 2);
+  const glyphInsetX = Math.round(rect.width * 0.18);
+  const glyphInsetY = Math.round(rect.height * 0.18);
+
+  ctx.save();
+  roundRect(ctx, rect.x + 4, rect.y + 4, rect.width - 8, rect.height - 8, 7);
+  ctx.clip();
+  ctx.drawImage(
+    glyphImage,
+    sourceInsetX,
+    sourceInsetY,
+    sourceWidth,
+    sourceHeight,
+    rect.x + glyphInsetX,
+    rect.y + glyphInsetY,
+    rect.width - glyphInsetX * 2,
+    rect.height - glyphInsetY * 2,
+  );
+  ctx.restore();
+  return true;
+}
+
+function createTypeIconGlyphImage(image: CanvasImageSource, sourceSize: { width: number; height: number }): CanvasImageSource | undefined {
+  const cacheKey = image as object;
+  const cached = TYPE_ICON_GLYPH_CACHE.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  if (typeof document === "undefined") {
+    return undefined;
+  }
+
+  const glyphCanvas = document.createElement("canvas");
+  glyphCanvas.width = sourceSize.width;
+  glyphCanvas.height = sourceSize.height;
+  const glyphCtx = glyphCanvas.getContext("2d", { willReadFrequently: true });
+  if (!glyphCtx) {
+    return undefined;
+  }
+
+  try {
+    glyphCtx.drawImage(image, 0, 0, sourceSize.width, sourceSize.height);
+    const imageData = glyphCtx.getImageData(0, 0, sourceSize.width, sourceSize.height);
+    const data = imageData.data;
+    for (let index = 0; index < data.length; index += 4) {
+      const alpha = data[index + 3];
+      const luma = data[index] * 0.2126 + data[index + 1] * 0.7152 + data[index + 2] * 0.0722;
+      if (alpha < 24 || luma < 150) {
+        data[index + 3] = 0;
+        continue;
+      }
+
+      data[index] = TYPE_ICON_PAPER_RGB.r;
+      data[index + 1] = TYPE_ICON_PAPER_RGB.g;
+      data[index + 2] = TYPE_ICON_PAPER_RGB.b;
+      data[index + 3] = Math.min(255, Math.max(alpha, Math.round((luma - 118) * 4.6)));
+    }
+    glyphCtx.clearRect(0, 0, sourceSize.width, sourceSize.height);
+    glyphCtx.putImageData(imageData, 0, 0);
+    TYPE_ICON_GLYPH_CACHE.set(cacheKey, glyphCanvas);
+    return glyphCanvas;
+  } catch {
+    return undefined;
+  }
+}
+
+function getCanvasImageSize(image: CanvasImageSource, fallback: Rect): { width: number; height: number } {
+  const imageLike = image as {
+    naturalWidth?: number;
+    naturalHeight?: number;
+    videoWidth?: number;
+    videoHeight?: number;
+    width?: number;
+    height?: number;
+  };
+
+  return {
+    width: imageLike.naturalWidth || imageLike.videoWidth || Number(imageLike.width) || fallback.width,
+    height: imageLike.naturalHeight || imageLike.videoHeight || Number(imageLike.height) || fallback.height,
+  };
+}
+
+function measureScaledText(ctx: TextMeasureContext, text: string, scaleX = 1): number {
+  return ctx.measureText(text).width * scaleX;
+}
+
+function getTextScale(text: string, latinScale: number, cjkScale: number): number {
+  return CJK_RE.test(text) ? cjkScale : latinScale;
 }
 
 function roundRect(
@@ -737,9 +918,15 @@ function drawAsset(
 }
 
 function resolveRenderFonts(fonts: CardRenderFontSet | undefined): ResolvedRenderFonts {
+  const title = fonts?.title ?? fonts?.body ?? DEFAULT_TITLE_FONT;
+  const body = fonts?.body ?? DEFAULT_BODY_FONT;
+  const utility = fonts?.utility ?? fonts?.title ?? fonts?.body ?? DEFAULT_UTILITY_FONT;
   return {
-    title: fonts?.title ?? fonts?.body ?? DEFAULT_TEXT_FONT,
-    body: fonts?.body ?? DEFAULT_TEXT_FONT,
-    utility: fonts?.utility ?? fonts?.title ?? fonts?.body ?? DEFAULT_TEXT_FONT,
+    title,
+    body,
+    keyword: fonts?.keyword ?? utility,
+    cost: fonts?.cost ?? DEFAULT_NUMERIC_FONT,
+    stat: fonts?.stat ?? DEFAULT_NUMERIC_FONT,
+    utility,
   };
 }
