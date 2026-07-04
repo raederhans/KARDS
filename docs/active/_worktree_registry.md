@@ -5,9 +5,9 @@
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
 - Thread/task: deploy the GitHub-hosted web page through GitHub Pages
 - Base branch/base commit: `main`, `491bf6f2e0ec792cba0791e747ce013ed3acb5b0`
-- Current branch/HEAD: `main`, Pages deployment commit pending
+- Current branch/HEAD: `main`, Pages deployment commit `67c3f49220f1f5edf754aa0438c7a579d0a703f7`; closeout docs commit pending
 - Task goal: publish the existing static KARDS Card Forge app as a GitHub Pages project site without breaking the existing Vercel root-path deployment
-- Status: in-progress
+- Status: integrated
 - Main changed files:
   - Core files: `vite.config.ts`
   - Config files: `.github/workflows/deploy-pages.yml`
@@ -21,13 +21,19 @@
   - `npm run typecheck`: passed
   - `npm run build`: passed, normal build kept root-path assets such as `/assets/index-*.js`
   - `KARDS_GITHUB_PAGES=true npm run build`: passed, Pages build emitted `/KARDS/assets/index-*.js` and `/KARDS/favicon.svg`
+  - `git push origin main`: passed, pushed `491bf6f..67c3f49`
+  - `gh api -X POST repos/raederhans/KARDS/pages -f build_type=workflow`: passed, enabled `https://raederhans.github.io/KARDS/`
+  - Initial Pages workflow run `28722388478`: failed before Pages was enabled, then rerun successfully after enablement
+  - `gh run watch 28722388478 --repo raederhans/KARDS --exit-status`: passed, build and deploy jobs succeeded
+  - `Invoke-WebRequest https://raederhans.github.io/KARDS/`: passed, `200`, title present
+  - Remote browser smoke on `https://raederhans.github.io/KARDS/`: passed, title matched, Canvas rendered nonblank at `500x702`, PNG export produced `自定义坦克.png` with nonzero bytes, and no console issues were observed
 - Tests not run:
-  - GitHub Pages production workflow and live URL verification are pending until the commit is pushed and Pages is enabled
+  - No full visual regression suite was rerun; this deployment pass verified build paths, workflow deployment, live load, Canvas nonblank state, and PNG export
 - Potential overlap with other worktrees:
   - None detected; `git worktree list --porcelain` showed only this checkout
   - Future overlap risk with any branch changing `vite.config.ts`, GitHub Actions workflows, or deployment docs
-- Recommended integration order: commit directly on `main`; this is a deployment-only change and must land on `main` to trigger the Pages workflow
-- Next action: commit and push the workflow, enable GitHub Pages with workflow build type, then verify the published Pages URL
+- Recommended integration order: integrated on `main`; future Pages changes should keep the Pages-only base isolated from Vercel root-path builds
+- Next action: no deployment work remains; future optional work is adding path filters if docs-only commits should stop redeploying Pages
 
 ## KARDS GitHub release and Vercel production deployment
 
