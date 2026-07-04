@@ -25,3 +25,4 @@
 - Asset-backed canvas layers should not return before shared overlay details are drawn; otherwise official slot assets can silently skip seams, masks, or separators that fallback rendering still shows.
 - Vercel CLI deploys should have a project `.vercelignore` before the first production upload; mirror secret ignores such as `.env*` there, because `.gitignore` alone is not the deploy upload boundary.
 - Vercel GitHub auto-link can fail even when local `gh` auth works; a missing Vercel GitHub Login Connection blocks push-triggered Vercel integration but does not block authenticated CLI production deploys.
+- Vite apps deployed as GitHub project Pages need a repository-subpath base such as `/KARDS/`; keep that behind a Pages-only environment flag so Vercel root-path deploys still emit `/assets/...`.

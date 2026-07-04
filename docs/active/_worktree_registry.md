@@ -1,5 +1,34 @@
 # Worktree Registry
 
+## KARDS GitHub Pages deployment
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: deploy the GitHub-hosted web page through GitHub Pages
+- Base branch/base commit: `main`, `491bf6f2e0ec792cba0791e747ce013ed3acb5b0`
+- Current branch/HEAD: `main`, Pages deployment commit pending
+- Task goal: publish the existing static KARDS Card Forge app as a GitHub Pages project site without breaking the existing Vercel root-path deployment
+- Status: in-progress
+- Main changed files:
+  - Core files: `vite.config.ts`
+  - Config files: `.github/workflows/deploy-pages.yml`
+  - Docs files: `docs/active/_worktree_registry.md`, `lessons learned.md`
+  - Temporary/runtime files: none tracked
+- Shared hotspot files touched: Vite build configuration, GitHub Actions deployment workflow, active worktree registry
+- Validation run:
+  - `git worktree list --porcelain`: only the main checkout
+  - `gh --version`: passed, `2.95.0`
+  - `gh auth status`: passed for `raederhans`, token scopes include `repo` and `workflow`
+  - `npm run typecheck`: passed
+  - `npm run build`: passed, normal build kept root-path assets such as `/assets/index-*.js`
+  - `KARDS_GITHUB_PAGES=true npm run build`: passed, Pages build emitted `/KARDS/assets/index-*.js` and `/KARDS/favicon.svg`
+- Tests not run:
+  - GitHub Pages production workflow and live URL verification are pending until the commit is pushed and Pages is enabled
+- Potential overlap with other worktrees:
+  - None detected; `git worktree list --porcelain` showed only this checkout
+  - Future overlap risk with any branch changing `vite.config.ts`, GitHub Actions workflows, or deployment docs
+- Recommended integration order: commit directly on `main`; this is a deployment-only change and must land on `main` to trigger the Pages workflow
+- Next action: commit and push the workflow, enable GitHub Pages with workflow build type, then verify the published Pages URL
+
 ## KARDS GitHub release and Vercel production deployment
 
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
