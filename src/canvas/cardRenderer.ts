@@ -341,12 +341,15 @@ function drawRarity(
     return;
   }
 
-  ctx.save();
-  if (drawAsset(ctx, options, "rarity-pip", layout.rarity, assetContext)) {
-    ctx.restore();
-    return;
+  if (rarityId === "elite" || rarityId === "special") {
+    const markImage = options.assets?.resolveImage("rarity-pip", assetContext);
+    if (markImage) {
+      drawCenteredRarityMark(ctx, markImage, layout.rarity, rarityId);
+      return;
+    }
   }
 
+  ctx.save();
   const pipCount = getRarityPipCount(rarityId);
   const pipWidth = 8;
   const pipHeight = 13;
@@ -363,10 +366,29 @@ function drawRarity(
     ctx.save();
     ctx.translate(centerX, centerY);
     ctx.rotate(rotation);
-    drawRarityPipShape(ctx, pipRect);
+    if (!drawAsset(ctx, options, "rarity-pip", pipRect, assetContext)) {
+      drawRarityPipShape(ctx, pipRect);
+    }
     ctx.restore();
   }
   ctx.restore();
+}
+
+function drawCenteredRarityMark(
+  ctx: CanvasRenderingContext2D,
+  image: CanvasImageSource,
+  slot: Rect,
+  rarityId: string,
+): void {
+  const sourceSize = getCanvasImageSize(image, slot);
+  const maxSize = rarityId === "elite" ? { width: 48, height: 20 } : { width: 34, height: 20 };
+  const scale = Math.min(1, maxSize.width / sourceSize.width, maxSize.height / sourceSize.height);
+  const width = Math.round(sourceSize.width * scale);
+  const height = Math.round(sourceSize.height * scale);
+  const x = slot.x + (slot.width - width) / 2;
+  const y = slot.y + (slot.height - height) / 2;
+
+  ctx.drawImage(image, x, y, width, height);
 }
 
 function drawSet(

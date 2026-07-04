@@ -398,11 +398,25 @@ describe("card renderer output", () => {
     expect(pipRotations).toEqual([-0.08, 0, 0.08]);
   });
 
-  it("draws complete rarity mark assets into the official rarity slot", () => {
+  it("repeats standard and limited rarity pip assets without stretching them into the whole slot", () => {
+    const { canvas, calls } = createFakeCanvas();
+    const localImage = { width: 9, height: 12 } as CanvasImageSource;
+    const assets = createStaticAssetResolver([{ slot: "rarity-pip", rarityId: "limited", image: localImage }]);
+
+    renderCard(canvas, { ...DEFAULT_CARD, rarity: "limited" }, null, { assets, disablePrintWear: true });
+
+    const pipDraws = calls.drawImageStyles.filter((call) => call.image === localImage);
+    expect(pipDraws).toHaveLength(3);
+    expect(pipDraws.map((call) => call.width)).toEqual([8, 8, 8]);
+    expect(pipDraws.map((call) => call.height)).toEqual([13, 13, 13]);
+    expect(pipDraws.map((call) => call.rotation)).toEqual([-0.08, 0, 0.08]);
+  });
+
+  it("draws elite and special rarity mark assets at their natural centered size", () => {
     const eliteCanvas = createFakeCanvas();
     const specialCanvas = createFakeCanvas();
-    const eliteImage = { width: 56, height: 20 } as CanvasImageSource;
-    const specialImage = { width: 56, height: 20 } as CanvasImageSource;
+    const eliteImage = { width: 47, height: 19 } as CanvasImageSource;
+    const specialImage = { width: 31, height: 19 } as CanvasImageSource;
 
     renderCard(eliteCanvas.canvas, { ...DEFAULT_CARD, rarity: "elite" }, null, {
       assets: createStaticAssetResolver([{ slot: "rarity-pip", rarityId: "elite", image: eliteImage }]),
@@ -416,9 +430,9 @@ describe("card renderer output", () => {
     const eliteDraw = eliteCanvas.calls.drawImageStyles.find((call) => call.image === eliteImage);
     const specialDraws = specialCanvas.calls.drawImageStyles.filter((call) => call.image === specialImage);
 
-    expect(eliteDraw).toMatchObject({ centerX: 250, centerY: 685, width: 56, height: 20, rotation: 0 });
+    expect(eliteDraw).toMatchObject({ centerX: 250, centerY: 685, width: 47, height: 19, rotation: 0 });
     expect(specialDraws).toHaveLength(1);
-    expect(specialDraws[0]).toMatchObject({ centerX: 250, centerY: 685, width: 56, height: 20, rotation: 0 });
+    expect(specialDraws[0]).toMatchObject({ centerX: 250, centerY: 685, width: 31, height: 19, rotation: 0 });
   });
 
   it("does not draw rarity marks when rarity is none", () => {
