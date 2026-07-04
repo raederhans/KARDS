@@ -248,14 +248,19 @@ def copy_stage5_clean_assets(
         source_path = resolve_pack_file(stage5_pack, file_name)
         if not source_path.exists():
             continue
-        target_path = output_dir / "images" / "stage5-clean" / slot / source_path.name
+        target_path = output_dir / "images" / "stage5-clean" / slot
+        if entry.get("template"):
+            target_path /= entry["template"]
+        if entry.get("kind"):
+            target_path /= entry["kind"]
+        target_path /= source_path.name
         copy_file(source_path, target_path)
         new_entry = {key: value for key, value in entry.items() if key != "file"}
         new_entry["file"] = relpath(target_path, output_dir)
         renderer_manifest_images.append(new_entry)
         extracted_assets.append(
             asset_record(
-                asset_id=f"stage5:{slot}:{source_path.stem}",
+                asset_id=":".join(filter(None, ["stage5", slot, entry.get("template"), entry.get("kind"), source_path.stem])),
                 category="renderer-smoke-safe-slot",
                 source_route="stage5-private-official-crop",
                 source_path=source_path,

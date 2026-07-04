@@ -817,3 +817,35 @@
   - `npm run build`: passed, including typecheck and Vite production build.
 - Boundary:
   - This pass is a presentation tune of the split renderer; no official-derived files were copied into source or public assets.
+
+## 2026-07-04 Stage 8 Nation Mark Source Separation
+
+- User review found the same structural issue in the top-right nation marks: a single crop per nation was reused across unit, aircraft, order, and countermeasure cards, which caused branch-specific emblems and card-template background colors to mismatch.
+- Audit findings:
+  - The Stage6 renderer manifest previously had only 11 `nation-mark` entries and none carried `template` or `kind` filters.
+  - Stage5 crops proved real source differences inside one nation, for example Soviet unit and order crops had visibly different red/background averages, and US ground-unit and bomber crops used different mark treatments.
+  - Italy's prior generic unit nation mark came from `MACCHI C.200` fighter, so a tank or infantry card could receive an air-force-style mark.
+- Implemented correction:
+  - Stage5 now adds coverage requirements for every available `faction + card type` pair in the CraftSoul data.
+  - Stage5 `nation-mark` manifest entries are written with `nationId`, `kind`, and `template` filters and stored under `images/nations/<template>/<kind>/<nation>.png`.
+  - Renderer-ready nation mark PNGs now remove only edge-connected source-card background pixels, leaving transparent backgrounds instead of baked card-header color.
+  - France, Germany, Italy, Japan, US, Anzac, Britain command marks, and France air marks use subject-protection masks so the emblem body and outer rings are not eaten by the background threshold.
+  - Private output validation now also rejects `src`, `public`, and `dist` path segments even when `.runtime` appears later in the path.
+  - Stage6 preserves those filters and copies files under `images/stage5-clean/nation-mark/<template>/<kind>/<nation>.png`, avoiding same-name overwrites.
+  - The asset-pack manifest example now documents a kind/template-specific nation mark entry.
+  - The renderer resolver test now asserts template-specific nation marks win over generic nation marks; existing specificity logic already supports kind-specific marks.
+- Runtime evidence:
+  - Stage5 regeneration passed with 69 official samples, 163/163 requirements covered, 91 manifest images, and 1257 reference crops.
+  - Stage6 regeneration passed with 337 extracted/cataloged private files and 91 renderer-ready smoke-safe images.
+  - Final Stage6 manifest contains 65 `nation-mark` entries covering all available nation/kind/template combinations.
+  - Final transparent contact sheets saved to `.runtime/qa/nation-mark-kind-final-sheet.png` and `.runtime/qa/nation-mark-britain-france-protected.png`; they remain private/gitignored.
+  - Focus alpha audits confirmed the protected France/Germany/Italy/Japan/US/Anzac/Britain command/France air outputs are no longer full opaque background blocks while keeping visible emblem bodies and outer rings.
+- Validation:
+  - `py -3 -m py_compile tools\kards_private_calibration.py tools\kards_multisource_extraction.py tools\kards_private_calibration_contract_test.py`: passed.
+  - `py -3 tools\kards_private_calibration_contract_test.py`: passed, 5 tests.
+  - `npm test -- --run src/canvas/renderAssets.test.ts`: passed, 4 tests.
+  - `npm test -- --run`: passed, 10 files and 59 tests.
+  - `npm run build`: passed, including typecheck and Vite production build.
+- Boundary:
+  - Official-derived nation mark PNGs remain under `.runtime`; none were copied into source, public, or dist.
+  - This pass fixes source identity and branch/template matching. It does not introduce a new public nation-mark atlas or a perceptual browser rebaseline for every nation/kind.

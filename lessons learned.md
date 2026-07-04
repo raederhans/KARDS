@@ -14,3 +14,4 @@
 - Dev-only private preview catalogs should be dynamically imported behind `import.meta.env.DEV`; static imports can leave `.runtime` private path strings in production bundles even when the runtime branch is disabled.
 - Unit type icons should keep board and glyph as separate render layers; recoloring one combined crop forces the dark board and paper-colored glyph to drift against each other.
 - Masked type-icon glyphs need per-kind placement after layer splitting; one global inset can keep the slot centered while the actual tank, aircraft, or artillery silhouette still reads low or off-center.
+- Extracted nation marks should remove source-card background with subject-protection masks, not color threshold alone; similar emblem and background tones can otherwise erase rings, crosses, or star edges.

@@ -717,3 +717,49 @@
    - Future work should rebaseline transformed-presentation visual smoke; no DINGO-specific follow-up is pending.
 10. Integration recommendation:
    - Integrated with the Stage 8 bundle; do not separate it from the dev-preview catalog change unless cherry-picking the whole catalog path.
+
+## 2026-07-04 Follow-Up Delivery: Nation Mark Source Separation
+
+1. Changed this follow-up:
+   - Expanded private Stage5 sampling so every available `faction + card type` pair has its own official-card source crop.
+   - Changed generated `nation-mark` manifest entries from one crop per nation to `nationId + kind + template`.
+   - Changed renderer-ready nation marks to transparent-background emblem subjects instead of full 54x54 source-background crops.
+   - Added subject-protection masks for France, Germany, Italy, Japan, US, Anzac, Britain command marks, and France air marks so threshold cleanup does not erase rings, crosses, flags, stars, or outer circles.
+   - Added a Python contract test for forbidden private output paths, per-kind/template manifest entries, Stage6 path and metadata preservation, Britain command ring protection, and France air ring protection.
+   - Changed Stage6 clean-slot copying so same-nation crops no longer overwrite each other.
+   - Updated the manifest example and resolver test to document/guard template-specific nation marks.
+   - Regenerated the local private Stage5 and Stage6 packs under `.runtime` for current browser preview use.
+2. Files touched:
+   - Tooling files: `tools/kards_private_calibration.py`, `tools/kards_multisource_extraction.py`.
+   - Test files: `src/canvas/renderAssets.test.ts`, `tools/kards_private_calibration_contract_test.py`.
+   - Docs: `docs/active/kards-style-replication/asset-pack-manifest.example.json`, `context.md`, `task.md`, `docs/active/_worktree_registry.md`.
+   - Lessons: `lessons learned.md`.
+   - Private runtime evidence: `.runtime/kards-private-assets/**`, `.runtime/qa/nation-mark-kind-final-sheet.png`, `.runtime/qa/nation-mark-britain-france-protected.png`; gitignored.
+3. Diff summary:
+   - No production renderer drawing path changed.
+   - The private generator now preserves official branch/template differences for top-right nation marks while removing source-card background color from the renderer-ready PNGs.
+   - The final Stage6 manifest now has 65 `nation-mark` entries instead of 11 generic nation entries.
+4. Commit status:
+   - Committed directly on `main`; unrelated UI/i18n working-tree changes are excluded from this delivery.
+5. Base divergence:
+   - Work started from `main` commit `2813649`; `git worktree list --porcelain` showed only the main checkout.
+6. Potential conflicts:
+   - Direct overlap with future branches editing `tools/kards_private_calibration.py`, `tools/kards_multisource_extraction.py`, or the asset-pack manifest contract docs.
+   - Low runtime conflict risk because existing renderer asset specificity already supports `kind` and `template` filters.
+7. Validation:
+   - `py -3 -m py_compile tools\kards_private_calibration.py tools\kards_multisource_extraction.py tools\kards_private_calibration_contract_test.py`: passed.
+   - `py -3 tools\kards_private_calibration_contract_test.py`: passed, 5 tests.
+   - `npm test -- --run src/canvas/renderAssets.test.ts`: passed, 4 tests.
+   - Stage5 generation passed: 69 official samples, 163/163 requirements covered, 91 manifest images.
+   - Stage6 generation passed: 337 extracted/cataloged private files, 91 renderer-ready images.
+   - Final manifest audit passed: 65 `nation-mark` entries across 65 available nation/kind/template combinations, with no missing filters.
+   - Final transparent contact sheets saved at `.runtime/qa/nation-mark-kind-final-sheet.png` and `.runtime/qa/nation-mark-britain-france-protected.png`.
+   - `npm test -- --run`: passed, 10 files and 59 tests.
+   - `npm run build`: passed, including typecheck and Vite production build.
+8. Unverified risks:
+   - No browser pixel-smoke rebaseline was run for every nation/kind combination.
+   - Alpha checks cannot prove emblem completeness alone, so the current evidence combines source coverage, subject-protection masks, focused alpha audit, and contact-sheet review.
+9. Recommended next step:
+   - Commit and push this source-separation fix, then judge any remaining color/placement issues from the corrected source identity rather than from mixed generic crops.
+10. Integration recommendation:
+   - Commit directly on `main`; no separate worktree merge or cherry-pick is needed.

@@ -5,8 +5,10 @@
   "images": [
     {
       "slot": "nation-mark",
-      "file": "images/nations/britain.png",
-      "nationId": "britain"
+      "file": "images/nations/unit/infantry/britain.png",
+      "nationId": "britain",
+      "kind": "infantry",
+      "template": "unit"
     },
     {
       "slot": "type-icon-board",

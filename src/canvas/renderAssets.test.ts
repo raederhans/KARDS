@@ -32,6 +32,22 @@ describe("card render asset resolver", () => {
     expect(resolveBestAssetEntry([...entries], "nation-mark", assetContext)?.image).toBe(kindImage);
   });
 
+  it("prefers a nation mark from the current card template", () => {
+    const genericNationImage = { width: 1, height: 1 } as CanvasImageSource;
+    const commandNationImage = { width: 2, height: 2 } as CanvasImageSource;
+    const unitNationImage = { width: 3, height: 3 } as CanvasImageSource;
+    const entries = [
+      { slot: "nation-mark", nationId: "britain", image: genericNationImage },
+      { slot: "nation-mark", nationId: "britain", template: "command", image: commandNationImage },
+      { slot: "nation-mark", nationId: "britain", template: "unit", image: unitNationImage },
+    ] as const;
+
+    expect(resolveBestAssetEntry([...entries], "nation-mark", assetContext)?.image).toBe(unitNationImage);
+    expect(
+      resolveBestAssetEntry([...entries], "nation-mark", { ...assetContext, template: "command" })?.image,
+    ).toBe(commandNationImage);
+  });
+
   it("returns undefined when filters do not match the card context", () => {
     const image = { width: 1, height: 1 } as CanvasImageSource;
     const resolver = createStaticAssetResolver([{ slot: "type-icon", kind: "order", image }]);

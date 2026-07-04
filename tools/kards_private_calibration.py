@@ -7,6 +7,7 @@ import argparse
 import base64
 import json
 import re
+from collections import Counter, deque
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from io import BytesIO
@@ -23,6 +24,11 @@ DATA_URL_TEXT_LIMIT = 180
 RAW_DATA_URL = "https://raw.githubusercontent.com/CraftSoul/kards-image-tool/main/data.json"
 OFFICIAL_CARD_BASE_URL = "https://www.kards.com/images/card/v52"
 OUTPUT_MARKER_FILE = ".kards-private-calibration-output"
+NATION_BACKGROUND_SAMPLE_MARGIN = 6
+NATION_BACKGROUND_DISTANCE_THRESHOLD = 30
+NATION_BACKGROUND_RETRY_DISTANCE_THRESHOLD = 18
+NATION_MIN_SUBJECT_OPAQUE_RATIO = 0.14
+FORBIDDEN_OUTPUT_SEGMENTS = {"dist", "public", "src"}
 DEFAULT_DATA_FILE = Path(".runtime/stage3/sources/craftsoul-data.json")
 DEFAULT_STAGE3_OUTPUT = Path(".runtime/kards-private-assets/stage3-official-coverage-pack")
 DEFAULT_STAGE5_OUTPUT = Path(".runtime/kards-private-assets/stage5-card-face-elements")
@@ -265,7 +271,7 @@ def build_private_pack(
     ensure_clean_output_dirs(output_dir, allow_outside_runtime)
 
     manifest_images: list[dict[str, str]] = []
-    manifest_seen: set[tuple[str, str, str]] = set()
+    manifest_seen: set[tuple[str, tuple[tuple[str, str], ...]]] = set()
     samples: list[dict[str, Any]] = []
     covered: set[Requirement] = set()
 
@@ -434,7 +440,7 @@ def build_stage5_private_pack(
     ensure_clean_output_dirs(output_dir, allow_outside_runtime)
 
     manifest_images: list[dict[str, str]] = []
-    manifest_seen: set[tuple[str, str, str]] = set()
+    manifest_seen: set[tuple[str, tuple[tuple[str, str], ...]]] = set()
     samples: list[dict[str, Any]] = []
     crop_entries: list[dict[str, Any]] = []
     element_definitions = stage5_element_definitions()
@@ -628,6 +634,13 @@ def build_stage5_profile(cards: list[dict[str, Any]], language: str) -> dict[str
     add_if_any(requirements, cards, lambda card: card["type"] in SPECIAL_ATTACK_KINDS, Requirement("layout", "unit-special-attack"))
     add_if_any(requirements, cards, lambda card: card["type"] == "order", Requirement("layout", "order"))
     add_if_any(requirements, cards, lambda card: card["type"] == "countermeasure", Requirement("layout", "countermeasure"))
+    for faction, kind in sorted({(card["faction"], card["type"]) for card in cards}):
+        add_if_any(
+            requirements,
+            cards,
+            lambda card, faction=faction, kind=kind: card["faction"] == faction and card["type"] == kind,
+            Requirement("nation-kind", f"{faction}:{kind}"),
+        )
 
     if profile["extremes"]["deploymentMin"] is not None:
         requirements.add(Requirement("number", "deployment-min"))
@@ -690,6 +703,7 @@ def stage5_coverage_for_cards(
 def stage5_card_coverage(card: dict[str, Any], language: str, profile: dict[str, Any]) -> set[Requirement]:
     covered = set(card_coverage(card))
     kind = card["type"]
+    covered.add(Requirement("nation-kind", f"{card['faction']}:{kind}"))
     if kind in GROUND_UNIT_KINDS:
         covered.add(Requirement("layout", "unit-ground"))
     if kind in SPECIAL_ATTACK_KINDS:
@@ -1136,9 +1150,16 @@ def ensure_clean_output_dirs(output_dir: Path, allow_outside_runtime: bool) -> N
 
 def validate_output_dir(output_dir: Path, allow_outside_runtime: bool) -> None:
     resolved = output_dir.resolve()
+    lower_parts = {part.lower() for part in resolved.parts}
+    forbidden = sorted(lower_parts & FORBIDDEN_OUTPUT_SEGMENTS)
+    if forbidden:
+        raise SystemExit(
+            "Refusing to write official-derived assets under source or public output folders "
+            f"({', '.join(forbidden)}): {resolved}"
+        )
     if allow_outside_runtime:
         return
-    if ".runtime" not in {part.lower() for part in resolved.parts}:
+    if ".runtime" not in lower_parts:
         raise SystemExit(
             f"Refusing to write official-derived assets outside a .runtime directory: {resolved}. "
             "Use a .runtime output path, or pass --allow-outside-runtime for a disposable private folder."
@@ -1176,12 +1197,13 @@ def normalize_card_image(image: Image.Image) -> Image.Image:
 def add_manifest_images(
     output_dir: Path,
     manifest_images: list[dict[str, str]],
-    manifest_seen: set[tuple[str, str, str]],
+    manifest_seen: set[tuple[str, tuple[tuple[str, str], ...]]],
     card: dict[str, Any],
     image: Image.Image,
     layout: dict[str, tuple[int, int, int, int]],
 ) -> None:
     nation_id = faction_to_nation_id(card["faction"])
+    template = card_template(card)
     kind = card["type"]
     rarity_id = rarity_to_id(card["rarity"])
     set_id = set_to_id(card["set"])
@@ -1191,9 +1213,9 @@ def add_manifest_images(
         manifest_images,
         manifest_seen,
         slot="nation-mark",
-        file_path=Path("images") / "nations" / f"{nation_id}.png",
-        crop_image=crop(image, layout["nation-mark"]),
-        filters={"nationId": nation_id},
+        file_path=Path("images") / "nations" / template / kind / f"{nation_id}.png",
+        crop_image=extract_nation_mark_subject(image, layout["nation-mark"], nation_id, kind),
+        filters={"nationId": nation_id, "kind": kind, "template": template},
     )
     add_manifest_crop(
         output_dir,
@@ -1227,14 +1249,13 @@ def add_manifest_images(
 def add_manifest_crop(
     output_dir: Path,
     manifest_images: list[dict[str, str]],
-    manifest_seen: set[tuple[str, str, str]],
+    manifest_seen: set[tuple[str, tuple[tuple[str, str], ...]]],
     slot: str,
     file_path: Path,
     crop_image: Image.Image,
     filters: dict[str, str],
 ) -> None:
-    filter_key = next(iter(filters.items()))
-    key = (slot, filter_key[0], filter_key[1])
+    key = (slot, tuple(sorted(filters.items())))
     if key in manifest_seen:
         return
 
@@ -1300,6 +1321,159 @@ def crop(image: Image.Image, rect: tuple[int, int, int, int]) -> Image.Image:
     return image.crop((x, y, x + width, y + height))
 
 
+def extract_nation_mark_subject(
+    image: Image.Image,
+    rect: tuple[int, int, int, int],
+    nation_id: str,
+    kind: str,
+) -> Image.Image:
+    mark = crop(image, rect).convert("RGBA")
+    palette = sample_nation_mark_background_palette(image.convert("RGBA"), rect)
+    if not palette:
+        return mark
+
+    protected = protected_nation_mark_pixels(mark.size, nation_id, kind)
+    transparent = collect_connected_background_pixels(mark, palette, NATION_BACKGROUND_DISTANCE_THRESHOLD, protected)
+    if subject_opaque_ratio(mark, transparent) < NATION_MIN_SUBJECT_OPAQUE_RATIO:
+        transparent = collect_connected_background_pixels(mark, palette, NATION_BACKGROUND_RETRY_DISTANCE_THRESHOLD, protected)
+    if subject_opaque_ratio(mark, transparent) < NATION_MIN_SUBJECT_OPAQUE_RATIO:
+        return mark
+
+    output = mark.copy()
+    output_pixels = output.load()
+    for x, y in transparent:
+        red, green, blue, _alpha = output_pixels[x, y]
+        output_pixels[x, y] = (red, green, blue, 0)
+    return output
+
+
+def collect_connected_background_pixels(
+    mark: Image.Image,
+    palette: list[tuple[int, int, int]],
+    threshold: int,
+    protected: set[tuple[int, int]],
+) -> set[tuple[int, int]]:
+    threshold_sq = threshold * threshold
+    width, height = mark.size
+    pixels = mark.load()
+    transparent: set[tuple[int, int]] = set()
+    queue: deque[tuple[int, int]] = deque()
+
+    def is_background_like(x: int, y: int) -> bool:
+        if (x, y) in protected:
+            return False
+        red, green, blue, alpha = pixels[x, y]
+        if alpha < 8:
+            return True
+        return min(color_distance_sq((red, green, blue), color) for color in palette) <= threshold_sq
+
+    for x in range(width):
+        for y in (0, height - 1):
+            if is_background_like(x, y):
+                queue.append((x, y))
+    for y in range(height):
+        for x in (0, width - 1):
+            if is_background_like(x, y):
+                queue.append((x, y))
+
+    while queue:
+        x, y = queue.popleft()
+        if (x, y) in transparent or not is_background_like(x, y):
+            continue
+        transparent.add((x, y))
+        for next_x, next_y in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+            if 0 <= next_x < width and 0 <= next_y < height and (next_x, next_y) not in transparent:
+                queue.append((next_x, next_y))
+    return transparent
+
+
+def subject_opaque_ratio(mark: Image.Image, transparent: set[tuple[int, int]]) -> float:
+    width, height = mark.size
+    return (width * height - len(transparent)) / (width * height) if width and height else 0
+
+
+def protected_nation_mark_pixels(size: tuple[int, int], nation_id: str, kind: str) -> set[tuple[int, int]]:
+    width, height = size
+    protected: set[tuple[int, int]] = set()
+    center_x = (width - 1) / 2
+    center_y = (height - 1) / 2
+
+    def protect_circle(radius: float, x_scale: float = 1.0, y_scale: float = 1.0) -> None:
+        for y in range(height):
+            for x in range(width):
+                dx = (x - center_x) / x_scale
+                dy = (y - center_y) / y_scale
+                if (dx * dx) + (dy * dy) <= radius * radius:
+                    protected.add((x, y))
+
+    def protect_rect(left: int, top: int, right: int, bottom: int) -> None:
+        for y in range(max(0, top), min(height, bottom)):
+            for x in range(max(0, left), min(width, right)):
+                protected.add((x, y))
+
+    if nation_id == "france":
+        if kind in {"fighter", "bomber"}:
+            protect_circle(24.5)
+        else:
+            protect_circle(23.5, x_scale=0.92, y_scale=1.0)
+    elif nation_id == "britain":
+        if kind in {"order", "countermeasure"}:
+            protect_circle(24.5)
+        else:
+            protect_circle(23.5)
+    elif nation_id == "japan":
+        if kind in {"fighter", "bomber"}:
+            protect_circle(22.5)
+        else:
+            protect_circle(20.5)
+    elif nation_id == "germany":
+        protect_rect(19, 0, 35, height)
+        protect_rect(0, 19, width, 35)
+    elif nation_id == "italy":
+        protect_rect(8, 1, 46, height - 1)
+    elif nation_id == "us":
+        protect_circle(22.5)
+    elif nation_id == "anzac":
+        if kind == "tank":
+            protect_circle(19.5)
+        elif kind in {"fighter", "infantry", "order"}:
+            protect_circle(22.5)
+
+    return protected
+
+
+def sample_nation_mark_background_palette(
+    image: Image.Image,
+    rect: tuple[int, int, int, int],
+) -> list[tuple[int, int, int]]:
+    x, y, width, height = rect
+    margin = NATION_BACKGROUND_SAMPLE_MARGIN
+    left = max(0, x - margin)
+    right = min(image.width, x + width + margin)
+    top = max(0, y - margin)
+    bottom = min(image.height, y + height + margin)
+    samples: list[tuple[int, int, int]] = []
+
+    for sample_y in range(top, bottom):
+        for sample_x in range(left, right):
+            inside_crop = x <= sample_x < x + width and y <= sample_y < y + height
+            if inside_crop:
+                continue
+            red, green, blue, alpha = image.getpixel((sample_x, sample_y))
+            if alpha >= 200:
+                samples.append((red, green, blue))
+
+    if not samples:
+        return []
+
+    buckets = Counter((red // 16, green // 16, blue // 16) for red, green, blue in samples)
+    return [((red * 16) + 8, (green * 16) + 8, (blue * 16) + 8) for (red, green, blue), _count in buckets.most_common(6)]
+
+
+def color_distance_sq(left: tuple[int, int, int], right: tuple[int, int, int]) -> int:
+    return sum((left[channel] - right[channel]) ** 2 for channel in range(3))
+
+
 def rarity_pip_rect(rarity_rect: tuple[int, int, int, int], rarity_id: str) -> tuple[int, int, int, int]:
     pip_count = {"elite": 1, "special": 2, "limited": 3}.get(rarity_id, 4)
     pip_width = 9
@@ -1312,6 +1486,10 @@ def rarity_pip_rect(rarity_rect: tuple[int, int, int, int], rarity_id: str) -> t
 
 def layout_for_kind(kind: str) -> dict[str, tuple[int, int, int, int]]:
     return UNIT_LAYOUT if kind in UNIT_KINDS else COMMAND_LAYOUT
+
+
+def card_template(card: dict[str, Any]) -> str:
+    return "unit" if card["type"] in UNIT_KINDS else "command"
 
 
 def save_png(image: Image.Image, path: Path) -> None:
@@ -1361,12 +1539,13 @@ def sort_requirement(requirement: Requirement) -> tuple[int, str]:
         "type": 1,
         "rarity": 2,
         "set": 3,
-        "layout": 4,
-        "number": 5,
-        "text": 6,
-        "keyword": 7,
-        "asset-slot-reference": 8,
-        "view-state": 9,
+        "nation-kind": 4,
+        "layout": 5,
+        "number": 6,
+        "text": 7,
+        "keyword": 8,
+        "asset-slot-reference": 9,
+        "view-state": 10,
     }
     return (order.get(requirement.group, 99), requirement.value)
 

@@ -1,5 +1,40 @@
 # Worktree Registry
 
+## KARDS nation mark source separation
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: separate and recalibrate top-right nation mark source crops by nation, card kind, and template
+- Base branch/base commit: `main`, `2813649`
+- Current branch/HEAD: `main`, nation-mark closeout commit recorded after validation
+- Task goal: stop reusing a single nation crop across units, aircraft, orders, and countermeasures, and output transparent-background emblem subjects instead of baking each source card's top-right background color into the nation mark asset
+- Status: integrated on main checkout; no separate worktree merge required
+- Main changed files:
+  - Tooling files: `tools/kards_private_calibration.py`, `tools/kards_multisource_extraction.py`
+  - Test files: `src/canvas/renderAssets.test.ts`, `tools/kards_private_calibration_contract_test.py`
+  - Docs files: `docs/active/kards-style-replication/asset-pack-manifest.example.json`, `docs/active/kards-style-replication/context.md`, `docs/active/kards-style-replication/task.md`, `docs/active/_worktree_registry.md`, `lessons learned.md`
+- Shared hotspot files touched: private official-asset generation scripts, renderer asset specificity tests, active style-replication docs
+- Validation run:
+  - `git worktree list --porcelain`: only main checkout
+  - Source audit: existing Stage6 manifest had 11 generic `nation-mark` entries with no `template` or `kind`; Stage5 evidence showed unit, aircraft, order, and countermeasure crops can differ by the same nation
+  - `py -3 -m py_compile tools\kards_private_calibration.py tools\kards_multisource_extraction.py tools\kards_private_calibration_contract_test.py`: passed
+  - `py -3 tools\kards_private_calibration_contract_test.py`: passed, 5 tests for forbidden output paths, manifest dedupe by `kind/template`, Stage6 path and metadata preservation, Britain command ring protection, and France air ring protection
+  - `npm test -- --run src/canvas/renderAssets.test.ts`: passed, 4 tests
+  - Stage5 regeneration: passed, 69 official samples, 163/163 requirements covered, 91 manifest images
+  - Stage6 regeneration: passed, 337 extracted/cataloged private files and 91 renderer-ready smoke-safe images
+  - Final Stage6 manifest check: passed, 65 `nation-mark` entries covering all available `nationId + kind + template` combinations
+  - Transparent-background contact sheet evidence saved under `.runtime/qa/nation-mark-kind-final-sheet.png` and `.runtime/qa/nation-mark-britain-france-protected.png`; official-derived and gitignored
+  - Alpha audit for France, Germany, Italy, Japan, US, Anzac, Britain command, and France air outputs passed after adding subject protection masks beyond color-threshold background removal
+  - `npm test -- --run`: passed, 10 files and 59 tests
+  - `npm run build`: passed, including typecheck and Vite production build
+- Tests not run:
+  - No browser pixel-smoke rebaseline for every nation/kind combination; this pass validates source selection and resolver specificity rather than final perceptual equivalence
+- Potential overlap with other worktrees:
+  - None detected; only the main checkout exists
+  - Current checkout also contains unrelated pre-existing UI/i18n edits not included in this delivery package
+  - Future overlap risk with private calibration, Stage6 extraction, or asset-pack manifest work
+- Recommended integration order: commit this after the type-icon layer/placement commits and before any future nation-mark renderer recoloring pass, because it fixes the source identity first
+- Next action: push only the nation-mark source separation commit; leave unrelated UI/i18n working-tree edits unstaged
+
 ## KARDS type icon placement tuning
 
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
