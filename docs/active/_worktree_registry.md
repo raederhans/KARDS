@@ -5,7 +5,7 @@
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
 - Thread/task: deploy the GitHub-hosted web page through GitHub Pages
 - Base branch/base commit: `main`, `491bf6f2e0ec792cba0791e747ce013ed3acb5b0`
-- Current branch/HEAD: `main`, Pages deployment commit `67c3f49220f1f5edf754aa0438c7a579d0a703f7`; closeout docs commit pending
+- Current branch/HEAD: `main`, latest deployment workflow commit `da05b8bba7548e60f8e37867a4b910410300c952`; final registry closeout is docs-only
 - Task goal: publish the existing static KARDS Card Forge app as a GitHub Pages project site without breaking the existing Vercel root-path deployment
 - Status: integrated
 - Main changed files:
@@ -27,6 +27,10 @@
   - `gh run watch 28722388478 --repo raederhans/KARDS --exit-status`: passed, build and deploy jobs succeeded
   - `Invoke-WebRequest https://raederhans.github.io/KARDS/`: passed, `200`, title present
   - Remote browser smoke on `https://raederhans.github.io/KARDS/`: passed, title matched, Canvas rendered nonblank at `500x702`, PNG export produced `自定义坦克.png` with nonzero bytes, and no console issues were observed
+  - Follow-up workflow maintenance commit `da05b8bba7548e60f8e37867a4b910410300c952`: upgraded GitHub-owned actions to `actions/checkout@v7` and `actions/setup-node@v6`
+  - Final Pages workflow run `28722493840`: passed, build and deploy jobs succeeded
+  - Final HTTP probe for `https://raederhans.github.io/KARDS/`: passed, `200`, title present
+  - Final remote browser smoke on `https://raederhans.github.io/KARDS/`: passed, title matched, Canvas rendered nonblank at `500x702`, PNG export produced `自定义坦克.png` with nonzero bytes, and no console issues were observed
 - Tests not run:
   - No full visual regression suite was rerun; this deployment pass verified build paths, workflow deployment, live load, Canvas nonblank state, and PNG export
 - Potential overlap with other worktrees:
