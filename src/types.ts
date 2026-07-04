@@ -18,6 +18,7 @@ export type CardSpec = {
   set: string;
   title: string;
   body: string;
+  keywords?: string[];
   keywordLine?: string;
   costs: {
     deployment?: number;
@@ -68,4 +69,9 @@ export type KindPreset = {
   symbol: string;
   hasStats: boolean;
   hasOperationCost: boolean;
+};
+
+export type KeywordPreset = {
+  id: string;
+  label: string;
 };

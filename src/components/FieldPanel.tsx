@@ -1,13 +1,13 @@
 import { CARD_KINDS, NATIONS, RARITIES, SETS, getKind } from "../presets";
-import { translatePresetLabel, type Language, type UiText } from "../i18n";
+import { translateKeywordLabel, translatePresetLabel, type Language, type UiText } from "../i18n";
 import type { CardSpec, CardUpdate } from "../types";
 import {
   BODY_MAX_LENGTH,
   isAllowedImageType,
-  KEYWORD_MAX_LENGTH,
   MAX_IMAGE_FILE_BYTES,
   TITLE_MAX_LENGTH,
 } from "../limits";
+import { KEYWORD_PRESETS, MAX_CARD_KEYWORDS, formatKeywordLineFromIds, resolveCardKeywordIds } from "../keywords";
 
 type FieldPanelProps = {
   card: CardSpec;
@@ -19,6 +19,8 @@ type FieldPanelProps = {
 
 export function FieldPanel({ card, language, text, onCardChange, setOptionLabels }: FieldPanelProps) {
   const kind = getKind(card.kind);
+  const selectedKeywordIds = resolveCardKeywordIds(card);
+  const availableKeywords = KEYWORD_PRESETS.filter((keyword) => !selectedKeywordIds.includes(keyword.id));
 
   function update(next: Partial<CardSpec>) {
     onCardChange((currentCard) => ({ ...currentCard, ...next }));
@@ -42,6 +44,26 @@ export function FieldPanel({ card, language, text, onCardChange, setOptionLabels
         [key]: value === "" ? undefined : Number(value),
       },
     }));
+  }
+
+  function updateKeywords(keywordIds: string[]) {
+    onCardChange((currentCard) => ({
+      ...currentCard,
+      keywords: keywordIds,
+      keywordLine: formatKeywordLineFromIds(keywordIds),
+    }));
+  }
+
+  function addKeyword(keywordId: string) {
+    if (!keywordId || selectedKeywordIds.includes(keywordId) || selectedKeywordIds.length >= MAX_CARD_KEYWORDS) {
+      return;
+    }
+
+    updateKeywords([...selectedKeywordIds, keywordId]);
+  }
+
+  function removeKeyword(keywordId: string) {
+    updateKeywords(selectedKeywordIds.filter((selectedKeywordId) => selectedKeywordId !== keywordId));
   }
 
   function updateCrop(key: keyof CardSpec["artwork"]["crop"], value: string) {
@@ -146,15 +168,40 @@ export function FieldPanel({ card, language, text, onCardChange, setOptionLabels
         />
       </label>
 
-      <label className="field-block">
-        <span>{text.keywordLine}</span>
-        <input
-          name="card-keyword-line"
-          value={card.keywordLine ?? ""}
-          maxLength={KEYWORD_MAX_LENGTH}
-          onChange={(event) => update({ keywordLine: event.target.value })}
-        />
-      </label>
+      <div className="field-block keyword-field">
+        <span>{text.keywords}</span>
+        <div className="keyword-chip-list">
+          {selectedKeywordIds.map((keywordId) => {
+            const keyword = KEYWORD_PRESETS.find((keywordOption) => keywordOption.id === keywordId);
+            const label = keyword ? translateKeywordLabel(language, keyword.id, keyword.label) : keywordId;
+            return (
+              <button
+                key={keywordId}
+                type="button"
+                className="keyword-chip"
+                aria-label={text.removeKeyword(label)}
+                onClick={() => removeKeyword(keywordId)}
+              >
+                <span>{label}</span>
+                <strong aria-hidden="true">x</strong>
+              </button>
+            );
+          })}
+        </div>
+        <select
+          name="card-keyword-add"
+          value=""
+          disabled={selectedKeywordIds.length >= MAX_CARD_KEYWORDS || availableKeywords.length === 0}
+          onChange={(event) => addKeyword(event.target.value)}
+        >
+          <option value="">{text.addKeyword}</option>
+          {availableKeywords.map((keyword) => (
+            <option key={keyword.id} value={keyword.id}>
+              {translateKeywordLabel(language, keyword.id, keyword.label)}
+            </option>
+          ))}
+        </select>
+      </div>
 
       <label className="field-block">
         <span>{text.body}</span>

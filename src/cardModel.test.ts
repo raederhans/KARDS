@@ -41,6 +41,27 @@ describe("normalizeCardSpec", () => {
     expect(card.set).toBe("blood-and-iron");
     expect(card.artwork.source).toBe("upload");
     expect(card.artwork.crop.scale).toBe(1.4);
+    expect(card.keywords).toEqual(["guard"]);
+    expect(card.keywordLine).toBe("GUARD");
+  });
+
+  it("normalizes structured keywords and ignores duplicate or unknown keyword values", () => {
+    const card = normalizeCardSpec({
+      keywords: ["guard", "guard", "blitz", "unknown", "shock", "fury", "ambush"],
+      keywordLine: "SMOKESCREEN",
+    });
+
+    expect(card.keywords).toEqual(["guard", "blitz", "shock", "fury"]);
+    expect(card.keywordLine).toBe("GUARD, BLITZ, SHOCK, FURY");
+  });
+
+  it("migrates old comma-separated keyword lines into structured keywords", () => {
+    const card = normalizeCardSpec({
+      keywordLine: "BECOMESVETERAN:641ST RIFLES VET, ONLYSPAWNABLE, BLITZ, GUARD",
+    });
+
+    expect(card.keywords).toEqual(["blitz", "guard"]);
+    expect(card.keywordLine).toBe("BLITZ, GUARD");
   });
 
   it("keeps first-version imports inside implemented artwork boundaries", () => {

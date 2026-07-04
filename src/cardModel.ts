@@ -1,6 +1,7 @@
 import type { CardKind, CardSpec } from "./types";
 import { CARD_KINDS, NATIONS, RARITIES, SETS } from "./presets";
 import { BODY_MAX_LENGTH, isAllowedImageDataUrl, KEYWORD_MAX_LENGTH, TITLE_MAX_LENGTH } from "./limits";
+import { formatKeywordLineFromIds, normalizeCardKeywords, parseKeywordLine } from "./keywords";
 
 const VALID_KINDS = new Set(CARD_KINDS.map((kind) => kind.id));
 const VALID_NATIONS = new Set(NATIONS.map((nation) => nation.id));
@@ -15,7 +16,8 @@ export const DEFAULT_CARD: CardSpec = {
   set: "base",
   title: "CUSTOM TANK",
   body: "When this unit advances, it deals 1 damage to a target.",
-  keywordLine: "ARMOR 1",
+  keywords: ["heavyArmor1"],
+  keywordLine: "HEAVY ARMOR 1",
   costs: {
     deployment: 4,
     operation: 2,
@@ -59,6 +61,8 @@ export function normalizeCardSpec(input: unknown): CardSpec {
     ? (raw.kind as CardKind)
     : DEFAULT_CARD.kind;
 
+  const keywords = normalizeImportedKeywords(raw.keywords, raw.keywordLine);
+
   return {
     version: 1,
     kind,
@@ -67,7 +71,8 @@ export function normalizeCardSpec(input: unknown): CardSpec {
     set: choosePreset(raw.set, VALID_SETS, DEFAULT_CARD.set),
     title: limitText(raw.title, DEFAULT_CARD.title, TITLE_MAX_LENGTH),
     body: limitText(raw.body, DEFAULT_CARD.body, BODY_MAX_LENGTH),
-    keywordLine: limitText(raw.keywordLine, "", KEYWORD_MAX_LENGTH),
+    keywords,
+    keywordLine: limitText(formatKeywordLineFromIds(keywords), "", KEYWORD_MAX_LENGTH),
     costs: {
       deployment: sanitizeInteger(costs.deployment, 0, 12),
       operation: sanitizeInteger(costs.operation, 0, 12),
@@ -79,6 +84,14 @@ export function normalizeCardSpec(input: unknown): CardSpec {
     },
     artwork: normalizeArtwork(artwork, crop),
   };
+}
+
+function normalizeImportedKeywords(keywords: unknown, keywordLine: unknown): string[] {
+  if (Array.isArray(keywords)) {
+    return normalizeCardKeywords(keywords);
+  }
+
+  return parseKeywordLine(keywordLine);
 }
 
 function normalizeArtwork(artwork: Record<string, unknown>, crop: Record<string, unknown>): CardSpec["artwork"] {

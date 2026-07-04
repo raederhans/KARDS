@@ -117,6 +117,7 @@ describe("card renderer output", () => {
     const { canvas, calls } = createFakeCanvas();
     const card: CardSpec = {
       ...DEFAULT_CARD,
+      keywords: undefined,
       keywordLine: "   ",
     };
 
@@ -128,12 +129,33 @@ describe("card renderer output", () => {
   it("renders keyword labels as dark card text instead of nation-colored labels", () => {
     const { canvas, calls } = createFakeCanvas();
 
-    renderCard(canvas, { ...DEFAULT_CARD, keywordLine: "GUARD" }, null);
+    renderCard(canvas, { ...DEFAULT_CARD, keywords: undefined, keywordLine: "GUARD" }, null);
 
     const keywordStyle = calls.fillTextStyles.find((call) => call.text === "Guard");
     expect(keywordStyle?.fillStyle).toBe("#4f514c");
     expect(keywordStyle?.font).toContain("27px");
     expect(keywordStyle?.font).toContain("Libre Franklin");
+  });
+
+  it("renders multiple selected keywords horizontally without duplicates", () => {
+    const { canvas, calls } = createFakeCanvas();
+
+    renderCard(canvas, { ...DEFAULT_CARD, keywords: ["guard", "blitz", "shock"] }, null);
+
+    const keywordCall = calls.fillText.find(([text]) => text === "Guard, Blitz, Shock");
+    expect(keywordCall).toBeDefined();
+    expect(keywordCall?.[1]).toBe(250);
+    expect(keywordCall?.[2]).toBe(580);
+  });
+
+  it("shrinks dense four-keyword rows with comma separators to stay inside the official text band", () => {
+    const { canvas, calls } = createFakeCanvas();
+
+    renderCard(canvas, { ...DEFAULT_CARD, keywords: ["smokescreen", "heavyArmor3", "mobilize", "ambush"] }, null);
+
+    const keywordStyle = calls.fillTextStyles.find((call) => call.text === "Smokescreen, Heavy Armor 3, Mobilize, Ambush");
+    expect(keywordStyle?.font).toMatch(/1[89]px|2[0-6]px/);
+    expect(calls.fillText.some(([text]) => text === "Smokescreen, Heavy Armor 3, Mobilize, Ambush")).toBe(true);
   });
 
   it("widens the official-style title, cost, and stat text instead of compressing it", () => {
@@ -169,6 +191,7 @@ describe("card renderer output", () => {
     const { canvas, calls } = createFakeCanvas();
     const card: CardSpec = {
       ...DEFAULT_CARD,
+      keywords: undefined,
       keywordLine: "ARMOR 1",
       body: "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma",
     };
@@ -186,6 +209,7 @@ describe("card renderer output", () => {
     const { canvas, calls } = createFakeCanvas();
     const card: CardSpec = {
       ...DEFAULT_CARD,
+      keywords: [],
       keywordLine: "",
       body: "alpha beta",
     };

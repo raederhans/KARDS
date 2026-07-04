@@ -891,3 +891,29 @@
 - Boundary:
   - No official-derived image files were moved into source, public, or dist.
   - This fixes the dev preview asset-pack entrypoint; it does not regenerate or recolor the private Stage6 assets.
+
+## 2026-07-04 Multi-Keyword Picker And Renderer
+
+- User review found that the keyword line was still effectively a single hard-coded/freeform value, while real KARDS cards can carry multiple player-facing keyword attributes such as Guard, Blitz, Shock, and Smokescreen.
+- Local evidence:
+  - The private CraftSoul-derived card data contains cards with 0, 1, 2, 3, and rare 4 attribute entries.
+  - Common player-facing attribute ids include `blitz`, `guard`, `smokescreen`, `fury`, `ambush`, `heavyArmor1`, `shock`, `bond`, `alpine`, `pincer`, `covert`, `intel1`, `salvage`, `intel2`, `mobilize`, `intel3`, and `heavyArmor3`.
+  - Internal/source flags such as `OnlySpawnable`, `BecomesVeteran:*`, and `VeteranOf:*` were not exposed as selectable card-face keywords.
+- Implemented correction:
+  - Added `src/keywords.ts` as the single keyword preset/normalization source with a four-keyword card limit.
+  - Added optional structured `keywords` ids to `CardSpec`; imports migrate old `keywordLine` strings, but explicit structured arrays now win even when empty.
+  - The field panel now shows selected keywords as removable chips and adds new keywords through a dropdown that omits already-selected ids.
+  - The renderer resolves selected ids to English card-face labels and draws them as one comma-separated line, for example `Guard, Blitz, Shock, Smokescreen`.
+  - Dense multi-keyword rows shrink as one measured line so comma spacing stays consistent and the row remains within the official text band.
+  - Chinese UI labels are used in the editor, while the generated card face keeps English KARDS keyword labels.
+- Runtime evidence:
+  - Browser probe on the active dev server selected Guard, Blitz, Shock, and Smokescreen; the dropdown removed all selected values, disabled at four keywords, and the generated card showed the comma-separated row.
+- Validation:
+  - `npm test -- --run src/keywords.test.ts src/cardModel.test.ts src/i18n.test.ts src/canvas/cardRenderer.test.ts`: passed, 4 files and 37 tests.
+  - `npm test -- --run`: passed, 11 files and 68 tests.
+  - `npm run typecheck`: passed.
+  - `npm run build`: passed, including typecheck and Vite production build.
+  - `git diff --check`: passed with Windows LF-to-CRLF warnings only.
+- Boundary:
+  - No official-derived images or fonts were copied into source, public, or dist.
+  - This pass implements structured keyword editing and renderer fitting; it does not rebaseline every official multi-keyword reference card perceptually.

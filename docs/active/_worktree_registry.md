@@ -1,5 +1,34 @@
 # Worktree Registry
 
+## KARDS multi-keyword picker and renderer
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: add structured multi-keyword editing and official-style keyword-line rendering
+- Base branch/base commit: `main`, `1480500`
+- Current branch/HEAD: `main`, multi-keyword commit recorded after validation
+- Task goal: replace the single hard-coded/freeform keyword line with a capped keyword picker, prevent duplicate card keywords, and render selected keywords as a comma-separated card-face line that stays inside the text band
+- Status: integrated on main checkout; no separate worktree merge required
+- Main changed files:
+  - Core files: `src/keywords.ts`, `src/types.ts`, `src/cardModel.ts`, `src/components/FieldPanel.tsx`, `src/canvas/cardRenderer.ts`, `src/i18n.ts`, `src/styles.css`
+  - Test files: `src/keywords.test.ts`, `src/cardModel.test.ts`, `src/i18n.test.ts`, `src/canvas/cardRenderer.test.ts`
+  - Docs files: `docs/active/_worktree_registry.md`, `docs/active/kards-style-replication/context.md`, `docs/active/kards-style-replication/task.md`, `lessons learned.md`
+- Shared hotspot files touched: card schema normalization, field-panel editor state, renderer text layout, localized UI labels, global CSS
+- Validation run:
+  - Local CraftSoul-derived data audit: player-facing attributes support 0-4 keyword entries; common selectable attributes include guard, blitz, shock, smokescreen, fury, ambush, heavy armor, intel, and related keyword families
+  - `npm test -- --run src/keywords.test.ts src/cardModel.test.ts src/i18n.test.ts src/canvas/cardRenderer.test.ts`: passed, 4 files and 37 tests
+  - `npm test -- --run`: passed, 11 files and 68 tests
+  - `npm run typecheck`: passed
+  - `npm run build`: passed, including typecheck and Vite production build
+  - `git diff --check`: passed with Windows LF-to-CRLF warnings only
+  - Browser probe on `http://127.0.0.1:5173/`: selecting guard, blitz, shock, and smokescreen produced four Chinese chips, removed selected options from the dropdown, disabled the add control at four keywords, and rendered `Guard, Blitz, Shock, Smokescreen` on the generated card
+- Tests not run:
+  - No all-card perceptual rebaseline for every official multi-keyword reference; this pass locks the data model, UI behavior, and canvas text-fitting contract
+- Potential overlap with other worktrees:
+  - None detected; `git worktree list --porcelain` showed only the main checkout
+  - Future overlap risk with any branch editing card import/export schema, `FieldPanel`, `cardRenderer`, or localized field labels
+- Recommended integration order: commit directly on `main`; this is a local editor/rendering feature with no parallel KARDS worktree to merge
+- Next action: push to `origin/main`; future keyword visual tuning should keep `keywords` as the editable source of truth and regenerate `keywordLine` only for compatibility
+
 ## KARDS dev preview renderer asset-pack URL repair
 
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`

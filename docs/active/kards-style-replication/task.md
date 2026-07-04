@@ -832,3 +832,41 @@
    - Judge any remaining icon appearance problems from the corrected Stage6 multisource pack, not from text fallback output.
 10. Integration recommendation:
    - Commit and push directly on `main`; no merge or cherry-pick is needed.
+
+## 2026-07-04 Follow-Up Delivery: Multi-Keyword Picker And Renderer
+
+1. Changed this follow-up:
+   - Added a structured keyword preset list with a maximum of four selected card keywords.
+   - Replaced the freeform keyword text field with removable keyword chips and a duplicate-safe add dropdown.
+   - Migrated legacy `keywordLine` imports into structured keyword ids while keeping `keywordLine` as a regenerated compatibility/export string.
+   - Rendered selected keywords as one English comma-separated card-face line with consistent spacing and shrink-to-fit behavior.
+   - Localized editor keyword labels to Chinese while preserving English KARDS keyword labels on the card face.
+2. Files touched:
+   - Core files: `src/keywords.ts`, `src/types.ts`, `src/cardModel.ts`, `src/components/FieldPanel.tsx`, `src/canvas/cardRenderer.ts`, `src/i18n.ts`, `src/styles.css`.
+   - Test files: `src/keywords.test.ts`, `src/cardModel.test.ts`, `src/i18n.test.ts`, `src/canvas/cardRenderer.test.ts`.
+   - Docs: `docs/active/_worktree_registry.md`, `context.md`, `task.md`.
+   - Lessons: `lessons learned.md`.
+3. Diff summary:
+   - Card editing now treats `keywords` as the source of truth and uses `keywordLine` only for old imports and compatibility output.
+   - The card renderer draws `Guard, Blitz, Shock` style keyword lines from known ids instead of formatting arbitrary raw text.
+   - The left editor panel prevents duplicate keyword choices and disables the add dropdown at four selections.
+4. Commit status:
+   - Committed directly on `main` after final validation.
+5. Base divergence:
+   - Follow-up started from `main` commit `1480500`; `git worktree list --porcelain` showed only the main checkout.
+6. Potential conflicts:
+   - Direct overlap with future changes touching card schema normalization, keyword rendering, `FieldPanel`, localized field labels, or global form styling.
+7. Validation:
+   - Local CraftSoul-derived attribute audit found cards with 0-4 attributes and identified the player-facing keyword list used for the dropdown.
+   - `npm test -- --run src/keywords.test.ts src/cardModel.test.ts src/i18n.test.ts src/canvas/cardRenderer.test.ts`: passed, 4 files and 37 tests.
+   - `npm test -- --run`: passed, 11 files and 68 tests.
+   - `npm run typecheck`: passed.
+   - `npm run build`: passed, including typecheck and Vite production build.
+   - `git diff --check`: passed with Windows LF-to-CRLF warnings only.
+   - Browser probe on `http://127.0.0.1:5173/`: four selected keywords rendered as `Guard, Blitz, Shock, Smokescreen`; selected options were removed from the dropdown and the add control disabled at four.
+8. Unverified risks:
+   - No complete visual rebaseline was run against every official multi-keyword card; current evidence covers layout contract, fitting behavior, and live editor interaction.
+9. Recommended next step:
+   - Continue future keyword visual tuning from the structured `keywords` ids and keep `keywordLine` as derived compatibility text only.
+10. Integration recommendation:
+   - Commit and push directly on `main`; no merge or cherry-pick is needed.

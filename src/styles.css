@@ -260,6 +260,36 @@ input[type="range"] {
   accent-color: var(--accent);
 }
 
+.keyword-field {
+  align-items: stretch;
+}
+
+.keyword-chip-list {
+  display: flex;
+  min-height: 34px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.keyword-chip {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px;
+  border-color: var(--line-strong);
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.keyword-chip strong {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .crop-grid {
   padding: 12px;
   margin-bottom: 16px;

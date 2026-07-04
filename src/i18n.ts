@@ -24,7 +24,9 @@ export const UI_TEXT = {
       artY: "Art Y",
       zoom: "Zoom",
       title: "Title",
-      keywordLine: "Keyword line",
+      keywords: "Keywords",
+      addKeyword: "Add",
+      removeKeyword: (label: string) => `Remove ${label}`,
       body: "Body",
       nation: "Nation",
       type: "Type",
@@ -102,7 +104,9 @@ export const UI_TEXT = {
       artY: "卡图 Y",
       zoom: "缩放",
       title: "标题",
-      keywordLine: "关键词行",
+      keywords: "词条",
+      addKeyword: "添加",
+      removeKeyword: (label: string) => `移除 ${label}`,
       body: "正文",
       nation: "阵营",
       type: "类型",
@@ -173,7 +177,8 @@ const LOCALIZED_DEFAULT_CARD: Record<Language, CardSpec> = {
     ...DEFAULT_CARD,
     title: "自定义坦克",
     body: "当该单位推进时，对一个目标造成 1 点伤害。",
-    keywordLine: "装甲 1",
+    keywords: ["heavyArmor1"],
+    keywordLine: "HEAVY ARMOR 1",
   },
 };
 
@@ -183,6 +188,7 @@ const PRESET_LABELS: Record<Language, Record<string, Record<string, string>>> = 
     nation: {},
     rarity: {},
     set: {},
+    keyword: {},
   },
   zh: {
     kind: {
@@ -233,6 +239,26 @@ const PRESET_LABELS: Record<Language, Record<string, Record<string, string>>> = 
       "world-at-war": "世界大战",
       custom: "自定义系列",
     },
+    keyword: {
+      guard: "守护",
+      blitz: "闪击",
+      shock: "冲击",
+      smokescreen: "烟幕",
+      fury: "狂怒",
+      ambush: "伏击",
+      heavyArmor1: "装甲 1",
+      heavyArmor2: "装甲 2",
+      heavyArmor3: "装甲 3",
+      bond: "羁绊",
+      alpine: "山地",
+      pincer: "钳击",
+      covert: "隐蔽",
+      intel1: "情报 1",
+      intel2: "情报 2",
+      intel3: "情报 3",
+      salvage: "回收",
+      mobilize: "动员",
+    },
   },
 };
 
@@ -269,6 +295,10 @@ export function translatePresetLabel(
   fallback: string,
 ): string {
   return PRESET_LABELS[language][group][id] ?? fallback;
+}
+
+export function translateKeywordLabel(language: Language, id: string, fallback: string): string {
+  return PRESET_LABELS[language].keyword[id] ?? fallback;
 }
 
 export function localizeAssetPackName(language: Language, value: string): string {

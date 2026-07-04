@@ -5,6 +5,7 @@ import {
   getLocalizedDefaultCard,
   getNextLanguage,
   localizeRuntimeMessage,
+  translateKeywordLabel,
   translatePresetLabel,
 } from "./i18n";
 
@@ -26,6 +27,8 @@ describe("i18n", () => {
     expect(translatePresetLabel("zh", "set", "blood-and-iron", "Blood and Iron")).toBe("血与铁");
     expect(translatePresetLabel("en", "kind", "tank", "Tank")).toBe("Tank");
     expect(translatePresetLabel("zh", "kind", "future-kind", "Future Kind")).toBe("Future Kind");
+    expect(translateKeywordLabel("zh", "blitz", "Blitz")).toBe("闪击");
+    expect(translateKeywordLabel("en", "blitz", "Blitz")).toBe("Blitz");
   });
 
   it("uses localized default card copy for reset and first load", () => {

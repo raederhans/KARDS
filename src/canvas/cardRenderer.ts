@@ -1,5 +1,6 @@
 import { getKind, getNation, getRarity, getSet } from "../presets";
 import type { CardKind, CardSpec } from "../types";
+import { getKeywordPreset, resolveCardKeywordIds } from "../keywords";
 import {
   CARD_HEIGHT,
   CARD_WIDTH,
@@ -470,7 +471,9 @@ function drawText(
   card: CardSpec,
   fonts: ResolvedRenderFonts,
 ): void {
-  const keywordLine = card.keywordLine?.trim();
+  const keywordLabels = resolveCardKeywordIds(card)
+    .map((keywordId) => getKeywordPreset(keywordId)?.label)
+    .filter(Boolean) as string[];
 
   ctx.save();
   ctx.textAlign = "center";
@@ -493,22 +496,55 @@ function drawText(
     fitText(ctx, card.title.toUpperCase(), 250, layout.text.titleY, 340, 36, fonts.title, getTextScale(card.title, 1.08, 1.02));
   }
 
-  if (keywordLine) {
-    const formattedKeywordLine = formatKeywordLine(keywordLine);
-    ctx.fillStyle = DARK;
-    ctx.font = `800 27px ${fonts.keyword}`;
-    fillScaledText(ctx, formattedKeywordLine, 250, layout.text.keywordY, getTextScale(formattedKeywordLine, 1.02, 1));
+  if (keywordLabels.length > 0) {
+    drawKeywordLabels(ctx, keywordLabels, 250, layout.text.keywordY, layout.text.maxWidth, fonts.keyword);
   }
 
   ctx.fillStyle = DARK;
   ctx.font = `500 24px ${fonts.body}`;
-  const bodyY = keywordLine ? layout.text.bodyY : layout.text.keywordY;
+  const bodyY = keywordLabels.length > 0 ? layout.text.bodyY : layout.text.keywordY;
   const bodyMaxLines = Math.max(
     1,
     Math.min(layout.text.maxLines, Math.floor((layout.text.bodyBottomY - bodyY) / layout.text.lineHeight) + 1),
   );
   drawWrappedText(ctx, card.body, 250, bodyY, layout.text.maxWidth, layout.text.lineHeight, bodyMaxLines, getTextScale(card.body, 0.96, 1));
   ctx.restore();
+}
+
+function drawKeywordLabels(
+  ctx: CanvasRenderingContext2D,
+  keywordLabels: string[],
+  centerX: number,
+  y: number,
+  maxWidth: number,
+  fontFamily: string,
+): void {
+  const keywordLine = keywordLabels.join(", ");
+  const scaleX = getTextScale(keywordLine, 1.02, 1);
+  const fontSize = getFittedKeywordFontSize(ctx, keywordLine, maxWidth, 27, 18, fontFamily, scaleX);
+  ctx.fillStyle = DARK;
+  ctx.font = `800 ${fontSize}px ${fontFamily}`;
+  fillScaledText(ctx, keywordLine, centerX, y, scaleX);
+}
+
+function getFittedKeywordFontSize(
+  ctx: TextMeasureContext,
+  keywordLine: string,
+  maxWidth: number,
+  initialSize: number,
+  minimumSize: number,
+  fontFamily: string,
+  scaleX: number,
+): number {
+  let size = initialSize;
+  while (size > minimumSize) {
+    ctx.font = `800 ${size}px ${fontFamily}`;
+    if (measureScaledText(ctx, keywordLine, scaleX) <= maxWidth) {
+      break;
+    }
+    size -= 1;
+  }
+  return size;
 }
 
 function drawStatBoard(
@@ -898,14 +934,6 @@ function resolveTypeGlyph(kind: CardKind, defaultSymbol: string): string {
   }
 
   return defaultSymbol;
-}
-
-function formatKeywordLine(keywordLine: string): string {
-  return keywordLine
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((word) => (/^[A-Z]{2,}$/.test(word) ? `${word[0]}${word.slice(1).toLowerCase()}` : word))
-    .join(" ");
 }
 
 function getRarityPipCount(rarityId: string): number {
