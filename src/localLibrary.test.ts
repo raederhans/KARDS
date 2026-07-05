@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_CARD } from "./cardModel";
-import { createCardLibraryEntry, normalizeCardLibrary } from "./localLibrary";
+import { createCardLibraryEntry, normalizeCardLibrary, saveLibraryDirectoryHandle } from "./localLibrary";
 import type { CardSpec } from "./types";
 
 describe("local card library records", () => {
@@ -41,5 +41,50 @@ describe("local card library records", () => {
     expect(library.cards).toHaveLength(1);
     expect(library.cards[0].id).toBe("saved-card");
     expect(library.cards[0].card.costs.deployment).toBe(99);
+  });
+
+  it("waits for IndexedDB transaction completion before resolving saved handles", async () => {
+    const putRequest = { result: "library-directory" } as IDBRequest<IDBValidKey>;
+    const store = { put: vi.fn(() => putRequest) };
+    const transaction = {
+      objectStore: vi.fn(() => store),
+      oncomplete: null as (() => void) | null,
+      onerror: null as (() => void) | null,
+      onabort: null as (() => void) | null,
+      error: null,
+    };
+    const database = {
+      transaction: vi.fn(() => transaction),
+      close: vi.fn(),
+    };
+    const openRequest = {
+      result: database,
+      onsuccess: null as ((event: Event) => void) | null,
+    } as unknown as IDBOpenDBRequest;
+    vi.stubGlobal("indexedDB", {
+      open: vi.fn(() => openRequest),
+    });
+
+    let resolved = false;
+    const savePromise = saveLibraryDirectoryHandle({
+      name: "Cards",
+      getFileHandle: vi.fn(),
+    }).then(() => {
+      resolved = true;
+    });
+
+    openRequest.onsuccess?.({} as Event);
+    await Promise.resolve();
+    putRequest.onsuccess?.({} as Event);
+    await Promise.resolve();
+
+    expect(resolved).toBe(false);
+
+    transaction.oncomplete?.();
+    await savePromise;
+
+    expect(resolved).toBe(true);
+    expect(store.put).toHaveBeenCalledWith(expect.objectContaining({ name: "Cards" }), "library-directory");
+    expect(database.close).toHaveBeenCalledTimes(1);
   });
 });
