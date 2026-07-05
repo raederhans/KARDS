@@ -265,7 +265,7 @@ describe("card renderer output", () => {
     expect(deploymentStyle?.scaleY).toBeCloseTo(1.06);
     expect(operationStyle?.scaleX).toBeGreaterThan(1.1);
     expect(operationStyle?.scaleY).toBeCloseTo(1.08);
-    expect(calls.fillTextStyles.find((call) => call.text === "K")?.scaleY).toBeCloseTo(1.08);
+    expect(calls.fillTextStyles.find((call) => call.text === "K")?.scaleY).toBeCloseTo(1);
     expect(attackStyle?.scaleX).toBeGreaterThan(1.15);
     expect(deploymentCall?.[1]).toBeCloseTo(41.6, 1);
     expect(deploymentCall?.[2]).toBeCloseTo(56.7, 1);
@@ -275,6 +275,48 @@ describe("card renderer output", () => {
     expect(attackCall?.[2]).toBe(516);
     expect(defenseCall?.[2]).toBe(516);
     expect(deploymentStyle?.font).toContain("Yantramanav");
+  });
+
+  it("uses compact numeric styling for two-digit costs and unit stats", () => {
+    const { canvas, calls } = createFakeCanvas();
+
+    renderCard(canvas, { ...DEFAULT_CARD, costs: { deployment: 12, operation: 10 }, stats: { attack: 18, defense: 27 } }, null);
+
+    const deploymentStyle = calls.fillTextStyles.find((call) => call.text === "12");
+    const kreditStyle = calls.fillTextStyles.find((call) => call.text === "K");
+    const operationStyle = calls.fillTextStyles.find((call) => call.text === "10");
+    const attackStyle = calls.fillTextStyles.find((call) => call.text === "18");
+    const defenseStyle = calls.fillTextStyles.find((call) => call.text === "27");
+
+    expect(deploymentStyle?.font).toContain("50px");
+    expect(deploymentStyle?.scaleX).toBeCloseTo(0.86);
+    expect(deploymentStyle?.scaleY).toBeCloseTo(1.02);
+    expect(kreditStyle?.font).toContain("23px");
+    expect(kreditStyle?.scaleX).toBeCloseTo(1.02);
+    expect(operationStyle?.font).toContain("21px");
+    expect(operationStyle?.scaleX).toBeCloseTo(0.86);
+    expect(attackStyle?.font).toContain("44px");
+    expect(attackStyle?.scaleX).toBeCloseTo(0.86);
+    expect(defenseStyle?.font).toContain("44px");
+    expect(defenseStyle?.scaleX).toBeCloseTo(0.86);
+  });
+
+  it("renders missing unit operation cost as zero", () => {
+    const { canvas, calls } = createFakeCanvas();
+
+    renderCard(canvas, { ...DEFAULT_CARD, costs: { deployment: 12 } }, null);
+
+    const operationCall = calls.fillText.find(([text, , y]) => text === "0" && Number(y) > 50);
+    expect(operationCall?.[1]).toBeCloseTo(73.2, 1);
+  });
+
+  it("caps rendered cost and stat values at two digits", () => {
+    const { canvas, calls } = createFakeCanvas();
+
+    renderCard(canvas, { ...DEFAULT_CARD, costs: { deployment: 120, operation: 123 }, stats: { attack: 101, defense: 250 } }, null);
+
+    expect(calls.fillText.filter(([text]) => text === "99")).toHaveLength(4);
+    expect(calls.fillText.some(([text]) => text === "120" || text === "123" || text === "101" || text === "250")).toBe(false);
   });
 
   it("keeps keyword cards from drawing body text into the footer area", () => {

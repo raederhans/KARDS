@@ -1,6 +1,7 @@
 export const TITLE_MAX_LENGTH = 48;
 export const KEYWORD_MAX_LENGTH = 80;
 export const BODY_MAX_LENGTH = 180;
+export const CARD_FACE_VALUE_MAX = 99;
 export const MAX_IMAGE_FILE_BYTES = 5 * 1024 * 1024;
 export const MAX_PROJECT_FILE_BYTES = 8 * 1024 * 1024;
 export const MAX_DATA_URL_LENGTH = 7 * 1024 * 1024;

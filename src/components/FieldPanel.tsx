@@ -11,6 +11,7 @@ import {
 } from "../bodyMarkup";
 import {
   BODY_MAX_LENGTH,
+  CARD_FACE_VALUE_MAX,
   isAllowedImageType,
   MAX_IMAGE_FILE_BYTES,
   TITLE_MAX_LENGTH,
@@ -74,21 +75,25 @@ export function FieldPanel({
   }
 
   function updateCost(key: keyof CardSpec["costs"], value: string) {
+    const nextValue = key === "operation" && value === "" ? 0 : normalizeNumberFieldValue(value, 0, CARD_FACE_VALUE_MAX);
     onCardChange((currentCard) => ({
       ...currentCard,
       costs: {
         ...currentCard.costs,
-        [key]: value === "" ? undefined : Number(value),
+        [key]: nextValue,
       },
     }));
   }
 
   function updateStat(key: keyof CardSpec["stats"], value: string) {
+    const max = CARD_FACE_VALUE_MAX;
+    const min = key === "hqDefense" ? 1 : 0;
+    const nextValue = normalizeNumberFieldValue(value, min, max);
     onCardChange((currentCard) => ({
       ...currentCard,
       stats: {
         ...currentCard.stats,
-        [key]: value === "" ? undefined : Number(value),
+        [key]: nextValue,
       },
     }));
   }
@@ -535,6 +540,7 @@ export function FieldPanel({
           label={text.cost}
           name="card-deployment-cost"
           value={card.costs.deployment}
+          max={CARD_FACE_VALUE_MAX}
           onChange={(value) => updateCost("deployment", value)}
         />
         {kind.hasOperationCost ? (
@@ -542,6 +548,7 @@ export function FieldPanel({
             label={text.operation}
             name="card-operation-cost"
             value={card.costs.operation}
+            max={CARD_FACE_VALUE_MAX}
             onChange={(value) => updateCost("operation", value)}
           />
         ) : null}
@@ -551,12 +558,14 @@ export function FieldPanel({
               label={text.attack}
               name="card-attack"
               value={card.stats.attack}
+              max={CARD_FACE_VALUE_MAX}
               onChange={(value) => updateStat("attack", value)}
             />
             <NumberField
               label={text.defense}
               name="card-defense"
               value={card.stats.defense}
+              max={CARD_FACE_VALUE_MAX}
               onChange={(value) => updateStat("defense", value)}
             />
           </>
@@ -566,6 +575,8 @@ export function FieldPanel({
             label={text.hqDefense}
             name="card-hq-defense"
             value={card.stats.hqDefense}
+            min={1}
+            max={CARD_FACE_VALUE_MAX}
             onChange={(value) => updateStat("hqDefense", value)}
           />
         ) : null}
@@ -595,11 +606,15 @@ function NumberField({
   label,
   name,
   value,
+  min = 0,
+  max,
   onChange,
 }: {
   label: string;
   name: string;
   value: number | undefined;
+  min?: number;
+  max: number;
   onChange: (value: string) => void;
 }) {
   return (
@@ -608,8 +623,8 @@ function NumberField({
       <input
         name={name}
         type="number"
-        min="0"
-        max="40"
+        min={min}
+        max={max}
         value={value ?? ""}
         onChange={(event) => onChange(event.target.value)}
       />
@@ -623,4 +638,17 @@ function resolveKeywordDropIndex(centerX: number, otherChipCenters: number[]): n
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+function normalizeNumberFieldValue(value: string, min: number, max: number): number | undefined {
+  if (value === "") {
+    return undefined;
+  }
+
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return undefined;
+  }
+
+  return clamp(Math.round(numericValue), min, max);
 }

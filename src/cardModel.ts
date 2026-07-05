@@ -1,6 +1,6 @@
 import type { CardKind, CardSpec } from "./types";
 import { CARD_KINDS, NATIONS, RARITIES, SETS } from "./presets";
-import { BODY_MAX_LENGTH, isAllowedImageDataUrl, KEYWORD_MAX_LENGTH, TITLE_MAX_LENGTH } from "./limits";
+import { BODY_MAX_LENGTH, CARD_FACE_VALUE_MAX, isAllowedImageDataUrl, KEYWORD_MAX_LENGTH, TITLE_MAX_LENGTH } from "./limits";
 import { formatKeywordLineFromIds, normalizeCardKeywords, parseKeywordLine } from "./keywords";
 
 const VALID_KINDS = new Set(CARD_KINDS.map((kind) => kind.id));
@@ -74,13 +74,13 @@ export function normalizeCardSpec(input: unknown): CardSpec {
     keywords,
     keywordLine: limitText(formatKeywordLineFromIds(keywords), "", KEYWORD_MAX_LENGTH),
     costs: {
-      deployment: sanitizeInteger(costs.deployment, 0, 12),
-      operation: sanitizeInteger(costs.operation, 0, 12),
+      deployment: sanitizeInteger(costs.deployment, 0, CARD_FACE_VALUE_MAX),
+      operation: sanitizeInteger(costs.operation, 0, CARD_FACE_VALUE_MAX),
     },
     stats: {
-      attack: sanitizeInteger(stats.attack, 0, 20),
-      defense: sanitizeInteger(stats.defense, 0, 30),
-      hqDefense: sanitizeInteger(stats.hqDefense, 1, 40),
+      attack: sanitizeInteger(stats.attack, 0, CARD_FACE_VALUE_MAX),
+      defense: sanitizeInteger(stats.defense, 0, CARD_FACE_VALUE_MAX),
+      hqDefense: sanitizeInteger(stats.hqDefense, 1, CARD_FACE_VALUE_MAX),
     },
     artwork: normalizeArtwork(artwork, crop),
   };

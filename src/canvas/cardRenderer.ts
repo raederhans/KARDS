@@ -2,6 +2,7 @@ import { getKind, getNation, getRarity, getSet } from "../presets";
 import type { CardKind, CardSpec } from "../types";
 import { translateKeywordLabel } from "../i18n";
 import { getKeywordPreset, resolveCardKeywordIds } from "../keywords";
+import { CARD_FACE_VALUE_MAX } from "../limits";
 import { drawMarkedBodyText } from "./bodyTextRenderer";
 import {
   CARD_HEIGHT,
@@ -53,6 +54,12 @@ type StatBoardShape = "shield" | "inverted-shield";
 
 type ResolvedRenderFonts = Required<CardRenderFontSet>;
 
+type NumberGlyphStyle = {
+  fontSize: number;
+  scaleX: number;
+  scaleY: number;
+};
+
 export function renderCard(
   canvas: HTMLCanvasElement,
   card: CardSpec,
@@ -95,7 +102,7 @@ export function renderCard(
       ctx,
       layout.costBoard,
       card.costs.deployment,
-      isUnitKind(card.kind) ? card.costs.operation : undefined,
+      isUnitKind(card.kind) ? card.costs.operation ?? 0 : undefined,
       options,
       assetContext,
       fonts,
@@ -248,30 +255,37 @@ function drawCostBoard(
     ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
   }
 
-  const deploymentText = String(deployment ?? 0);
-  const deploymentSize = deploymentText.length > 1 ? 52 : 72;
-  const costScale = getTextScale(deploymentText, 1.12, 1);
-  const deploymentScaleY = 1.06;
-  const sideCostScaleY = 1.08;
+  const deploymentText = formatCardFaceValue(deployment);
+  const deploymentStyle = resolveBoardNumberStyle(
+    deploymentText,
+    { fontSize: 72, scaleX: getTextScale(deploymentText, 1.12, 1), scaleY: 1.06 },
+    { fontSize: 50, scaleX: 0.86, scaleY: 1.02 },
+  );
+  const sideCostScaleY = 1;
   const deploymentCenterX = rect.x + rect.width * 0.38;
   const sideCostCenterX = rect.x + rect.width * 0.785;
   const sideCostTopY = rect.y + rect.height * 0.32;
   const sideCostBottomY = rect.y + rect.height * 0.69;
   ctx.fillStyle = LIGHT;
-  ctx.font = `900 ${deploymentSize}px ${fonts.cost}`;
+  ctx.font = `900 ${deploymentStyle.fontSize}px ${fonts.cost}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  fillScaledText(ctx, deploymentText, deploymentCenterX, rect.y + rect.height * 0.56, costScale, deploymentScaleY);
+  fillScaledText(ctx, deploymentText, deploymentCenterX, rect.y + rect.height * 0.56, deploymentStyle.scaleX, deploymentStyle.scaleY);
 
   ctx.fillStyle = ACTIVATED;
-  ctx.font = `900 27px ${fonts.cost}`;
-  fillScaledText(ctx, "K", sideCostCenterX, sideCostTopY, 1.15, sideCostScaleY);
+  ctx.font = `900 23px ${fonts.cost}`;
+  fillScaledText(ctx, "K", sideCostCenterX, sideCostTopY, 1.02, sideCostScaleY);
 
   if (operation !== undefined) {
     ctx.fillStyle = LIGHT;
-    const operationText = String(operation);
-    ctx.font = `900 27px ${fonts.cost}`;
-    fillScaledText(ctx, operationText, sideCostCenterX, sideCostBottomY, getTextScale(operationText, 1.14, 1.02), sideCostScaleY);
+    const operationText = formatCardFaceValue(operation);
+    const operationStyle = resolveBoardNumberStyle(
+      operationText,
+      { fontSize: 27, scaleX: getTextScale(operationText, 1.14, 1.02), scaleY: 1.08 },
+      { fontSize: 21, scaleX: 0.86, scaleY: 1 },
+    );
+    ctx.font = `900 ${operationStyle.fontSize}px ${fonts.cost}`;
+    fillScaledText(ctx, operationText, sideCostCenterX, sideCostBottomY, operationStyle.scaleX, operationStyle.scaleY);
   }
   ctx.restore();
 }
@@ -603,11 +617,16 @@ function drawStatBoard(
   }
 
   ctx.fillStyle = LIGHT;
-  const valueText = String(value ?? 0);
-  ctx.font = `900 ${fontSize + 2}px ${fonts.stat}`;
+  const valueText = formatCardFaceValue(value);
+  const valueStyle = resolveBoardNumberStyle(
+    valueText,
+    { fontSize: fontSize + 2, scaleX: getTextScale(valueText, 1.18, 1.02), scaleY: 1 },
+    { fontSize: Math.max(38, fontSize - 8), scaleX: 0.86, scaleY: 0.98 },
+  );
+  ctx.font = `900 ${valueStyle.fontSize}px ${fonts.stat}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  fillScaledText(ctx, valueText, rect.x + rect.width / 2, rect.y + rect.height / 2 + valueYOffset, getTextScale(valueText, 1.18, 1.02));
+  fillScaledText(ctx, valueText, rect.x + rect.width / 2, rect.y + rect.height / 2 + valueYOffset, valueStyle.scaleX, valueStyle.scaleY);
   if (label) {
     ctx.font = `900 14px ${fonts.stat}`;
     fillScaledText(ctx, label, rect.x + rect.width / 2, rect.y + rect.height - 22, getTextScale(label, 1.08, 1.02));
@@ -932,6 +951,19 @@ function getCanvasImageSize(image: CanvasImageSource, fallback: Rect): { width: 
 
 function measureScaledText(ctx: TextMeasureContext, text: string, scaleX = 1): number {
   return ctx.measureText(text).width * scaleX;
+}
+
+function formatCardFaceValue(value: number | undefined): string {
+  const numericValue = Number(value ?? 0);
+  if (!Number.isFinite(numericValue)) {
+    return "0";
+  }
+
+  return String(Math.min(CARD_FACE_VALUE_MAX, Math.max(0, Math.round(numericValue))));
+}
+
+function resolveBoardNumberStyle(text: string, singleDigit: NumberGlyphStyle, twoDigit: NumberGlyphStyle): NumberGlyphStyle {
+  return text.length > 1 ? twoDigit : singleDigit;
 }
 
 function getTextScale(text: string, latinScale: number, cjkScale: number): number {

@@ -40,6 +40,6 @@ describe("local card library records", () => {
 
     expect(library.cards).toHaveLength(1);
     expect(library.cards[0].id).toBe("saved-card");
-    expect(library.cards[0].card.costs.deployment).toBe(12);
+    expect(library.cards[0].card.costs.deployment).toBe(99);
   });
 });

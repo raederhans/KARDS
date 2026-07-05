@@ -45,6 +45,19 @@ describe("normalizeCardSpec", () => {
     expect(card.keywordLine).toBe("GUARD");
   });
 
+  it("keeps ordinary card-face numeric values within the two-digit range", () => {
+    const card = normalizeCardSpec({
+      costs: { deployment: 120, operation: 12 },
+      stats: { attack: 101, defense: 99, hqDefense: 120 },
+    });
+
+    expect(card.costs.deployment).toBe(99);
+    expect(card.costs.operation).toBe(12);
+    expect(card.stats.attack).toBe(99);
+    expect(card.stats.defense).toBe(99);
+    expect(card.stats.hqDefense).toBe(99);
+  });
+
   it("normalizes structured keywords and ignores duplicate or unknown keyword values", () => {
     const card = normalizeCardSpec({
       keywords: ["guard", "guard", "blitz", "unknown", "shock", "fury", "ambush"],
@@ -99,7 +112,7 @@ describe("normalizeCardSpec", () => {
 
     expect(card.kind).toBe(DEFAULT_CARD.kind);
     expect(card.nation).toBe(DEFAULT_CARD.nation);
-    expect(card.costs.deployment).toBe(12);
+    expect(card.costs.deployment).toBe(99);
     expect(card.artwork.source).toBe("none");
     expect(card.artwork.crop.scale).toBe(3);
   });
