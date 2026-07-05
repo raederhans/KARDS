@@ -2,25 +2,66 @@ import { parseBodyMarkup, type BodyMarkupSegment } from "../bodyMarkup";
 
 type TextMeasureContext = Pick<CanvasRenderingContext2D, "font" | "measureText">;
 
+const BODY_BASE_FONT_SIZE = 24;
+const BODY_MIN_FONT_SIZE = 16;
+
 export function drawMarkedBodyText(
   ctx: CanvasRenderingContext2D,
   text: string,
   centerX: number,
   y: number,
   maxWidth: number,
-  lineHeight: number,
-  maxLines: number,
+  bodyBottomY: number,
+  maxLinesCap: number,
+  baseLineHeight: number,
   fontFamily: string,
   scaleX = 1,
 ): void {
-  const lines = createWrappedBodyMarkupLines(ctx, text, maxWidth, maxLines, fontFamily, scaleX);
+  const layout = fitBodyMarkupLayout(ctx, text, maxWidth, bodyBottomY - y, maxLinesCap, baseLineHeight, fontFamily, scaleX);
   const previousTextAlign = ctx.textAlign;
   ctx.textAlign = "left";
 
-  lines.forEach((line, index) => {
-    drawBodyMarkupLine(ctx, line, centerX, y + index * lineHeight, fontFamily, scaleX);
+  layout.lines.forEach((line, index) => {
+    drawBodyMarkupLine(ctx, line, centerX, y + index * layout.lineHeight, fontFamily, layout.fontSize, scaleX);
   });
   ctx.textAlign = previousTextAlign;
+}
+
+function fitBodyMarkupLayout(
+  ctx: TextMeasureContext,
+  text: string,
+  maxWidth: number,
+  maxHeight: number,
+  maxLinesCap: number,
+  baseLineHeight: number,
+  fontFamily: string,
+  scaleX: number,
+): { lines: BodyMarkupSegment[][]; fontSize: number; lineHeight: number } {
+  let fallbackLayout = createWrappedBodyMarkupLines(
+    ctx,
+    text,
+    maxWidth,
+    resolveMaxLines(maxHeight, resolveBodyLineHeight(BODY_MIN_FONT_SIZE, baseLineHeight), maxLinesCap),
+    fontFamily,
+    BODY_MIN_FONT_SIZE,
+    scaleX,
+  );
+
+  for (let fontSize = BODY_BASE_FONT_SIZE; fontSize >= BODY_MIN_FONT_SIZE; fontSize -= 1) {
+    const lineHeight = resolveBodyLineHeight(fontSize, baseLineHeight);
+    const maxLines = resolveMaxLines(maxHeight, lineHeight, maxLinesCap);
+    const layout = createWrappedBodyMarkupLines(ctx, text, maxWidth, maxLines, fontFamily, fontSize, scaleX);
+    if (!layout.didOverflow) {
+      return { lines: layout.lines, fontSize, lineHeight };
+    }
+    fallbackLayout = layout;
+  }
+
+  return {
+    lines: fallbackLayout.lines,
+    fontSize: BODY_MIN_FONT_SIZE,
+    lineHeight: resolveBodyLineHeight(BODY_MIN_FONT_SIZE, baseLineHeight),
+  };
 }
 
 function drawBodyMarkupLine(
@@ -29,9 +70,10 @@ function drawBodyMarkupLine(
   centerX: number,
   y: number,
   fontFamily: string,
+  fontSize: number,
   scaleX: number,
 ): void {
-  const lineWidth = measureBodyMarkupLine(ctx, line, fontFamily, scaleX);
+  const lineWidth = measureBodyMarkupLine(ctx, line, fontFamily, fontSize, scaleX);
   let cursorX = centerX - lineWidth / 2;
 
   for (const segment of line) {
@@ -39,7 +81,7 @@ function drawBodyMarkupLine(
       continue;
     }
 
-    setBodySegmentFont(ctx, fontFamily, segment.bold);
+    setBodySegmentFont(ctx, fontFamily, fontSize, segment.bold);
     fillScaledText(ctx, segment.text, cursorX, y, scaleX);
     cursorX += measureScaledText(ctx, segment.text, scaleX);
   }
@@ -51,10 +93,11 @@ function createWrappedBodyMarkupLines(
   maxWidth: number,
   maxLines: number,
   fontFamily: string,
+  fontSize: number,
   scaleX = 1,
-): BodyMarkupSegment[][] {
+): { lines: BodyMarkupSegment[][]; didOverflow: boolean } {
   if (!text.trim()) {
-    return [];
+    return { lines: [], didOverflow: false };
   }
 
   const wrappedLines: BodyMarkupSegment[][] = [];
@@ -66,7 +109,7 @@ function createWrappedBodyMarkupLines(
       break;
     }
 
-    const tokens = createBodyMarkupTokens(ctx, logicalLine, maxWidth, fontFamily, scaleX);
+    const tokens = createBodyMarkupTokens(ctx, logicalLine, maxWidth, fontFamily, fontSize, scaleX);
     if (tokens.length === 0) {
       wrappedLines.push([]);
       continue;
@@ -75,7 +118,7 @@ function createWrappedBodyMarkupLines(
     let currentLine: BodyMarkupSegment[] = [];
     for (const token of tokens) {
       const candidateLine = currentLine.length === 0 ? [trimLeadingBodySegment(token)] : [...currentLine, token];
-      if (currentLine.length > 0 && measureBodyMarkupLine(ctx, candidateLine, fontFamily, scaleX) > maxWidth) {
+      if (currentLine.length > 0 && measureBodyMarkupLine(ctx, candidateLine, fontFamily, fontSize, scaleX) > maxWidth) {
         wrappedLines.push(trimTrailingBodySegments(currentLine));
         currentLine = [trimLeadingBodySegment(token)];
         if (wrappedLines.length >= maxLines) {
@@ -107,11 +150,12 @@ function createWrappedBodyMarkupLines(
       visibleLines[visibleLines.length - 1],
       maxWidth,
       fontFamily,
+      fontSize,
       scaleX,
     );
   }
 
-  return visibleLines;
+  return { lines: visibleLines, didOverflow };
 }
 
 function createBodyMarkupTokens(
@@ -119,11 +163,12 @@ function createBodyMarkupTokens(
   segments: BodyMarkupSegment[],
   maxWidth: number,
   fontFamily: string,
+  fontSize: number,
   scaleX: number,
 ): BodyMarkupSegment[] {
   return segments.flatMap((segment) => {
-    const tokens = segment.text.match(/\s*\S+\s*/g) ?? [];
-    return tokens.flatMap((token) => splitBodyMarkupToken(ctx, token, segment.bold, maxWidth, fontFamily, scaleX));
+    const tokens = segment.text.match(/\s+|[A-Za-z0-9]+(?:[-'][A-Za-z0-9]+)*|[\u3400-\u9fff\uf900-\ufaff]|[^\sA-Za-z0-9\u3400-\u9fff\uf900-\ufaff]/g) ?? [];
+    return tokens.flatMap((token) => splitBodyMarkupToken(ctx, token, segment.bold, maxWidth, fontFamily, fontSize, scaleX));
   });
 }
 
@@ -133,9 +178,10 @@ function splitBodyMarkupToken(
   bold: boolean,
   maxWidth: number,
   fontFamily: string,
+  fontSize: number,
   scaleX: number,
 ): BodyMarkupSegment[] {
-  setBodySegmentFont(ctx, fontFamily, bold);
+  setBodySegmentFont(ctx, fontFamily, fontSize, bold);
   if (measureScaledText(ctx, token, scaleX) <= maxWidth) {
     return [{ text: token, bold }];
   }
@@ -167,10 +213,11 @@ function measureBodyMarkupLine(
   ctx: TextMeasureContext,
   line: BodyMarkupSegment[],
   fontFamily: string,
+  fontSize: number,
   scaleX: number,
 ): number {
   return line.reduce((width, segment) => {
-    setBodySegmentFont(ctx, fontFamily, segment.bold);
+    setBodySegmentFont(ctx, fontFamily, fontSize, segment.bold);
     return width + measureScaledText(ctx, segment.text, scaleX);
   }, 0);
 }
@@ -180,6 +227,7 @@ function appendEllipsisToBodyMarkupLine(
   line: BodyMarkupSegment[],
   maxWidth: number,
   fontFamily: string,
+  fontSize: number,
   scaleX: number,
 ): BodyMarkupSegment[] {
   const nextLine = trimTrailingBodySegments(line);
@@ -190,7 +238,7 @@ function appendEllipsisToBodyMarkupLine(
   let lastSegmentIndex = nextLine.length - 1;
   while (
     lastSegmentIndex >= 0 &&
-    measureBodyMarkupLine(ctx, [...nextLine, { text: "...", bold: false }], fontFamily, scaleX) > maxWidth
+    measureBodyMarkupLine(ctx, [...nextLine, { text: "...", bold: false }], fontFamily, fontSize, scaleX) > maxWidth
   ) {
     nextLine[lastSegmentIndex] = {
       ...nextLine[lastSegmentIndex],
@@ -241,8 +289,19 @@ function mergeAdjacentBodySegments(line: BodyMarkupSegment[]): BodyMarkupSegment
   return mergedLine;
 }
 
-function setBodySegmentFont(ctx: TextMeasureContext, fontFamily: string, bold: boolean): void {
-  ctx.font = `${bold ? 800 : 500} 24px ${fontFamily}`;
+function setBodySegmentFont(ctx: TextMeasureContext, fontFamily: string, fontSize: number, bold: boolean): void {
+  ctx.font = `${bold ? 800 : 500} ${fontSize}px ${fontFamily}`;
+}
+
+function resolveBodyLineHeight(fontSize: number, baseLineHeight: number): number {
+  if (fontSize === BODY_BASE_FONT_SIZE) {
+    return baseLineHeight;
+  }
+  return Math.max(fontSize + 1, Math.round(baseLineHeight - (BODY_BASE_FONT_SIZE - fontSize) * 1.4));
+}
+
+function resolveMaxLines(maxHeight: number, lineHeight: number, maxLinesCap: number): number {
+  return Math.max(1, Math.min(maxLinesCap, Math.floor(maxHeight / lineHeight) + 1));
 }
 
 function fillScaledText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, scaleX = 1): void {

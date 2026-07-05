@@ -19,6 +19,7 @@
 - Fixed canvas-editor layouts need explicit scroll ownership: keep the preview and header stable while assigning independent scroll containers to side panels.
 - Dev preview asset-pack URLs must stay aligned with the current renderer-ready private pack; otherwise valid card keys can appear broken because the renderer falls back to text abbreviations after stale asset loads fail.
 - Card-face keywords should use structured ids for editing and regenerate display/export strings from those ids; otherwise localization, duplicate prevention, and canvas text fitting become coupled to stale freeform text.
+- Canvas CJK body wrapping must tokenize by CJK character and punctuation before measuring; whitespace-only tokenization treats a full Chinese sentence as one word and can force marked effect labels onto wasted lines.
 - Small card-foot set marks should sample background from their own corners, not the broader card neighborhood; nearby printed texture can otherwise be mistaken for background and erase pale icon subjects.
 - Thin-line card-foot set marks need per-set preservation rules instead of one global threshold; otherwise fixing detailed icons can reintroduce background texture into already-clean marks.
 - Rarity foot marks are not one-size-fits-all: keep standard/limited as single repeated pips, but crop elite/special as natural-size subject groups so elite wings and silver-pip gloss are preserved without stretching.

@@ -525,18 +525,15 @@ function drawText(
   ctx.fillStyle = DARK;
   ctx.font = `500 24px ${fonts.body}`;
   const bodyY = keywordLabels.length > 0 ? layout.text.bodyY : layout.text.keywordY;
-  const bodyMaxLines = Math.max(
-    1,
-    Math.min(layout.text.maxLines, Math.floor((layout.text.bodyBottomY - bodyY) / layout.text.lineHeight) + 1),
-  );
   drawMarkedBodyText(
     ctx,
     card.body,
     250,
     bodyY,
     layout.text.maxWidth,
+    layout.text.bodyBottomY,
+    layout.text.maxLines,
     layout.text.lineHeight,
-    bodyMaxLines,
     fonts.body,
     getTextScale(card.body, 0.96, 1),
   );

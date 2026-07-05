@@ -328,6 +328,55 @@ describe("card renderer output", () => {
     expect(calls.fillText.some(([text]) => String(text).includes("**"))).toBe(false);
   });
 
+  it("keeps CJK body copy on the same line after an emphasized effect label when it fits", () => {
+    const { canvas, calls } = createFakeCanvas();
+    const card: CardSpec = {
+      ...DEFAULT_CARD,
+      keywords: ["guard"],
+      body: "**部署**：移除一个敌方单位，若花费高于4，则抽一张牌。",
+    };
+
+    renderCard(canvas, card, null);
+
+    const labelCall = calls.fillText.find(([text]) => text === "部署");
+    const followingCopyCall = calls.fillText.find(([text]) => String(text).startsWith("：移除"));
+    expect(labelCall?.[2]).toBe(616);
+    expect(followingCopyCall?.[2]).toBe(labelCall?.[2]);
+  });
+
+  it("shrinks dense CJK body copy to use the available text band before ellipsizing", () => {
+    const { canvas, calls } = createFakeCanvas();
+    const card: CardSpec = {
+      ...DEFAULT_CARD,
+      keywords: ["guard"],
+      body: "**部署**：移除一个敌方单位，若花费高于4，则抽一张牌。然后该单位获得护甲，并可以再次行动，直到回合结束前保持全部战斗修正。若目标被摧毁，则友方单位获得额外行动力，并且本回合所有友方坦克获得一点攻击。",
+    };
+
+    renderCard(canvas, card, null);
+
+    const bodyTextStyles = calls.fillTextStyles.filter((call) => ["部署", "：", "。", "..."].every((token) => call.text !== token));
+    expect(calls.fillText.some(([text]) => String(text).includes("..."))).toBe(false);
+    expect(bodyTextStyles.some((call) => call.font.includes("16px"))).toBe(true);
+    expect(Math.max(...calls.fillText.map(([, , y]) => Number(y)).filter((y) => y >= 616 && y <= 650))).toBe(650);
+  });
+
+  it("centers each wrapped body line independently when line lengths differ", () => {
+    const { canvas, calls } = createFakeCanvas();
+    const card: CardSpec = {
+      ...DEFAULT_CARD,
+      keywords: [],
+      keywordLine: "",
+      body: "天地玄黄宇宙洪荒日月盈昃辰宿列张寒来暑往秋收冬藏闰余成岁律吕调阳短行",
+    };
+
+    renderCard(canvas, card, null);
+
+    const firstLine = calls.fillText.find(([, , y]) => y === 580);
+    const secondLine = calls.fillText.find(([, , y]) => y === 608);
+    expect(firstLine?.[1]).toBeLessThan(100);
+    expect(secondLine?.[1]).toBeGreaterThan(Number(firstLine?.[1]) + 100);
+  });
+
   it("preserves author-entered body line breaks before wrapping", () => {
     const { canvas, calls } = createFakeCanvas();
     const card: CardSpec = {
