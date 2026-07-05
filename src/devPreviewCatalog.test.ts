@@ -3,9 +3,11 @@ import { DEFAULT_CARD } from "./cardModel";
 import {
   DEV_PREVIEW_ASSET_PACK_URL,
   DEV_PREVIEW_HQ_SAMPLE,
+  DEV_PREVIEW_HQ_SAMPLES,
   DEV_PREVIEW_REFERENCE_SAMPLES,
   DEV_PREVIEW_SET_SAMPLES,
   getDefaultDevPreviewSample,
+  getDevPreviewHqSampleById,
   getDevPreviewReferenceForCard,
   getDevPreviewSampleById,
   getDevPreviewSampleByKind,
@@ -43,6 +45,14 @@ describe("dev preview sample catalog", () => {
     expect(getDevPreviewSampleByKind("hq")).toBe(DEV_PREVIEW_HQ_SAMPLE);
     expect(getDevPreviewSampleByKind("tank")).toBeUndefined();
     expect(getDevPreviewSampleForCard({ kind: "hq", set: "base" })?.label).toBe("WASHINGTON");
+    expect(DEV_PREVIEW_HQ_SAMPLES.map((sample) => sample.label)).toEqual([
+      "WASHINGTON",
+      "LONDON",
+      "MOSCOW",
+      "TRUK",
+      "DANZIG",
+    ]);
+    expect(getDevPreviewHqSampleById("london_hq")?.referenceUrl).toContain("London.png");
     expect(DEV_PREVIEW_HQ_SAMPLE.referenceUrl).toContain("Washington.png");
     expect("card" in DEV_PREVIEW_HQ_SAMPLE ? DEV_PREVIEW_HQ_SAMPLE.card.title : "").toBe("WASHINGTON");
   });

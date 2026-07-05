@@ -17,38 +17,15 @@ export type DevPreviewSample = {
   referenceUrl: string;
 } & ({ cardUrl: string } | { card: CardSpec });
 
-const WASHINGTON_HQ_CARD: CardSpec = {
-  version: 1,
-  kind: "hq",
-  nation: "us",
-  rarity: "standard",
-  set: "base",
-  title: "WASHINGTON",
-  body: "HQ reference sample from the private KARDS-Assets snapshot.",
-  keywordLine: "HQ",
-  costs: {},
-  stats: {
-    hqDefense: 20,
-  },
-  artwork: {
-    source: "none",
-    crop: {
-      x: 0,
-      y: 0,
-      scale: 1,
-    },
-  },
-};
+export const DEV_PREVIEW_HQ_SAMPLES: DevPreviewSample[] = [
+  hqSample("washington_hq", "WASHINGTON", "华盛顿", "us", "Washington.png"),
+  hqSample("london_hq", "LONDON", "伦敦", "britain", "London.png"),
+  hqSample("moscow_hq", "MOSCOW", "莫斯科", "soviet", "Moscow.png"),
+  hqSample("truk_hq", "TRUK", "特鲁克", "japan", "Truk.png"),
+  hqSample("danzig_hq", "DANZIG", "但泽", "germany", "Danzig.png"),
+];
 
-export const DEV_PREVIEW_HQ_SAMPLE: DevPreviewSample = {
-  id: "washington_hq",
-  label: "WASHINGTON",
-  labelZh: "华盛顿",
-  kind: "hq",
-  set: "base",
-  referenceUrl: `${HQ_REFERENCE_ROOT}/Washington.png`,
-  card: WASHINGTON_HQ_CARD,
-};
+export const DEV_PREVIEW_HQ_SAMPLE: DevPreviewSample = DEV_PREVIEW_HQ_SAMPLES[0];
 
 export const DEV_PREVIEW_REFERENCE_SAMPLES: DevPreviewSample[] = [
   cardSample("24th_uan", "blood-and-iron", "infantry", "24th UŁAN", "第 24 乌兰骑兵团"),
@@ -120,7 +97,7 @@ export const DEV_PREVIEW_REFERENCE_SAMPLES: DevPreviewSample[] = [
   cardSample("usace", "base", "order", "USACE", "陆军工程兵团"),
   cardSample("vanguard", "winter-war", "order", "VANGUARD", "先峰"),
   cardSample("wespe", "theaters-of-war", "artillery", "WESPE", "黄蜂式自行火炮"),
-  DEV_PREVIEW_HQ_SAMPLE,
+  ...DEV_PREVIEW_HQ_SAMPLES,
 ];
 
 export const DEV_PREVIEW_SET_SAMPLES: DevPreviewSample[] = [
@@ -149,6 +126,10 @@ export function getDevPreviewSampleById(sampleId: string): DevPreviewSample | un
   return DEV_PREVIEW_REFERENCE_SAMPLES.find((sample) => sample.id === sampleId);
 }
 
+export function getDevPreviewHqSampleById(sampleId: string): DevPreviewSample | undefined {
+  return DEV_PREVIEW_HQ_SAMPLES.find((sample) => sample.id === sampleId);
+}
+
 export function getDevPreviewSampleBySet(setId: string): DevPreviewSample | undefined {
   return DEV_PREVIEW_SET_SAMPLES.find((sample) => sample.set === setId);
 }
@@ -174,5 +155,38 @@ function cardSample(id: string, set: string, kind: CardKind, label: string, labe
     set,
     cardUrl: `${SAMPLE_ROOT}/${id}.card.json`,
     referenceUrl: `${REFERENCE_ROOT}/${id}.png`,
+  };
+}
+
+function hqSample(id: string, label: string, labelZh: string, nation: string, imageFile: string): DevPreviewSample {
+  return {
+    id,
+    label,
+    labelZh,
+    kind: "hq",
+    set: "base",
+    referenceUrl: `${HQ_REFERENCE_ROOT}/${imageFile}`,
+    card: {
+      version: 1,
+      kind: "hq",
+      nation,
+      rarity: "standard",
+      set: "base",
+      title: label,
+      body: "HQ reference sample from the private KARDS-Assets snapshot.",
+      keywordLine: "HQ",
+      costs: {},
+      stats: {
+        hqDefense: 20,
+      },
+      artwork: {
+        source: "none",
+        crop: {
+          x: 0,
+          y: 0,
+          scale: 1,
+        },
+      },
+    },
   };
 }

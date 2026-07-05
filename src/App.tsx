@@ -34,7 +34,9 @@ function App() {
   const [devPreviewCatalog, setDevPreviewCatalog] = useState<DevPreviewCatalogModule | null>(null);
   const [assetPackError, setAssetPackError] = useState<string | null>(null);
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
-  const [selectedReferenceSampleId, setSelectedReferenceSampleId] = useState("");
+  const [selectedReferenceSampleId, setSelectedReferenceSampleId] = useState("t70");
+  const [selectedHqSampleId, setSelectedHqSampleId] = useState("washington_hq");
+  const [showReferenceComparison, setShowReferenceComparison] = useState(true);
   const [referenceDiff, setReferenceDiff] = useState<ImageDiffMetrics | null>(null);
   const [referenceDiffError, setReferenceDiffError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -164,6 +166,16 @@ function App() {
         : [],
     [devPreviewCatalog, isDevPrivatePreviewEnabled, language],
   );
+  const hqSampleOptions = useMemo(
+    () =>
+      isDevPrivatePreviewEnabled && devPreviewCatalog
+        ? devPreviewCatalog.DEV_PREVIEW_HQ_SAMPLES.map((sample) => ({
+            id: sample.id,
+            label: localizedReferenceSampleTitle(sample, language),
+          }))
+        : [],
+    [devPreviewCatalog, isDevPrivatePreviewEnabled, language],
+  );
   useEffect(() => {
     if (!isDevPrivatePreviewEnabled) {
       return;
@@ -265,20 +277,32 @@ function App() {
     setReferenceDiffError(null);
   }
 
-  async function handleReferenceSampleLoad() {
-    if (!referenceSample) {
-      return;
-    }
-
-    await loadDevPreviewSample(referenceSample);
-  }
-
-  async function handleHqSampleLoad() {
+  async function handleTemplateSampleLoad(sampleId: string) {
     if (!devPreviewCatalog) {
       return;
     }
 
-    await loadDevPreviewSample(devPreviewCatalog.DEV_PREVIEW_HQ_SAMPLE);
+    const sample = devPreviewCatalog.getDevPreviewSampleById(sampleId);
+    if (!sample) {
+      return;
+    }
+
+    if (sample.kind === "hq") {
+      setSelectedHqSampleId(sample.id);
+    }
+    setShowReferenceComparison(true);
+    await loadDevPreviewSample(sample);
+  }
+
+  async function handleHqSampleLoad(sampleId: string) {
+    if (!devPreviewCatalog) {
+      return;
+    }
+
+    const sample = devPreviewCatalog.getDevPreviewHqSampleById(sampleId) ?? devPreviewCatalog.DEV_PREVIEW_HQ_SAMPLE;
+    setSelectedHqSampleId(sample.id);
+    setShowReferenceComparison(true);
+    await loadDevPreviewSample(sample);
   }
 
   async function loadDevPreviewSampleCard(sample: DevPreviewSample): Promise<CardSpec> {
@@ -347,8 +371,10 @@ function App() {
           artworkImage={artworkImage}
           canvasRef={canvasRef}
           renderOptions={renderOptions}
-          referenceImageUrl={referenceImageUrl}
-          referenceLabel={referenceSample ? localizedReferenceSampleTitle(referenceSample, language) : undefined}
+          referenceImageUrl={showReferenceComparison ? referenceImageUrl : null}
+          referenceLabel={
+            showReferenceComparison && referenceSample ? localizedReferenceSampleTitle(referenceSample, language) : undefined
+          }
           onCropChange={(crop) =>
             updateCard((currentCard) => ({
               ...currentCard,
@@ -381,8 +407,13 @@ function App() {
           referenceDiffError={referenceDiffError}
           onAssetPackLoad={handleAssetPackLoad}
           onReferenceCompare={handleReferenceCompare}
-          onReferenceSampleLoad={referenceSample ? handleReferenceSampleLoad : undefined}
-          referenceSampleLabel={referenceSample ? localizedReferenceSampleTitle(referenceSample, language) : undefined}
+          showReferenceComparison={showReferenceComparison}
+          onReferenceComparisonToggle={setShowReferenceComparison}
+          templateSamples={referenceSampleOptions}
+          selectedTemplateSampleId={selectedReferenceSampleId}
+          onTemplateSampleLoad={isDevPrivatePreviewEnabled && devPreviewCatalog ? handleTemplateSampleLoad : undefined}
+          hqSamples={hqSampleOptions}
+          selectedHqSampleId={selectedHqSampleId}
           onHqSampleLoad={isDevPrivatePreviewEnabled && devPreviewCatalog ? handleHqSampleLoad : undefined}
         />
       </div>
