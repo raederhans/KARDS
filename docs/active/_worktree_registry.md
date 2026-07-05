@@ -7,7 +7,7 @@
 - Base branch/base commit: `main`, `7da2d341ece1a4e72cfae1d85d6128bcc678ed8b`
 - Current branch/HEAD: `main`, closeout commit recorded in current history
 - Task goal: review the latest audit-fix commit, close safe review gaps, verify stale local branches are already integrated, then commit and push the cleanup
-- Status: integrated on local `main`; push to `origin/main` pending
+- Status: integrated on `main` and pushed to `origin/main`
 - Main changed files:
   - Core files: none
   - Test files: `src/exportCard.test.ts`, `src/localLibrary.test.ts`
@@ -20,7 +20,7 @@
   - Corrects the previous registry entry from pending push to already present on local `main` and `origin/main`
   - Confirms `codex/kards-precision-layout` at `61a35d32c334af60056f585da7c7b68e9aa3885e` and `codex/kards-private-asset-harness` at `460294a0f3aa45c661e59e41ccc1e24ca2b94625` are ancestors of `main`, then removes both local branches with `git branch -d`
 - Commit state: committed directly on `main` in this closeout commit
-- Base/main divergence: local `main` is ahead of `origin/main` by this closeout commit until push completes
+- Base/main divergence: `git status --short --branch` shows `main...origin/main`; closeout is present locally and on `origin/main`
 - Potential conflict/overlap:
   - Direct overlap risk with future changes to export/local-library tests or this active registry
   - No active parallel worktree was detected by `git worktree list --porcelain`
@@ -41,8 +41,8 @@
 - Tests not run:
   - No browser smoke; this closeout only changes tests and registry text, and the covered behavior is unit-testable
   - No perceptual image regression; no renderer output code changed in this closeout
-- Recommended integration order: push this direct `main` closeout to `origin/main`; stale merged local branches are already cleaned with their commit hashes preserved above
-- Next action: push this follow-up closeout
+- Recommended integration order: integrated directly on `main`; stale merged local branches are already cleaned with their commit hashes preserved above
+- Next action: no worktree or branch cleanup remains
 
 ## KARDS recent commit audit and export/local-library repair
 
