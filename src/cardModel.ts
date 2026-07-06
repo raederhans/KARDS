@@ -1,4 +1,4 @@
-import type { CardKind, CardSpec } from "./types";
+import type { CardAppearance, CardKind, CardSpec } from "./types";
 import { CARD_KINDS, NATIONS, RARITIES, SETS } from "./presets";
 import { BODY_MAX_LENGTH, CARD_FACE_VALUE_MAX, isAllowedImageDataUrl, KEYWORD_MAX_LENGTH, TITLE_MAX_LENGTH } from "./limits";
 import { formatKeywordLineFromIds, normalizeCardKeywords, parseKeywordLine } from "./keywords";
@@ -7,6 +7,15 @@ const VALID_KINDS = new Set(CARD_KINDS.map((kind) => kind.id));
 const VALID_NATIONS = new Set(NATIONS.map((nation) => nation.id));
 const VALID_RARITIES = new Set(RARITIES.map((rarity) => rarity.id));
 const VALID_SETS = new Set(SETS.map((set) => set.id));
+
+export const DEFAULT_CARD_APPEARANCE: CardAppearance = {
+  texture: {
+    seed: 0x4b415244,
+    intensity: 1.85,
+    randomness: 1.55,
+    mottle: 1.35,
+  },
+};
 
 export const DEFAULT_CARD: CardSpec = {
   version: 1,
@@ -35,6 +44,7 @@ export const DEFAULT_CARD: CardSpec = {
       scale: 1,
     },
   },
+  appearance: DEFAULT_CARD_APPEARANCE,
 };
 
 export function sanitizeInteger(value: unknown, min: number, max: number): number | undefined {
@@ -56,6 +66,7 @@ export function normalizeCardSpec(input: unknown): CardSpec {
   const stats = isRecord(raw.stats) ? raw.stats : {};
   const artwork = isRecord(raw.artwork) ? raw.artwork : {};
   const crop = isRecord(artwork.crop) ? artwork.crop : {};
+  const appearance = isRecord(raw.appearance) ? raw.appearance : {};
 
   const kind = typeof raw.kind === "string" && VALID_KINDS.has(raw.kind as CardKind)
     ? (raw.kind as CardKind)
@@ -83,6 +94,7 @@ export function normalizeCardSpec(input: unknown): CardSpec {
       hqDefense: sanitizeInteger(stats.hqDefense, 1, CARD_FACE_VALUE_MAX),
     },
     artwork: normalizeArtwork(artwork, crop),
+    appearance: normalizeCardAppearance(appearance),
   };
 }
 
@@ -110,6 +122,19 @@ function normalizeArtwork(artwork: Record<string, unknown>, crop: Record<string,
   };
 }
 
+function normalizeCardAppearance(appearance: Record<string, unknown>): CardAppearance {
+  const texture = isRecord(appearance.texture) ? appearance.texture : {};
+
+  return {
+    texture: {
+      seed: normalizeSeed(texture.seed, DEFAULT_CARD_APPEARANCE.texture.seed),
+      intensity: clampNumber(texture.intensity, 0.35, 3, DEFAULT_CARD_APPEARANCE.texture.intensity),
+      randomness: clampNumber(texture.randomness, 0.5, 3, DEFAULT_CARD_APPEARANCE.texture.randomness),
+      mottle: clampNumber(texture.mottle, 0.35, 3, DEFAULT_CARD_APPEARANCE.texture.mottle),
+    },
+  };
+}
+
 function choosePreset(value: unknown, validSet: Set<string>, fallback: string): string {
   return typeof value === "string" && validSet.has(value) ? value : fallback;
 }
@@ -121,6 +146,11 @@ function clampNumber(value: unknown, min: number, max: number, fallback: number)
   }
 
   return Math.min(max, Math.max(min, numericValue));
+}
+
+function normalizeSeed(value: unknown, fallback: number): number {
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue >>> 0 : fallback;
 }
 
 function limitText(value: unknown, fallback: string, maxLength: number): string {

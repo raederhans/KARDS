@@ -53,6 +53,14 @@ type ProjectPanelProps = {
   hqSamples: { id: string; label: string }[];
   selectedHqSampleId: string;
   onHqSampleLoad?: (sampleId: string) => void;
+  onRandomTexture: () => void;
+  textureSettings: {
+    intensity: number;
+    randomness: number;
+    mottle: number;
+  };
+  textureSourceLabel: string;
+  onTextureSettingChange: (key: "intensity" | "randomness" | "mottle", value: number) => void;
 };
 
 export function ProjectPanel({
@@ -78,6 +86,10 @@ export function ProjectPanel({
   hqSamples,
   selectedHqSampleId,
   onHqSampleLoad,
+  onRandomTexture,
+  textureSettings,
+  textureSourceLabel,
+  onTextureSettingChange,
 }: ProjectPanelProps) {
   const [exportFormat, setExportFormat] = useState<CardExportFormat>("png");
   const [exportScale, setExportScale] = useState(1);
@@ -234,6 +246,34 @@ export function ProjectPanel({
       <div className="panel-heading">
         <p>{text.heading}</p>
         <span>{text.scope}</span>
+      </div>
+
+      <div className="project-section texture-section">
+        <div className="section-heading">
+          <p>{text.textureControls}</p>
+          <span>{textureSourceLabel}</span>
+        </div>
+        <TextureRange
+          label={text.textureIntensity}
+          name="card-texture-intensity"
+          value={textureSettings.intensity}
+          onChange={(value) => onTextureSettingChange("intensity", value)}
+        />
+        <TextureRange
+          label={text.textureRandomness}
+          name="card-texture-randomness"
+          value={textureSettings.randomness}
+          onChange={(value) => onTextureSettingChange("randomness", value)}
+        />
+        <TextureRange
+          label={text.textureMottle}
+          name="card-texture-mottle"
+          value={textureSettings.mottle}
+          onChange={(value) => onTextureSettingChange("mottle", value)}
+        />
+        <button type="button" className="primary-action" onClick={onRandomTexture}>
+          {text.randomTexture}
+        </button>
       </div>
 
       <div className="project-section export-workbench">
@@ -519,6 +559,36 @@ function ExportRange({
         min="-30"
         max="30"
         step="1"
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+    </label>
+  );
+}
+
+function TextureRange({
+  label,
+  name,
+  value,
+  onChange,
+}: {
+  label: string;
+  name: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="texture-range">
+      <span>
+        <span>{label}</span>
+        <strong>{Math.round(value * 100)}%</strong>
+      </span>
+      <input
+        name={name}
+        type="range"
+        min="0.5"
+        max="2.6"
+        step="0.05"
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
       />

@@ -21,6 +21,9 @@ import "./styles.css";
 
 type DevPreviewCatalogModule = typeof import("./devPreviewCatalog");
 type DevPreviewSample = import("./devPreviewCatalog").DevPreviewSample;
+type TextureImageStatus = "loading" | "ready" | "error";
+
+const PAPER_TEXTURE_URL = `${import.meta.env.BASE_URL}textures/ambientcg-paper001-960.png`;
 
 function App() {
   const [language, setLanguage] = useState<Language>(() => getInitialLanguage(window.localStorage));
@@ -37,6 +40,8 @@ function App() {
   const [selectedReferenceSampleId, setSelectedReferenceSampleId] = useState("t70");
   const [selectedHqSampleId, setSelectedHqSampleId] = useState("washington_hq");
   const [showReferenceComparison, setShowReferenceComparison] = useState(true);
+  const [textureImage, setTextureImage] = useState<HTMLImageElement | null>(null);
+  const [textureImageStatus, setTextureImageStatus] = useState<TextureImageStatus>("loading");
   const [referenceDiff, setReferenceDiff] = useState<ImageDiffMetrics | null>(null);
   const [referenceDiffError, setReferenceDiffError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -61,6 +66,30 @@ function App() {
   }, [card]);
 
   useEffect(() => () => assetPack?.dispose(), [assetPack]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const image = new Image();
+    image.onload = () => {
+      if (!cancelled) {
+        setTextureImage(image);
+        setTextureImageStatus("ready");
+      }
+    };
+    image.onerror = () => {
+      if (!cancelled) {
+        setTextureImage(null);
+        setTextureImageStatus("error");
+      }
+    };
+    setTextureImageStatus("loading");
+    image.src = PAPER_TEXTURE_URL;
+    return () => {
+      cancelled = true;
+      image.onload = null;
+      image.onerror = null;
+    };
+  }, []);
 
   useEffect(
     () => {
@@ -136,13 +165,19 @@ function App() {
   }, [devPreviewCatalog, isDevPrivatePreviewEnabled]);
 
   const previewCard = useMemo(() => normalizeCardSpec(card), [card]);
+  const textureSettings = previewCard.appearance.texture;
   const renderOptions = useMemo(
     () => ({
       assets: assetPack,
       fonts: assetPack?.fonts,
       language,
+      textureSeed: textureSettings.seed,
+      textureImage,
+      textureIntensity: textureSettings.intensity,
+      textureRandomness: textureSettings.randomness,
+      textureMottle: textureSettings.mottle,
     }),
-    [assetPack, language],
+    [assetPack, language, textureImage, textureSettings],
   );
   const referenceSample = useMemo(
     () =>
@@ -338,6 +373,42 @@ function App() {
     setLanguage((currentLanguage) => getNextLanguage(currentLanguage));
   }
 
+  function randomizeTexture() {
+    updateCard((currentCard) => {
+      const normalizedCard = normalizeCardSpec(currentCard);
+      const currentSeed = normalizedCard.appearance.texture.seed;
+      const nextSeed = window.crypto?.getRandomValues
+        ? window.crypto.getRandomValues(new Uint32Array(1))[0]
+        : Math.floor(Math.random() * 0x100000000);
+      return {
+        ...normalizedCard,
+        appearance: {
+          ...normalizedCard.appearance,
+          texture: {
+            ...normalizedCard.appearance.texture,
+            seed: nextSeed === currentSeed ? (nextSeed + 1) >>> 0 : nextSeed >>> 0,
+          },
+        },
+      };
+    });
+  }
+
+  function updateTextureSetting(key: "intensity" | "randomness" | "mottle", value: number) {
+    updateCard((currentCard) => {
+      const normalizedCard = normalizeCardSpec(currentCard);
+      return {
+        ...normalizedCard,
+        appearance: {
+          ...normalizedCard.appearance,
+          texture: {
+            ...normalizedCard.appearance.texture,
+            [key]: value,
+          },
+        },
+      };
+    });
+  }
+
   return (
     <main className="app-shell">
       <header className="top-bar">
@@ -417,6 +488,12 @@ function App() {
           hqSamples={hqSampleOptions}
           selectedHqSampleId={selectedHqSampleId}
           onHqSampleLoad={isDevPrivatePreviewEnabled && devPreviewCatalog ? handleHqSampleLoad : undefined}
+          onRandomTexture={randomizeTexture}
+          textureSettings={textureSettings}
+          textureSourceLabel={
+            textureImageStatus === "ready" ? text.projectPanel.textureCurrent : text.projectPanel.textureFallback
+          }
+          onTextureSettingChange={updateTextureSetting}
         />
       </div>
     </main>

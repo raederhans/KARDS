@@ -10,6 +10,15 @@ export type CardKind =
 
 export type ArtworkSource = "upload" | "none";
 
+export type CardAppearance = {
+  texture: {
+    seed: number;
+    intensity: number;
+    randomness: number;
+    mottle: number;
+  };
+};
+
 export type CardSpec = {
   version: 1;
   kind: CardKind;
@@ -38,6 +47,7 @@ export type CardSpec = {
     };
     dataUrl?: string;
   };
+  appearance: CardAppearance;
 };
 
 export type CardUpdate = CardSpec | ((current: CardSpec) => CardSpec);

@@ -33,6 +33,14 @@ describe("normalizeCardSpec", () => {
         dataUrl: "data:image/png;base64,abc",
         crop: { x: 10, y: -20, scale: 1.4 },
       },
+      appearance: {
+        texture: {
+          seed: 123,
+          intensity: 2.4,
+          randomness: 2.2,
+          mottle: 1.8,
+        },
+      },
     });
 
     expect(card.kind).toBe("fighter");
@@ -43,6 +51,32 @@ describe("normalizeCardSpec", () => {
     expect(card.artwork.crop.scale).toBe(1.4);
     expect(card.keywords).toEqual(["guard"]);
     expect(card.keywordLine).toBe("GUARD");
+    expect(card.appearance.texture).toEqual({
+      seed: 123,
+      intensity: 2.4,
+      randomness: 2.2,
+      mottle: 1.8,
+    });
+  });
+
+  it("normalizes card appearance so project files reproduce texture settings safely", () => {
+    const card = normalizeCardSpec({
+      appearance: {
+        texture: {
+          seed: -1,
+          intensity: 99,
+          randomness: -99,
+          mottle: "not-a-number",
+        },
+      },
+    });
+
+    expect(card.appearance.texture).toEqual({
+      seed: 0xffffffff,
+      intensity: 3,
+      randomness: 0.5,
+      mottle: DEFAULT_CARD.appearance.texture.mottle,
+    });
   });
 
   it("keeps ordinary card-face numeric values within the two-digit range", () => {

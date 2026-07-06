@@ -97,10 +97,24 @@ describe("card export options", () => {
     const blob = await createCardExportBlob(
       {} as HTMLCanvasElement,
       { format: "png", scale: 2, exposure: 0, contrast: 0, jpegQuality: 0.92 },
-      { card: DEFAULT_CARD },
+      {
+        card: DEFAULT_CARD,
+        renderOptions: {
+          textureSeed: 123,
+          textureIntensity: 2.1,
+          textureRandomness: 1.8,
+          textureMottle: 1.4,
+        },
+      },
     );
 
-    expect(renderCardMock).toHaveBeenCalledWith(getExportCanvas(), DEFAULT_CARD, undefined, { pixelScale: 2 });
+    expect(renderCardMock).toHaveBeenCalledWith(getExportCanvas(), DEFAULT_CARD, undefined, {
+      textureSeed: 123,
+      textureIntensity: 2.1,
+      textureRandomness: 1.8,
+      textureMottle: 1.4,
+      pixelScale: 2,
+    });
     expect(getExportCanvas().width).toBe(1000);
     expect(getExportCanvas().height).toBe(1404);
     expect(blob.type).toBe("image/png");

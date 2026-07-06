@@ -7,6 +7,14 @@ describe("card draft storage", () => {
   it("keeps uploaded images out of automatic localStorage drafts", () => {
     const card: CardSpec = {
       ...DEFAULT_CARD,
+      appearance: {
+        texture: {
+          seed: 456,
+          intensity: 2.1,
+          randomness: 1.7,
+          mottle: 1.2,
+        },
+      },
       artwork: {
         source: "upload",
         dataUrl: "data:image/png;base64,large-image",
@@ -19,6 +27,7 @@ describe("card draft storage", () => {
     expect(draft.artwork.source).toBe("none");
     expect(draft.artwork.dataUrl).toBeUndefined();
     expect(draft.artwork.crop).toEqual({ x: 5, y: 6, scale: 1.2 });
+    expect(draft.appearance.texture).toEqual(card.appearance.texture);
   });
 
   it("reports autosave failure instead of throwing when storage quota is exceeded", () => {

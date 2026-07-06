@@ -40,6 +40,7 @@ const TYPE_ICON_BOARD_DARK = "#41433d";
 const COST_BOARD_DARK = "#3f423b";
 const ACTIVATED = "#ce8a31";
 const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/;
+const DEFAULT_TEXTURE_SEED = 0x4b415244;
 const TYPE_ICON_GLYPH_CACHE = new WeakMap<object, CanvasImageSource>();
 const TYPE_ICON_GLYPH_PLACEMENT: Partial<Record<CardKind, { offsetX?: number; offsetY?: number; scale?: number }>> = {
   tank: { offsetY: -7 },
@@ -59,6 +60,16 @@ type NumberGlyphStyle = {
   scaleX: number;
   scaleY: number;
 };
+
+type PrintWearSettings = {
+  seed: number;
+  image: CanvasImageSource | null;
+  intensity: number;
+  randomness: number;
+  mottle: number;
+};
+
+type PrintWearProtectedRegion = Rect;
 
 export function renderCard(
   canvas: HTMLCanvasElement,
@@ -121,7 +132,7 @@ export function renderCard(
   drawTypeIcon(ctx, layout, card.kind, kind.symbol, options, assetContext, fonts);
   drawText(ctx, layout, card, fonts, options);
   if (!options.disablePrintWear) {
-    drawPrintWear(ctx);
+    drawPrintWear(ctx, resolvePrintWearSettings(options), getPrintWearProtectedRegions(layout, card.kind));
   }
 }
 
@@ -697,16 +708,413 @@ function drawStatBoardFallbackPath(ctx: CanvasRenderingContext2D, rect: Rect, sh
   ctx.quadraticCurveTo(left, top, left + radius, top);
 }
 
-function drawPrintWear(ctx: CanvasRenderingContext2D): void {
+function drawPrintWear(
+  ctx: CanvasRenderingContext2D,
+  settings: PrintWearSettings,
+  protectedRegions: PrintWearProtectedRegion[],
+): void {
   ctx.save();
-  ctx.globalAlpha = 0.06;
-  for (let i = 0; i < 380; i += 1) {
-    const x = (i * 37) % CARD_WIDTH;
-    const y = (i * 73) % CARD_HEIGHT;
-    ctx.fillStyle = i % 2 === 0 ? "#ffffff" : "#1f1d17";
-    ctx.fillRect(x, y, 1 + (i % 2), 1 + (i % 3));
-  }
+  applyPrintWearClip(ctx, protectedRegions);
+  drawPaperTextureImage(ctx, settings);
+  drawPaperToneVariation(ctx, settings);
+  drawPaperFiberMesh(ctx, settings);
+  drawSlantedPaperFibers(ctx, settings);
+  drawPaperMottle(ctx, settings);
+  drawEdgeAging(ctx, settings);
+  drawPaperFibers(ctx, settings);
+  drawPrintGrain(ctx, settings);
+  drawFineDustAndScuffs(ctx, settings);
   ctx.restore();
+}
+
+function applyPrintWearClip(ctx: CanvasRenderingContext2D, protectedRegions: PrintWearProtectedRegion[]): void {
+  roundRect(ctx, 0, 0, CARD_WIDTH, CARD_HEIGHT, 18);
+  for (const region of protectedRegions) {
+    ctx.rect(region.x, region.y, region.width, region.height);
+  }
+  ctx.clip("evenodd");
+}
+
+function drawPaperTextureImage(ctx: CanvasRenderingContext2D, settings: PrintWearSettings): void {
+  if (!settings.image) {
+    return;
+  }
+
+  const imageSize = getTextureImageSize(settings.image);
+  if (!imageSize) {
+    return;
+  }
+
+  const nextNoise = createDeterministicNoise(settings.seed ^ 0x2f6d5a91);
+  const sourceWidth = Math.max(1, Math.floor(imageSize.width * (0.68 + nextNoise() * 0.24)));
+  const sourceHeight = Math.max(1, Math.floor(imageSize.height * (0.68 + nextNoise() * 0.24)));
+  const sourceX = Math.floor(nextNoise() * Math.max(1, imageSize.width - sourceWidth));
+  const sourceY = Math.floor(nextNoise() * Math.max(1, imageSize.height - sourceHeight));
+
+  ctx.save();
+  ctx.globalAlpha = clamp(0.28 * settings.intensity, 0.12, 0.68);
+  ctx.globalCompositeOperation = "multiply";
+  ctx.drawImage(settings.image, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, CARD_WIDTH, CARD_HEIGHT);
+  ctx.restore();
+}
+
+function drawPaperToneVariation(ctx: CanvasRenderingContext2D, settings: PrintWearSettings): void {
+  const nextNoise = createDeterministicNoise(settings.seed);
+  ctx.fillStyle = `rgba(95, 78, 48, ${textureAlpha(0.065, 0.02, nextNoise(), settings.intensity)})`;
+  ctx.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT);
+
+  const count = Math.floor(128 * settings.randomness);
+  for (let i = 0; i < count; i += 1) {
+    const x = Math.floor(nextNoise() * CARD_WIDTH);
+    const y = Math.floor(nextNoise() * CARD_HEIGHT);
+    const width = 26 + Math.floor(nextNoise() * 160);
+    const height = 2 + Math.floor(nextNoise() * 24);
+    const warm = nextNoise() > 0.42;
+    const alpha = textureAlpha(0.022, 0.052, nextNoise(), settings.intensity * settings.mottle);
+    const angle = (nextNoise() - 0.5) * (0.28 + settings.randomness * 0.18);
+    ctx.fillStyle = warm ? `rgba(169, 145, 92, ${alpha})` : `rgba(68, 61, 45, ${alpha})`;
+    fillOrganicPatch(ctx, x, y, width / 2, height / 2, angle, nextNoise, 7);
+  }
+}
+
+function drawPaperFiberMesh(ctx: CanvasRenderingContext2D, settings: PrintWearSettings): void {
+  const nextNoise = createDeterministicNoise(settings.seed ^ 0xa5a5f00d);
+
+  const horizontalCount = Math.floor(210 * settings.randomness);
+  for (let i = 0; i < horizontalCount; i += 1) {
+    const x = Math.floor(nextNoise() * CARD_WIDTH);
+    const y = Math.floor(nextNoise() * CARD_HEIGHT);
+    const width = 18 + Math.floor(nextNoise() * 126);
+    const alpha = textureAlpha(0.016, 0.034, nextNoise(), settings.intensity);
+    ctx.fillStyle = nextNoise() > 0.54 ? `rgba(255, 245, 212, ${alpha})` : `rgba(70, 61, 42, ${alpha})`;
+    ctx.fillRect(x, y, width, 1);
+  }
+
+  const verticalCount = Math.floor(120 * settings.randomness);
+  for (let i = 0; i < verticalCount; i += 1) {
+    const x = Math.floor(nextNoise() * CARD_WIDTH);
+    const y = Math.floor(nextNoise() * CARD_HEIGHT);
+    const height = 8 + Math.floor(nextNoise() * 60);
+    const alpha = textureAlpha(0.012, 0.026, nextNoise(), settings.intensity);
+    ctx.fillStyle = nextNoise() > 0.5 ? `rgba(255, 245, 212, ${alpha})` : `rgba(70, 61, 42, ${alpha})`;
+    ctx.fillRect(x, y, 1, height);
+  }
+}
+
+function drawSlantedPaperFibers(ctx: CanvasRenderingContext2D, settings: PrintWearSettings): void {
+  const nextNoise = createDeterministicNoise(settings.seed ^ 0x1d872b41);
+  const count = Math.floor(115 * settings.randomness);
+
+  for (let i = 0; i < count; i += 1) {
+    const x = Math.floor(nextNoise() * CARD_WIDTH);
+    const y = Math.floor(nextNoise() * CARD_HEIGHT);
+    const width = 14 + Math.floor(nextNoise() * 88);
+    const angle = (nextNoise() - 0.5) * (0.35 + settings.randomness * 0.22);
+    const alpha = textureAlpha(0.014, 0.032, nextNoise(), settings.intensity);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = nextNoise() > 0.52 ? `rgba(246, 233, 196, ${alpha})` : `rgba(83, 72, 50, ${alpha})`;
+    ctx.fillRect(0, 0, width, 1);
+    ctx.restore();
+  }
+}
+
+function drawPaperMottle(ctx: CanvasRenderingContext2D, settings: PrintWearSettings): void {
+  const nextNoise = createDeterministicNoise(settings.seed ^ 0x8c9f53a7);
+  const count = Math.floor(42 * settings.mottle * settings.randomness);
+
+  for (let i = 0; i < count; i += 1) {
+    const x = Math.floor(nextNoise() * CARD_WIDTH);
+    const y = Math.floor(nextNoise() * CARD_HEIGHT);
+    const width = 12 + Math.floor(nextNoise() * 78);
+    const height = 3 + Math.floor(nextNoise() * 24);
+    const alpha = textureAlpha(0.014, 0.036, nextNoise(), settings.intensity * settings.mottle);
+    const angle = (nextNoise() - 0.5) * (0.55 + settings.randomness * 0.25);
+    ctx.fillStyle = nextNoise() > 0.45 ? `rgba(177, 153, 101, ${alpha})` : `rgba(54, 47, 35, ${alpha})`;
+    fillOrganicPatch(ctx, x, y, width / 2, height / 2, angle, nextNoise, 8);
+  }
+}
+
+function drawEdgeAging(ctx: CanvasRenderingContext2D, settings: PrintWearSettings): void {
+  drawVerticalEdgeFade(ctx, 0, 72, "top");
+  drawVerticalEdgeFade(ctx, CARD_HEIGHT - 82, 82, "bottom");
+  drawHorizontalEdgeFade(ctx, 0, 54, "left");
+  drawHorizontalEdgeFade(ctx, CARD_WIDTH - 58, 58, "right");
+
+  ctx.fillStyle = "rgba(46, 38, 25, 0.11)";
+  ctx.fillRect(0, 0, CARD_WIDTH, 5);
+  ctx.fillRect(0, CARD_HEIGHT - 7, CARD_WIDTH, 7);
+  ctx.fillStyle = "rgba(46, 38, 25, 0.075)";
+  ctx.fillRect(0, 0, 5, CARD_HEIGHT);
+  ctx.fillRect(CARD_WIDTH - 6, 0, 6, CARD_HEIGHT);
+
+  const nextNoise = createDeterministicNoise(settings.seed ^ 0x9e3779b9);
+  const count = Math.floor(40 * settings.mottle);
+  for (let i = 0; i < count; i += 1) {
+    const nearRight = nextNoise() > 0.5;
+    const nearBottom = nextNoise() > 0.5;
+    const x = nearRight ? CARD_WIDTH - 76 + nextNoise() * 70 : nextNoise() * 70;
+    const y = nearBottom ? CARD_HEIGHT - 82 + nextNoise() * 76 : nextNoise() * 76;
+    const width = 6 + nextNoise() * 28;
+    const height = 2 + nextNoise() * 14;
+    const alpha = textureAlpha(0.024, 0.055, nextNoise(), settings.intensity * settings.mottle);
+    ctx.fillStyle = `rgba(54, 45, 30, ${alpha})`;
+    ctx.fillRect(x, y, width, height);
+  }
+}
+
+function drawVerticalEdgeFade(ctx: CanvasRenderingContext2D, y: number, height: number, edge: "top" | "bottom"): void {
+  const gradient = ctx.createLinearGradient(0, y, 0, y + height);
+  if (edge === "top") {
+    gradient.addColorStop(0, "rgba(43, 35, 22, 0.24)");
+    gradient.addColorStop(1, "rgba(43, 35, 22, 0)");
+  } else {
+    gradient.addColorStop(0, "rgba(43, 35, 22, 0)");
+    gradient.addColorStop(1, "rgba(43, 35, 22, 0.23)");
+  }
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, y, CARD_WIDTH, height);
+}
+
+function drawHorizontalEdgeFade(ctx: CanvasRenderingContext2D, x: number, width: number, edge: "left" | "right"): void {
+  const gradient = ctx.createLinearGradient(x, 0, x + width, 0);
+  if (edge === "left") {
+    gradient.addColorStop(0, "rgba(43, 35, 22, 0.17)");
+    gradient.addColorStop(1, "rgba(43, 35, 22, 0)");
+  } else {
+    gradient.addColorStop(0, "rgba(43, 35, 22, 0)");
+    gradient.addColorStop(1, "rgba(43, 35, 22, 0.17)");
+  }
+  ctx.fillStyle = gradient;
+  ctx.fillRect(x, 0, width, CARD_HEIGHT);
+}
+
+function drawPaperFibers(ctx: CanvasRenderingContext2D, settings: PrintWearSettings): void {
+  const nextNoise = createDeterministicNoise(settings.seed ^ 0x5f3759df);
+  const count = Math.floor(190 * settings.randomness);
+  for (let i = 0; i < count; i += 1) {
+    const x = Math.floor(nextNoise() * CARD_WIDTH);
+    const y = Math.floor(nextNoise() * CARD_HEIGHT);
+    const width = 12 + Math.floor(nextNoise() * 94);
+    const alpha = textureAlpha(0.018, 0.04, nextNoise(), settings.intensity);
+    ctx.fillStyle = nextNoise() > 0.48 ? `rgba(255, 247, 215, ${alpha})` : `rgba(79, 68, 46, ${alpha})`;
+    ctx.fillRect(x, y, width, 1);
+  }
+}
+
+function drawPrintGrain(ctx: CanvasRenderingContext2D, settings: PrintWearSettings): void {
+  const nextNoise = createDeterministicNoise(settings.seed ^ 0xc2b2ae35);
+  const count = Math.floor(1020 * settings.randomness);
+  for (let i = 0; i < count; i += 1) {
+    const x = Math.floor(nextNoise() * CARD_WIDTH);
+    const y = Math.floor(nextNoise() * CARD_HEIGHT);
+    const width = 1 + Math.floor(nextNoise() * 2);
+    const height = 1 + Math.floor(nextNoise() * 2);
+    const light = nextNoise() > 0.52;
+    const alpha = textureAlpha(0.03, 0.06, nextNoise(), settings.intensity);
+    ctx.fillStyle = light ? `rgba(255, 250, 225, ${alpha})` : `rgba(31, 29, 23, ${alpha})`;
+    ctx.fillRect(x, y, width, height);
+  }
+}
+
+function drawFineDustAndScuffs(ctx: CanvasRenderingContext2D, settings: PrintWearSettings): void {
+  const nextNoise = createDeterministicNoise(settings.seed ^ 0x7f4a7c15);
+
+  const dustCount = Math.floor(180 * settings.randomness * settings.mottle);
+  for (let i = 0; i < dustCount; i += 1) {
+    const x = Math.floor(nextNoise() * CARD_WIDTH);
+    const y = Math.floor(nextNoise() * CARD_HEIGHT);
+    const width = 1.2 + nextNoise() * 4.4;
+    const height = 1 + nextNoise() * 3.2;
+    const alpha = textureAlpha(0.02, 0.045, nextNoise(), settings.intensity);
+    ctx.fillStyle = nextNoise() > 0.45 ? `rgba(237, 224, 184, ${alpha})` : `rgba(38, 33, 24, ${alpha})`;
+    fillOrganicPatch(ctx, x, y, width, height, nextNoise() * Math.PI, nextNoise, 6);
+  }
+
+  const scuffCount = Math.floor(54 * settings.randomness);
+  for (let i = 0; i < scuffCount; i += 1) {
+    const x = Math.floor(nextNoise() * CARD_WIDTH);
+    const y = Math.floor(nextNoise() * CARD_HEIGHT);
+    const width = 8 + Math.floor(nextNoise() * 34);
+    const angle = (nextNoise() - 0.5) * 0.55;
+    const alpha = textureAlpha(0.016, 0.035, nextNoise(), settings.intensity);
+    drawCurvedFiber(
+      ctx,
+      x,
+      y,
+      width,
+      angle,
+      nextNoise() > 0.4 ? `rgba(249, 237, 201, ${alpha})` : `rgba(36, 31, 23, ${alpha})`,
+      nextNoise,
+    );
+  }
+}
+
+function fillOrganicPatch(
+  ctx: CanvasRenderingContext2D,
+  centerX: number,
+  centerY: number,
+  radiusX: number,
+  radiusY: number,
+  angle: number,
+  nextNoise: () => number,
+  pointCount: number,
+): void {
+  const points = Array.from({ length: pointCount }, (_, index) => {
+    const pointAngle = (index / pointCount) * Math.PI * 2 + (nextNoise() - 0.5) * 0.34;
+    const radiusScale = 0.62 + nextNoise() * 0.52;
+    return {
+      angle: pointAngle,
+      x: Math.cos(pointAngle) * radiusX * radiusScale,
+      y: Math.sin(pointAngle) * radiusY * radiusScale,
+    };
+  });
+
+  ctx.save();
+  ctx.translate(centerX, centerY);
+  ctx.rotate(angle);
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let index = 0; index < points.length; index += 1) {
+    const currentPoint = points[index];
+    const nextPoint = points[(index + 1) % points.length];
+    const controlAngle = (currentPoint.angle + nextPoint.angle) / 2;
+    const controlRadiusX = radiusX * (0.92 + nextNoise() * 0.36);
+    const controlRadiusY = radiusY * (0.92 + nextNoise() * 0.36);
+    ctx.quadraticCurveTo(
+      Math.cos(controlAngle) * controlRadiusX,
+      Math.sin(controlAngle) * controlRadiusY,
+      nextPoint.x,
+      nextPoint.y,
+    );
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawCurvedFiber(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  angle: number,
+  strokeStyle: string,
+  nextNoise: () => number,
+): void {
+  const bend = (nextNoise() - 0.5) * 12;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.strokeStyle = strokeStyle;
+  ctx.lineWidth = 1;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(width * 0.48, bend, width, (nextNoise() - 0.5) * 5);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function resolvePrintWearSettings(options: RenderCardOptions): PrintWearSettings {
+  return {
+    seed: normalizeTextureSeed(options.textureSeed),
+    image: options.textureImage ?? null,
+    intensity: normalizeTextureFactor(options.textureIntensity, 1.85, 0.35, 3),
+    randomness: normalizeTextureFactor(options.textureRandomness, 1.55, 0.5, 3),
+    mottle: normalizeTextureFactor(options.textureMottle, 1.35, 0.35, 3),
+  };
+}
+
+function createDeterministicNoise(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 0x100000000;
+  };
+}
+
+function normalizeTextureSeed(seed: number | undefined): number {
+  return Number.isFinite(seed) ? Number(seed) >>> 0 : DEFAULT_TEXTURE_SEED;
+}
+
+function normalizeTextureFactor(value: number | undefined, fallback: number, min: number, max: number): number {
+  return Number.isFinite(value) ? clamp(Number(value), min, max) : fallback;
+}
+
+function textureAlpha(base: number, variance: number, noise: number, factor: number): string {
+  return clamp((base + variance * noise) * factor, 0.004, 0.24).toFixed(3);
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getTextureImageSize(image: CanvasImageSource): { width: number; height: number } | null {
+  const source = image as { naturalWidth?: number; naturalHeight?: number; videoWidth?: number; videoHeight?: number; width?: number; height?: number };
+  const width = Number(source.naturalWidth ?? source.videoWidth ?? source.width);
+  const height = Number(source.naturalHeight ?? source.videoHeight ?? source.height);
+  return Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0 ? { width, height } : null;
+}
+
+function getPrintWearProtectedRegions(layout: CardFaceLayout, kind: CardKind): PrintWearProtectedRegion[] {
+  const regions: PrintWearProtectedRegion[] = [];
+
+  if (layout.costBoard) {
+    regions.push(
+      expandRect(
+        {
+          ...layout.costBoard,
+          width: layout.costBoard.width + (layout.costBoardGap ?? 0),
+          height: layout.costBoard.height + (layout.costBoardGap ?? 0),
+        },
+        2,
+      ),
+    );
+  }
+
+  regions.push(expandRect(getNationMarkRect(layout), 4));
+
+  if (layout.template === "hq" && layout.hqDefenseBoard) {
+    regions.push(expandRect(layout.hqDefenseBoard, 4));
+  } else if (isUnitKind(kind)) {
+    const attackBoard = isSpecialAttackKind(kind) && layout.specialAttackBoard ? layout.specialAttackBoard : layout.attackBoard;
+    if (attackBoard) {
+      regions.push(expandRect(attackBoard, 4));
+    }
+    if (layout.defenseBoard) {
+      regions.push(expandRect(layout.defenseBoard, 4));
+    }
+  }
+
+  if (layout.typeIcon) {
+    regions.push(expandRect(layout.typeIcon, 4));
+  }
+
+  return regions;
+}
+
+function getNationMarkRect(layout: CardFaceLayout): Rect {
+  return {
+    x: layout.nationCenter.x - layout.nationSize / 2,
+    y: layout.nationCenter.y - layout.nationSize / 2,
+    width: layout.nationSize,
+    height: layout.nationSize,
+  };
+}
+
+function expandRect(rect: Rect, padding: number): Rect {
+  const x = Math.max(0, rect.x - padding);
+  const y = Math.max(0, rect.y - padding);
+  const right = Math.min(CARD_WIDTH, rect.x + rect.width + padding);
+  const bottom = Math.min(CARD_HEIGHT, rect.y + rect.height + padding);
+  return {
+    x,
+    y,
+    width: right - x,
+    height: bottom - y,
+  };
 }
 
 export function createWrappedTextLines(

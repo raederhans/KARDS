@@ -86,6 +86,100 @@ describe("card renderer output", () => {
     expect(calls.fills.some((call) => call.fillStyle === "#12110d")).toBe(false);
   });
 
+  it("adds layered deterministic paper aging by default", () => {
+    const first = createFakeCanvas();
+    const second = createFakeCanvas();
+
+    renderCard(first.canvas, DEFAULT_CARD, null);
+    renderCard(second.canvas, DEFAULT_CARD, null);
+
+    const firstWear = getPrintWearFills(first.calls.fillRectStyles);
+    const secondWear = getPrintWearFills(second.calls.fillRectStyles);
+    const firstOrganicWear = getPrintWearPathFills(first.calls.paths);
+
+    expect(firstWear.some((call) => String(call.fillStyle).startsWith("rgba(95, 78, 48,"))).toBe(true);
+    expect(firstWear.some((call) => call.fillStyle === "rgba(46, 38, 25, 0.11)")).toBe(true);
+    expect(firstWear.some((call) => String(call.fillStyle).startsWith("rgba(255, 250, 225,"))).toBe(true);
+    expect(firstWear.some((call) => String(call.fillStyle).startsWith("rgba(255, 245, 212,"))).toBe(true);
+    expect(firstOrganicWear.some((call) => String(call.fillStyle).startsWith("rgba(237, 224, 184,"))).toBe(true);
+    expect(firstWear.length).toBeGreaterThan(1900);
+    expect(firstWear.slice(0, 24)).toEqual(secondWear.slice(0, 24));
+  });
+
+  it("varies paper aging when a texture seed is provided", () => {
+    const first = createFakeCanvas();
+    const second = createFakeCanvas();
+
+    renderCard(first.canvas, DEFAULT_CARD, null, { textureSeed: 111 });
+    renderCard(second.canvas, DEFAULT_CARD, null, { textureSeed: 222 });
+
+    const firstWear = getPrintWearFills(first.calls.fillRectStyles);
+    const secondWear = getPrintWearFills(second.calls.fillRectStyles);
+
+    expect(firstWear.slice(1, 24)).not.toEqual(secondWear.slice(1, 24));
+  });
+
+  it("uses organic curved patches for visible paper mottle instead of rectangular blotches", () => {
+    const { canvas, calls } = createFakeCanvas();
+
+    renderCard(canvas, DEFAULT_CARD, null, {
+      textureIntensity: 2.4,
+      textureRandomness: 2.2,
+      textureMottle: 2.1,
+    });
+
+    const organicMottlePaths = calls.paths.filter((path) => {
+      const fillStyle = String(path.fillStyle);
+      return (
+        fillStyle.startsWith("rgba(177, 153, 101,") ||
+        fillStyle.startsWith("rgba(54, 47, 35,") ||
+        fillStyle.startsWith("rgba(237, 224, 184,") ||
+        fillStyle.startsWith("rgba(38, 33, 24,")
+      );
+    });
+
+    expect(organicMottlePaths.length).toBeGreaterThan(80);
+    expect(organicMottlePaths.every((path) => path.points.some((point) => point.kind === "quadraticCurveTo"))).toBe(
+      true,
+    );
+  });
+
+  it("clips paper aging away from cost, stat, type, and nation regions", () => {
+    const { canvas, calls } = createFakeCanvas();
+
+    renderCard(canvas, DEFAULT_CARD, null);
+
+    const textureClip = calls.clips.find((clip) => clip.fillRule === "evenodd");
+
+    expect(textureClip).toBeDefined();
+    expect(textureClip?.points).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ kind: "rect", x: 10, y: 11, width: 82, height: 82 }),
+        expect.objectContaining({ kind: "rect", x: 419, y: 21, width: 62, height: 62 }),
+        expect.objectContaining({ kind: "rect", x: 84, y: 464, width: 90, height: 90 }),
+        expect.objectContaining({ kind: "rect", x: 326, y: 469, width: 90, height: 90 }),
+        expect.objectContaining({ kind: "rect", x: 204, y: 469, width: 92, height: 90 }),
+      ]),
+    );
+  });
+
+  it("uses a supplied CC0 paper texture image when paper aging is enabled", () => {
+    const { canvas, calls } = createFakeCanvas();
+    const paperTexture = { width: 960, height: 563 } as CanvasImageSource;
+
+    renderCard(canvas, DEFAULT_CARD, null, { textureImage: paperTexture });
+
+    expect(calls.drawImage.some((call) => call[0] === paperTexture)).toBe(true);
+  });
+
+  it("skips paper aging when print wear is disabled", () => {
+    const { canvas, calls } = createFakeCanvas();
+
+    renderCard(canvas, DEFAULT_CARD, null, { disablePrintWear: true });
+
+    expect(getPrintWearFills(calls.fillRectStyles)).toEqual([]);
+  });
+
   it("covers unit artwork inside the unit artwork rectangle", () => {
     const { canvas, calls } = createFakeCanvas();
     const artworkImage = { naturalWidth: 1000, naturalHeight: 500 } as HTMLImageElement;
@@ -675,7 +769,8 @@ describe("card renderer output", () => {
 
 type CanvasPathPoint =
   | { kind: "moveTo" | "lineTo"; x: number; y: number }
-  | { kind: "quadraticCurveTo"; cpx: number; cpy: number; x: number; y: number };
+  | { kind: "quadraticCurveTo"; cpx: number; cpy: number; x: number; y: number }
+  | { kind: "rect"; x: number; y: number; width: number; height: number };
 
 function createFakeCanvas() {
   const calls: {
@@ -690,6 +785,7 @@ function createFakeCanvas() {
     operations: Array<{ kind: "drawImage" | "fillText"; value: unknown }>;
     fills: Array<{ fillStyle: unknown; rotation: number }>;
     paths: Array<{ fillStyle: unknown; points: CanvasPathPoint[] }>;
+    clips: Array<{ fillRule: CanvasFillRule | undefined; points: CanvasPathPoint[] }>;
     scales: Array<[number, number]>;
   } = {
     clearRect: [],
@@ -703,6 +799,7 @@ function createFakeCanvas() {
     operations: [],
     fills: [],
     paths: [],
+    clips: [],
     scales: [],
   };
 
@@ -729,6 +826,7 @@ function createFakeCanvas() {
     textAlign: "left",
     textBaseline: "alphabetic",
     lineWidth: 1,
+    lineCap: "butt",
     globalAlpha: 1,
     save() {
       transformStack.push({ ...transform });
@@ -740,7 +838,8 @@ function createFakeCanvas() {
       currentPath = [];
     },
     closePath() {},
-    clip() {
+    clip(fillRule?: CanvasFillRule) {
+      calls.clips.push({ fillRule, points: [...currentPath] });
       transform = { ...transform, clipDepth: transform.clipDepth + 1 };
     },
     fill() {
@@ -750,7 +849,9 @@ function createFakeCanvas() {
       }
     },
     stroke() {},
-    rect() {},
+    rect(x: number, y: number, width: number, height: number) {
+      currentPath.push({ kind: "rect", x, y, width, height });
+    },
     moveTo(x: number, y: number) {
       currentPath.push({ kind: "moveTo", x, y });
     },
@@ -820,4 +921,44 @@ function createFakeCanvas() {
   } as unknown as HTMLCanvasElement;
 
   return { canvas, calls };
+}
+
+function getPrintWearFills(fillRectStyles: Array<{ x: number; y: number; width: number; height: number; fillStyle: unknown }>) {
+  return fillRectStyles.filter((call) => {
+    const fillStyle = String(call.fillStyle);
+    return (
+      fillStyle.startsWith("rgba(95, 78, 48,") ||
+      fillStyle.startsWith("rgba(169, 145, 92,") ||
+      fillStyle.startsWith("rgba(68, 61, 45,") ||
+      fillStyle.startsWith("rgba(46, 38, 25,") ||
+      fillStyle.startsWith("rgba(54, 45, 30,") ||
+      fillStyle.startsWith("rgba(255, 245, 212,") ||
+      fillStyle.startsWith("rgba(70, 61, 42,") ||
+      fillStyle.startsWith("rgba(246, 233, 196,") ||
+      fillStyle.startsWith("rgba(83, 72, 50,") ||
+      fillStyle.startsWith("rgba(177, 153, 101,") ||
+      fillStyle.startsWith("rgba(255, 247, 215,") ||
+      fillStyle.startsWith("rgba(79, 68, 46,") ||
+      fillStyle.startsWith("rgba(255, 250, 225,") ||
+      fillStyle.startsWith("rgba(31, 29, 23,") ||
+      fillStyle.startsWith("rgba(237, 224, 184,") ||
+      fillStyle.startsWith("rgba(38, 33, 24,") ||
+      fillStyle.startsWith("rgba(249, 237, 201,") ||
+      fillStyle.startsWith("rgba(36, 31, 23,")
+    );
+  });
+}
+
+function getPrintWearPathFills(paths: Array<{ fillStyle: unknown; points: CanvasPathPoint[] }>) {
+  return paths.filter((path) => {
+    const fillStyle = String(path.fillStyle);
+    return (
+      fillStyle.startsWith("rgba(169, 145, 92,") ||
+      fillStyle.startsWith("rgba(68, 61, 45,") ||
+      fillStyle.startsWith("rgba(177, 153, 101,") ||
+      fillStyle.startsWith("rgba(54, 47, 35,") ||
+      fillStyle.startsWith("rgba(237, 224, 184,") ||
+      fillStyle.startsWith("rgba(38, 33, 24,")
+    );
+  });
 }

@@ -28,6 +28,12 @@ describe("i18n", () => {
     expect(UI_TEXT.zh.projectPanel.manifest).toBe("风格包文件");
     expect(UI_TEXT.en.projectPanel.comparePng).toBe("Compare Image");
     expect(UI_TEXT.zh.projectPanel.exportWorkbench).toBe("导出工作台");
+    expect(UI_TEXT.zh.projectPanel.textureControls).toBe("卡面纹理");
+    expect(UI_TEXT.zh.projectPanel.textureCurrent).toBe("CC0 纸纹");
+    expect(UI_TEXT.zh.projectPanel.textureFallback).toBe("程序纹理");
+    expect(UI_TEXT.zh.projectPanel.textureIntensity).toBe("强度");
+    expect(UI_TEXT.zh.projectPanel.randomTexture).toBe("随机纹理");
+    expect(UI_TEXT.en.projectPanel.textureFallback).toBe("Program texture");
     expect(translatePresetLabel("zh", "kind", "tank", "Tank")).toBe("坦克");
     expect(translatePresetLabel("zh", "nation", "us", "United States")).toBe("美国");
     expect(translatePresetLabel("zh", "set", "blood-and-iron", "Blood and Iron")).toBe("血与铁");

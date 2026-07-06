@@ -1,4 +1,5 @@
 import type { CardKind, CardSpec } from "./types";
+import { DEFAULT_CARD_APPEARANCE } from "./cardModel";
 
 const PRIVATE_PREVIEW_ROOT = "/.runtime/kards-private-assets/stage6-multisource-clean-extraction";
 const SAMPLE_ROOT = `${PRIVATE_PREVIEW_ROOT}/samples`;
@@ -187,6 +188,7 @@ function hqSample(id: string, label: string, labelZh: string, nation: string, im
           scale: 1,
         },
       },
+      appearance: DEFAULT_CARD_APPEARANCE,
     },
   };
 }

@@ -3,7 +3,7 @@ export type BodyMarkupSegment = {
   bold: boolean;
 };
 
-export type BodyEffectPresetId = "deployment" | "destruction" | "pincer";
+export type BodyEffectPresetId = "deployment" | "destruction" | "pincer" | "chooseOne";
 
 type BodyEffectPreset = {
   id: BodyEffectPresetId;
@@ -26,6 +26,11 @@ export const BODY_EFFECT_PRESETS: BodyEffectPreset[] = [
     id: "pincer",
     labels: { en: "Pincer", zh: "钳击" },
     inserts: { en: "**Pincer**: ", zh: "**钳击**：" },
+  },
+  {
+    id: "chooseOne",
+    labels: { en: "Choose One", zh: "抉择" },
+    inserts: { en: "**Choose One**: ", zh: "**抉择**：" },
   },
 ];
 

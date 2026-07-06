@@ -46,8 +46,11 @@ describe("body markup", () => {
   it("localizes quick effect labels and inserted text", () => {
     expect(getBodyEffectPresetLabel("zh", "destruction")).toBe("亡计");
     expect(getBodyEffectPresetLabel("zh", "pincer")).toBe("钳击");
+    expect(getBodyEffectPresetLabel("zh", "chooseOne")).toBe("抉择");
     expect(getBodyEffectPresetInsert("en", "pincer")).toBe("**Pincer**: ");
     expect(getBodyEffectPresetInsert("zh", "pincer")).toBe("**钳击**：");
+    expect(getBodyEffectPresetInsert("en", "chooseOne")).toBe("**Choose One**: ");
+    expect(getBodyEffectPresetInsert("zh", "chooseOne")).toBe("**抉择**：");
   });
 
   it("wraps selected body text with bold markers", () => {

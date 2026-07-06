@@ -8,6 +8,14 @@ describe("local card library records", () => {
     const card: CardSpec = {
       ...DEFAULT_CARD,
       title: "Library Tank",
+      appearance: {
+        texture: {
+          seed: 789,
+          intensity: 2,
+          randomness: 1.6,
+          mottle: 1.4,
+        },
+      },
       artwork: {
         source: "upload",
         dataUrl: "data:image/png;base64,large-image",
@@ -21,6 +29,7 @@ describe("local card library records", () => {
     expect(entry.card.artwork.source).toBe("none");
     expect(entry.card.artwork.dataUrl).toBeUndefined();
     expect(entry.card.artwork.crop).toEqual({ x: 4, y: 5, scale: 1.1 });
+    expect(entry.card.appearance.texture).toEqual(card.appearance.texture);
   });
 
   it("normalizes old or damaged library files instead of trusting raw JSON", () => {

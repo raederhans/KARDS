@@ -67,6 +67,11 @@ export type RenderCardOptions = {
   assets?: CardRenderAssets | null;
   fonts?: CardRenderFontSet;
   disablePrintWear?: boolean;
+  textureSeed?: number;
+  textureImage?: CanvasImageSource | null;
+  textureIntensity?: number;
+  textureRandomness?: number;
+  textureMottle?: number;
   language?: Language;
   pixelScale?: number;
 };

@@ -542,22 +542,34 @@ input[type="range"] {
 }
 
 .control-grid span,
-.export-range > span {
+.export-range > span,
+.texture-range > span {
   color: var(--muted);
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
 }
 
-.export-range > span {
+.export-range > span,
+.texture-range > span {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.export-range strong {
+.export-range strong,
+.texture-range strong {
   color: var(--accent-strong);
   font-size: 12px;
+}
+
+.texture-section {
+  gap: 10px;
+}
+
+.texture-range {
+  display: grid;
+  gap: 6px;
 }
 
 .toggle-row {
