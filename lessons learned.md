@@ -30,3 +30,4 @@
 - Browser local-library workflows cannot persist ordinary absolute paths; store File System Access directory handles in IndexedDB and request permission again only when writing.
 - Multi-size card export must rerender the card at the target backing resolution; scaling an already-rendered `500x702` canvas creates a larger but softer file and breaks the export-size contract.
 - Card-face appearance controls that affect exported pixels must live in the serialized card model, not only in App state; otherwise preview, project JSON, autosave, and local-library restores drift apart.
+- Card-face appearance control bounds should be shared between model normalization and UI inputs; otherwise imported legal values can render correctly but become impossible to preserve when edited.

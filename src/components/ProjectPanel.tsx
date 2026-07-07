@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { normalizeCardSpec } from "../cardModel";
+import { CARD_TEXTURE_BOUNDS, normalizeCardSpec } from "../cardModel";
 import {
   CARD_EXPORT_SCALES,
   createCardExportBlob,
@@ -24,6 +24,8 @@ import type { CardSpec, CardUpdate } from "../types";
 import { MAX_PROJECT_FILE_BYTES } from "../limits";
 import { LOCAL_ASSET_PACK_MANIFEST } from "../assetPack";
 import type { ImageDiffMetrics } from "../visualDiff";
+
+export const TEXTURE_CONTROL_LIMITS = CARD_TEXTURE_BOUNDS;
 
 type ProjectPanelProps = {
   card: CardSpec;
@@ -257,18 +259,24 @@ export function ProjectPanel({
           label={text.textureIntensity}
           name="card-texture-intensity"
           value={textureSettings.intensity}
+          min={TEXTURE_CONTROL_LIMITS.intensity.min}
+          max={TEXTURE_CONTROL_LIMITS.intensity.max}
           onChange={(value) => onTextureSettingChange("intensity", value)}
         />
         <TextureRange
           label={text.textureRandomness}
           name="card-texture-randomness"
           value={textureSettings.randomness}
+          min={TEXTURE_CONTROL_LIMITS.randomness.min}
+          max={TEXTURE_CONTROL_LIMITS.randomness.max}
           onChange={(value) => onTextureSettingChange("randomness", value)}
         />
         <TextureRange
           label={text.textureMottle}
           name="card-texture-mottle"
           value={textureSettings.mottle}
+          min={TEXTURE_CONTROL_LIMITS.mottle.min}
+          max={TEXTURE_CONTROL_LIMITS.mottle.max}
           onChange={(value) => onTextureSettingChange("mottle", value)}
         />
         <button type="button" className="primary-action" onClick={onRandomTexture}>
@@ -570,11 +578,15 @@ function TextureRange({
   label,
   name,
   value,
+  min,
+  max,
   onChange,
 }: {
   label: string;
   name: string;
   value: number;
+  min: number;
+  max: number;
   onChange: (value: number) => void;
 }) {
   return (
@@ -586,8 +598,8 @@ function TextureRange({
       <input
         name={name}
         type="range"
-        min="0.5"
-        max="2.6"
+        min={min}
+        max={max}
         step="0.05"
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}

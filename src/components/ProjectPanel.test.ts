@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { downloadBlob, safeFileName } from "./ProjectPanel";
+import { CARD_TEXTURE_BOUNDS } from "../cardModel";
+import { TEXTURE_CONTROL_LIMITS, downloadBlob, safeFileName } from "./ProjectPanel";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -60,5 +61,11 @@ describe("ProjectPanel file names", () => {
     vi.runOnlyPendingTimers();
 
     expect(revokeObjectUrl).toHaveBeenCalledWith("blob:card-export");
+  });
+});
+
+describe("ProjectPanel texture controls", () => {
+  it("uses the same texture range as imported card normalization", () => {
+    expect(TEXTURE_CONTROL_LIMITS).toEqual(CARD_TEXTURE_BOUNDS);
   });
 });

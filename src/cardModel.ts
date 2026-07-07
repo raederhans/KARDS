@@ -17,6 +17,12 @@ export const DEFAULT_CARD_APPEARANCE: CardAppearance = {
   },
 };
 
+export const CARD_TEXTURE_BOUNDS = {
+  intensity: { min: 0.35, max: 3 },
+  randomness: { min: 0.5, max: 3 },
+  mottle: { min: 0.35, max: 3 },
+} as const;
+
 export const DEFAULT_CARD: CardSpec = {
   version: 1,
   kind: "tank",
@@ -128,9 +134,24 @@ function normalizeCardAppearance(appearance: Record<string, unknown>): CardAppea
   return {
     texture: {
       seed: normalizeSeed(texture.seed, DEFAULT_CARD_APPEARANCE.texture.seed),
-      intensity: clampNumber(texture.intensity, 0.35, 3, DEFAULT_CARD_APPEARANCE.texture.intensity),
-      randomness: clampNumber(texture.randomness, 0.5, 3, DEFAULT_CARD_APPEARANCE.texture.randomness),
-      mottle: clampNumber(texture.mottle, 0.35, 3, DEFAULT_CARD_APPEARANCE.texture.mottle),
+      intensity: clampNumber(
+        texture.intensity,
+        CARD_TEXTURE_BOUNDS.intensity.min,
+        CARD_TEXTURE_BOUNDS.intensity.max,
+        DEFAULT_CARD_APPEARANCE.texture.intensity,
+      ),
+      randomness: clampNumber(
+        texture.randomness,
+        CARD_TEXTURE_BOUNDS.randomness.min,
+        CARD_TEXTURE_BOUNDS.randomness.max,
+        DEFAULT_CARD_APPEARANCE.texture.randomness,
+      ),
+      mottle: clampNumber(
+        texture.mottle,
+        CARD_TEXTURE_BOUNDS.mottle.min,
+        CARD_TEXTURE_BOUNDS.mottle.max,
+        DEFAULT_CARD_APPEARANCE.texture.mottle,
+      ),
     },
   };
 }
