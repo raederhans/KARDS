@@ -471,6 +471,7 @@ function App() {
                   name: assetPack.name,
                   imageCount: assetPack.imageCount,
                   fontCount: assetPack.fontCount,
+                  requiresPrivateExportConfirm: assetPack.requiresPrivateExportConfirm,
                   warnings: assetPack.warnings,
                 }
               : null

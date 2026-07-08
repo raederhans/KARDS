@@ -55,6 +55,26 @@ describe("card draft storage", () => {
     expect(loadDraftCard(invalidStorage, DEFAULT_CARD).title).toBe(DEFAULT_CARD.title);
   });
 
+  it("cleans uploaded artwork from legacy drafts when loading", () => {
+    const savedStorage = {
+      getItem: () => JSON.stringify({
+        ...DEFAULT_CARD,
+        artwork: {
+          source: "upload",
+          dataUrl: "data:image/png;base64,legacy-image",
+          crop: { x: 9, y: -4, scale: 1.3 },
+        },
+      }),
+      setItem: () => undefined,
+    };
+
+    const draft = loadDraftCard(savedStorage, DEFAULT_CARD);
+
+    expect(draft.artwork.source).toBe("none");
+    expect(draft.artwork.dataUrl).toBeUndefined();
+    expect(draft.artwork.crop).toEqual({ x: 9, y: -4, scale: 1.3 });
+  });
+
   it("falls back if browser storage is unavailable", () => {
     const storage = {
       getItem: () => {

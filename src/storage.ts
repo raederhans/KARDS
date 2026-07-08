@@ -27,7 +27,7 @@ export function loadDraftCard(storage: DraftStorage, fallbackCard: CardSpec): Ca
     if (!saved) {
       return fallbackCard;
     }
-    return normalizeCardSpec(JSON.parse(saved));
+    return toAutosaveCard(normalizeCardSpec(JSON.parse(saved)));
   } catch {
     return fallbackCard;
   }

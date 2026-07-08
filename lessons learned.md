@@ -31,3 +31,4 @@
 - Multi-size card export must rerender the card at the target backing resolution; scaling an already-rendered `500x702` canvas creates a larger but softer file and breaks the export-size contract.
 - Card-face appearance controls that affect exported pixels must live in the serialized card model, not only in App state; otherwise preview, project JSON, autosave, and local-library restores drift apart.
 - Card-face appearance control bounds should be shared between model normalization and UI inputs; otherwise imported legal values can render correctly but become impossible to preserve when edited.
+- Persistence cleanup has to be symmetric: if autosave or local-library writes strip uploaded artwork data URLs, legacy draft/library reads must strip them too or old embedded images can re-enter the editor and propagate.

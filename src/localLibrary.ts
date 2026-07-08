@@ -134,7 +134,7 @@ export function normalizeCardLibrary(input: unknown): CardLibraryFile {
   const cards = rawCards
     .filter(isRecord)
     .map((rawCard): CardLibraryEntry => {
-      const card = normalizeCardSpec(rawCard.card);
+      const card = toAutosaveCard(normalizeCardSpec(rawCard.card));
       return {
         id: typeof rawCard.id === "string" && rawCard.id ? rawCard.id : createCardLibraryEntry(card).id,
         title: typeof rawCard.title === "string" && rawCard.title ? rawCard.title : card.title,

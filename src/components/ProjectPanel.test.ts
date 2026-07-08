@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CARD_TEXTURE_BOUNDS } from "../cardModel";
-import { TEXTURE_CONTROL_LIMITS, downloadBlob, safeFileName } from "./ProjectPanel";
+import { TEXTURE_CONTROL_LIMITS, canStartCardExport, downloadBlob, safeFileName } from "./ProjectPanel";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -67,5 +67,29 @@ describe("ProjectPanel file names", () => {
 describe("ProjectPanel texture controls", () => {
   it("uses the same texture range as imported card normalization", () => {
     expect(TEXTURE_CONTROL_LIMITS).toEqual(CARD_TEXTURE_BOUNDS);
+  });
+});
+
+describe("ProjectPanel private export gate", () => {
+  it("does not ask for confirmation for ordinary local asset packs", () => {
+    const confirmPrivateExport = vi.fn(() => false);
+
+    expect(canStartCardExport({ requiresPrivateExportConfirm: false }, confirmPrivateExport)).toBe(true);
+    expect(canStartCardExport(null, confirmPrivateExport)).toBe(true);
+    expect(confirmPrivateExport).not.toHaveBeenCalled();
+  });
+
+  it("blocks private preview exports when confirmation is cancelled", () => {
+    const confirmPrivateExport = vi.fn(() => false);
+
+    expect(canStartCardExport({ requiresPrivateExportConfirm: true }, confirmPrivateExport)).toBe(false);
+    expect(confirmPrivateExport).toHaveBeenCalledTimes(1);
+  });
+
+  it("allows private preview exports after confirmation", () => {
+    const confirmPrivateExport = vi.fn(() => true);
+
+    expect(canStartCardExport({ requiresPrivateExportConfirm: true }, confirmPrivateExport)).toBe(true);
+    expect(confirmPrivateExport).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,4 +1,5 @@
 import { getKind, getNation, getRarity, getSet } from "../presets";
+import { CARD_TEXTURE_BOUNDS, DEFAULT_CARD_APPEARANCE } from "../cardModel";
 import type { CardKind, CardSpec } from "../types";
 import { translateKeywordLabel } from "../i18n";
 import { getKeywordPreset, resolveCardKeywordIds } from "../keywords";
@@ -40,7 +41,6 @@ const TYPE_ICON_BOARD_DARK = "#41433d";
 const COST_BOARD_DARK = "#3f423b";
 const ACTIVATED = "#ce8a31";
 const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/;
-const DEFAULT_TEXTURE_SEED = 0x4b415244;
 const TYPE_ICON_GLYPH_CACHE = new WeakMap<object, CanvasImageSource>();
 const TYPE_ICON_GLYPH_PLACEMENT: Partial<Record<CardKind, { offsetX?: number; offsetY?: number; scale?: number }>> = {
   tank: { offsetY: -7 },
@@ -1021,9 +1021,24 @@ function resolvePrintWearSettings(options: RenderCardOptions): PrintWearSettings
   return {
     seed: normalizeTextureSeed(options.textureSeed),
     image: options.textureImage ?? null,
-    intensity: normalizeTextureFactor(options.textureIntensity, 1.85, 0.35, 3),
-    randomness: normalizeTextureFactor(options.textureRandomness, 1.55, 0.5, 3),
-    mottle: normalizeTextureFactor(options.textureMottle, 1.35, 0.35, 3),
+    intensity: normalizeTextureFactor(
+      options.textureIntensity,
+      DEFAULT_CARD_APPEARANCE.texture.intensity,
+      CARD_TEXTURE_BOUNDS.intensity.min,
+      CARD_TEXTURE_BOUNDS.intensity.max,
+    ),
+    randomness: normalizeTextureFactor(
+      options.textureRandomness,
+      DEFAULT_CARD_APPEARANCE.texture.randomness,
+      CARD_TEXTURE_BOUNDS.randomness.min,
+      CARD_TEXTURE_BOUNDS.randomness.max,
+    ),
+    mottle: normalizeTextureFactor(
+      options.textureMottle,
+      DEFAULT_CARD_APPEARANCE.texture.mottle,
+      CARD_TEXTURE_BOUNDS.mottle.min,
+      CARD_TEXTURE_BOUNDS.mottle.max,
+    ),
   };
 }
 
@@ -1036,7 +1051,7 @@ function createDeterministicNoise(seed: number): () => number {
 }
 
 function normalizeTextureSeed(seed: number | undefined): number {
-  return Number.isFinite(seed) ? Number(seed) >>> 0 : DEFAULT_TEXTURE_SEED;
+  return Number.isFinite(seed) ? Number(seed) >>> 0 : DEFAULT_CARD_APPEARANCE.texture.seed;
 }
 
 function normalizeTextureFactor(value: number | undefined, fallback: number, min: number, max: number): number {

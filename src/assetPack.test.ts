@@ -104,6 +104,7 @@ describe("local asset pack loader", () => {
     expect(pack.name).toBe("Test pack");
     expect(pack.imageCount).toBe(1);
     expect(pack.fontCount).toBe(1);
+    expect(pack.requiresPrivateExportConfirm).toBe(false);
     expect(pack.warnings).toEqual([]);
     expect(pack.resolveImage("frame", assetContext)).toBeInstanceOf(FakeImage);
 
@@ -151,6 +152,7 @@ describe("local asset pack loader", () => {
 
     expect(pack.name).toBe("Dev pack");
     expect(pack.imageCount).toBe(1);
+    expect(pack.requiresPrivateExportConfirm).toBe(true);
     expect(pack.resolveImage("type-icon", assetContext)).toBeInstanceOf(FakeImage);
   });
 

@@ -41,7 +41,16 @@ describe("local card library records", () => {
           id: "saved-card",
           title: "Saved Card",
           updatedAt: "2026-07-04T00:00:00.000Z",
-          card: { ...DEFAULT_CARD, title: "Saved Card", costs: { deployment: 99 } },
+          card: {
+            ...DEFAULT_CARD,
+            title: "Saved Card",
+            costs: { deployment: 99 },
+            artwork: {
+              source: "upload",
+              dataUrl: "data:image/png;base64,legacy-library-image",
+              crop: { x: 2, y: 3, scale: 1.2 },
+            },
+          },
         },
         null,
       ],
@@ -50,6 +59,9 @@ describe("local card library records", () => {
     expect(library.cards).toHaveLength(1);
     expect(library.cards[0].id).toBe("saved-card");
     expect(library.cards[0].card.costs.deployment).toBe(99);
+    expect(library.cards[0].card.artwork.source).toBe("none");
+    expect(library.cards[0].card.artwork.dataUrl).toBeUndefined();
+    expect(library.cards[0].card.artwork.crop).toEqual({ x: 2, y: 3, scale: 1.2 });
   });
 
   it("waits for IndexedDB transaction completion before resolving saved handles", async () => {

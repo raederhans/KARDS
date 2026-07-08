@@ -27,6 +27,14 @@ import type { ImageDiffMetrics } from "../visualDiff";
 
 export const TEXTURE_CONTROL_LIMITS = CARD_TEXTURE_BOUNDS;
 
+type AssetPackStatus = {
+  name: string;
+  imageCount: number;
+  fontCount: number;
+  requiresPrivateExportConfirm: boolean;
+  warnings: string[];
+};
+
 type ProjectPanelProps = {
   card: CardSpec;
   language: Language;
@@ -36,12 +44,7 @@ type ProjectPanelProps = {
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   artworkImage: HTMLImageElement | null;
   renderOptions?: RenderCardOptions;
-  assetPackStatus: {
-    name: string;
-    imageCount: number;
-    fontCount: number;
-    warnings: string[];
-  } | null;
+  assetPackStatus: AssetPackStatus | null;
   assetPackError: string | null;
   referenceDiff: ImageDiffMetrics | null;
   referenceDiffError: string | null;
@@ -130,7 +133,7 @@ export function ProjectPanel({
     if (!canvas) {
       return;
     }
-    if (assetPackStatus && !window.confirm(text.privateCardConfirm)) {
+    if (!canStartCardExport(assetPackStatus, () => window.confirm(text.privateCardConfirm))) {
       return;
     }
 
@@ -337,7 +340,7 @@ export function ProjectPanel({
             {text.chooseExportDirectory}
           </button>
           <button type="button" className="primary-action" onClick={exportCard}>
-            {assetPackStatus ? text.exportPrivateCard : text.exportCard}
+            {assetPackStatus?.requiresPrivateExportConfirm ? text.exportPrivateCard : text.exportCard}
           </button>
         </div>
         {exportStatus ? <p className="status-line">{exportStatus}</p> : null}
@@ -533,6 +536,13 @@ export function downloadBlob(blob: Blob, fileName: string): void {
   anchor.click();
   anchor.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+export function canStartCardExport(
+  assetPackStatus: Pick<AssetPackStatus, "requiresPrivateExportConfirm"> | null,
+  confirmPrivateExport: () => boolean,
+): boolean {
+  return !assetPackStatus?.requiresPrivateExportConfirm || confirmPrivateExport();
 }
 
 export function safeFileName(value: string): string {

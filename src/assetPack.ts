@@ -40,6 +40,7 @@ export type LoadedAssetPack = CardRenderAssets & {
   name: string;
   imageCount: number;
   fontCount: number;
+  requiresPrivateExportConfirm: boolean;
   warnings: string[];
   fonts: CardRenderFontSet;
   dispose: () => void;
@@ -99,6 +100,7 @@ export async function loadAssetPackFromFiles(fileList: FileList | File[]): Promi
     name: manifest.name ?? "Local KARDS asset pack",
     imageCount: imageEntries.length,
     fontCount: Object.keys(fonts).length,
+    requiresPrivateExportConfirm: false,
     warnings,
     fonts,
     dispose() {
@@ -148,6 +150,7 @@ export async function loadAssetPackFromUrl(manifestUrl: string): Promise<LoadedA
     name: manifest.name ?? "Local KARDS asset pack",
     imageCount: imageEntries.length,
     fontCount: Object.keys(fonts).length,
+    requiresPrivateExportConfirm: true,
     warnings,
     fonts,
     dispose() {
