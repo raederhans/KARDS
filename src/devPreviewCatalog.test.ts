@@ -16,7 +16,9 @@ import {
 } from "./devPreviewCatalog";
 import {
   applyCardUpdate,
+  resolveDevPreviewSampleCard,
   resolveDevPreviewReferenceSelection,
+  shouldApplyDevPreviewSampleResult,
 } from "./devPreviewState";
 import { SETS } from "./presets";
 
@@ -130,5 +132,42 @@ describe("dev preview sample catalog", () => {
     expect(draftCard.title).toBe("Custom draft");
     expect(draftCard.body).toBe("Do not replace me");
     expect(draftCard.artwork.dataUrl).toBe("data:image/png;base64,user-art");
+  });
+
+  it("loads card data when the right-panel sample is explicitly selected", async () => {
+    const selectedSample = DEV_PREVIEW_REFERENCE_SAMPLES.find((sample) => sample.id === "dingo");
+
+    expect(selectedSample).toBeDefined();
+    expect(
+      await resolveDevPreviewSampleCard(selectedSample!, async (cardUrl) => ({
+        ...DEFAULT_CARD,
+        title: cardUrl.includes("dingo") ? "DINGO" : "Unexpected sample",
+        kind: "tank",
+        set: "oceania-storm",
+      })),
+    ).toMatchObject({
+      title: "DINGO",
+      kind: "tank",
+      set: "oceania-storm",
+    });
+    expect(await resolveDevPreviewSampleCard(DEV_PREVIEW_HQ_SAMPLE, async () => DEFAULT_CARD)).toMatchObject({
+      title: "WASHINGTON",
+      kind: "hq",
+    });
+  });
+
+  it("rejects stale sample loads after a newer selection or card edit", () => {
+    const currentRequest = {
+      isMounted: true,
+      requestId: 4,
+      activeRequestId: 4,
+      cardEditVersionAtStart: 2,
+      currentCardEditVersion: 2,
+    };
+
+    expect(shouldApplyDevPreviewSampleResult(currentRequest)).toBe(true);
+    expect(shouldApplyDevPreviewSampleResult({ ...currentRequest, isMounted: false })).toBe(false);
+    expect(shouldApplyDevPreviewSampleResult({ ...currentRequest, activeRequestId: 5 })).toBe(false);
+    expect(shouldApplyDevPreviewSampleResult({ ...currentRequest, currentCardEditVersion: 3 })).toBe(false);
   });
 });

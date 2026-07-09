@@ -4,7 +4,12 @@ import { CardCanvas } from "./components/CardCanvas";
 import { FieldPanel } from "./components/FieldPanel";
 import { ProjectPanel } from "./components/ProjectPanel";
 import { loadAssetPackFromFiles, loadAssetPackFromUrl, type LoadedAssetPack } from "./assetPack";
-import { applyCardUpdate, resolveDevPreviewReferenceSelection } from "./devPreviewState";
+import {
+  applyCardUpdate,
+  resolveDevPreviewReferenceSelection,
+  resolveDevPreviewSampleCard,
+  shouldApplyDevPreviewSampleResult,
+} from "./devPreviewState";
 import {
   UI_TEXT,
   getInitialLanguage,
@@ -46,6 +51,8 @@ function App() {
   const [referenceDiffError, setReferenceDiffError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const assetPackRequestRef = useRef(0);
+  const sampleLoadRequestRef = useRef(0);
+  const cardEditVersionRef = useRef(0);
   const isMountedRef = useRef(true);
   const didLoadDevPreviewRef = useRef(false);
   const isDevPrivatePreviewEnabled =
@@ -227,6 +234,7 @@ function App() {
   }, [isDevPrivatePreviewEnabled, referenceImageUrl, referenceSample]);
 
   function updateCard(update: CardUpdate) {
+    cardEditVersionRef.current += 1;
     setCard((currentCard) => applyCardUpdate(currentCard, update));
   }
 
@@ -288,6 +296,42 @@ function App() {
     setReferenceDiffError(null);
   }
 
+  async function loadDevPreviewSampleCard(sample: DevPreviewSample) {
+    const requestId = sampleLoadRequestRef.current + 1;
+    const cardEditVersionAtStart = cardEditVersionRef.current;
+    sampleLoadRequestRef.current = requestId;
+    setAssetPackError(null);
+
+    try {
+      const sampleCard = await resolveDevPreviewSampleCard(sample, async (cardUrl) => {
+        const response = await fetch(cardUrl, { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error(UI_TEXT.en.errors.loadCardUrl(cardUrl));
+        }
+        return response.json();
+      });
+
+      if (!shouldApplyDevPreviewSampleResult({
+        isMounted: isMountedRef.current,
+        requestId,
+        activeRequestId: sampleLoadRequestRef.current,
+        cardEditVersionAtStart,
+        currentCardEditVersion: cardEditVersionRef.current,
+      })) {
+        return;
+      }
+
+      setCard(sampleCard);
+    } catch (error) {
+      if (requestId !== sampleLoadRequestRef.current) {
+        return;
+      }
+      setAssetPackError(
+        error instanceof Error ? error.message : UI_TEXT.en.errors.privateReferencePreview,
+      );
+    }
+  }
+
   function handleTemplateSampleLoad(sampleId: string) {
     if (!devPreviewCatalog) {
       return;
@@ -303,6 +347,7 @@ function App() {
     }
     setShowReferenceComparison(true);
     selectReferenceSample(sample);
+    void loadDevPreviewSampleCard(sample);
   }
 
   function handleHqSampleLoad(sampleId: string) {
@@ -314,6 +359,7 @@ function App() {
     setSelectedHqSampleId(sample.id);
     setShowReferenceComparison(true);
     selectReferenceSample(sample);
+    void loadDevPreviewSampleCard(sample);
   }
 
   async function handleReferenceCompare(file: File | null) {
