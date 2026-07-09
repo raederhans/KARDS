@@ -1,5 +1,24 @@
 # Worktree Registry
 
+## HQ template alignment and selector repair
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: align generated HQ cards with actual HQ composition and repair the overlapping template UI
+- Base branch/base commit: `main` / `origin/main`, `1d6c9da01b6f3ea0570767661e804b7230bebd36`
+- Current branch/HEAD: `main`, closeout commit based on `1d6c9da01b6f3ea0570767661e804b7230bebd36`
+- Task goal: provide one reliable grouped template picker and a dedicated HQ renderer composition verified against all five private references
+- Status: integrated on `main` by this closeout; task record archived under `docs/archive/hq-template-alignment/`
+- Main changed files: `src/App.tsx`, `src/components/ProjectPanel.tsx`, `src/devPreviewCatalog.ts`, `src/devPreviewState.ts`, `src/canvas/layout.ts`, `src/canvas/cardRenderer.ts`, `src/i18n.ts`, four existing test files, lessons, registry, and archived task records
+- Shared hotspot files: `src/App.tsx`, `src/components/ProjectPanel.tsx`, `src/devPreviewCatalog.ts`, canvas layout/renderer, i18n, and their existing tests
+- Current diff summary: unified action picker and atomic loading; dedicated HQ geometry/artwork/text; visually calibrated defense value; regression coverage and closeout records
+- Commit state: implementation and records are committed together by the final Lore-protocol closeout commit and pushed to `origin/main`
+- Base/main divergence: no divergence at task start; only the main checkout exists
+- Potential conflict/overlap: green for worktree overlap; no second KARDS worktree exists. Yellow semantic risk around shared renderer and right-panel sample controls was covered by full validation and three independent reviews.
+- Validation run: targeted 80 tests passed; `npm run validate` passed 149 tests, typecheck, production build, and private-boundary verification; browser passed all five HQ templates, repeated same-template loading, and HQ/card/HQ switching
+- Tests not run: no known test gap for the requested behavior; production deployment was not visually compared because private references intentionally remain dev-only
+- Recommended integration order: already integrated directly on clean `main`; no separate worktree, rebase, or cherry-pick is required
+- Next action: none for this task
+
 ## KARDS security scan hardening
 
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`

@@ -15,6 +15,21 @@ export type DevPreviewSampleCardSource =
   | { card: CardSpec }
   | { cardUrl: string };
 
+export type DevPreviewArtworkReferenceCrop = {
+  sourceUrl: string;
+  sourceRect: { x: number; y: number; width: number; height: number };
+};
+
+export type DevPreviewTemplateSample = DevPreviewReferenceSample &
+  DevPreviewSampleCardSource & {
+    artworkReferenceCrop?: DevPreviewArtworkReferenceCrop;
+  };
+
+export type DevPreviewTemplateSelection = {
+  referenceImageUrl: string;
+  card: CardSpec;
+};
+
 export type DevPreviewSampleRequestState = {
   isMounted: boolean;
   requestId: number;
@@ -38,10 +53,34 @@ export function resolveDevPreviewReferenceSelection(
 }
 
 export async function resolveDevPreviewSampleCard(
-  sample: DevPreviewSampleCardSource,
+  sample: DevPreviewSampleCardSource & { artworkReferenceCrop?: DevPreviewArtworkReferenceCrop },
   readCardUrl: (cardUrl: string) => Promise<unknown>,
+  readArtworkCrop?: (crop: DevPreviewArtworkReferenceCrop) => Promise<string>,
 ): Promise<CardSpec> {
-  return normalizeCardSpec("card" in sample ? sample.card : await readCardUrl(sample.cardUrl));
+  const card = normalizeCardSpec("card" in sample ? sample.card : await readCardUrl(sample.cardUrl));
+  if (!sample.artworkReferenceCrop || !readArtworkCrop) {
+    return card;
+  }
+
+  return normalizeCardSpec({
+    ...card,
+    artwork: {
+      ...card.artwork,
+      source: "upload",
+      dataUrl: await readArtworkCrop(sample.artworkReferenceCrop),
+    },
+  });
+}
+
+export async function resolveDevPreviewTemplateSelection(
+  sample: DevPreviewTemplateSample,
+  readCardUrl: (cardUrl: string) => Promise<unknown>,
+  readArtworkCrop?: (crop: DevPreviewArtworkReferenceCrop) => Promise<string>,
+): Promise<DevPreviewTemplateSelection> {
+  return {
+    referenceImageUrl: sample.referenceUrl,
+    card: await resolveDevPreviewSampleCard(sample, readCardUrl, readArtworkCrop),
+  };
 }
 
 export function shouldApplyDevPreviewSampleResult(state: DevPreviewSampleRequestState): boolean {

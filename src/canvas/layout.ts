@@ -89,8 +89,8 @@ const HQ_LAYOUT: CardFaceLayout = {
   extraBorder: { x: 0, y: 489, width: 500, height: 64 },
   nationCenter: { x: 450, y: 52 },
   nationSize: 54,
-  hqDefenseBoard: { x: 166, y: 343, width: 168, height: 112 },
-  text: { titleY: 522, keywordY: 560, bodyY: 592, bodyBottomY: 676, maxWidth: 390, lineHeight: 28, maxLines: 4 },
+  hqDefenseBoard: { x: 166, y: 343, width: 166, height: 179 },
+  text: { titleY: 548, keywordY: 598, bodyY: 628, bodyBottomY: 666, maxWidth: 450, lineHeight: 32, maxLines: 3 },
 };
 
 const UNIT_KINDS = new Set<CardKind>(["infantry", "tank", "fighter", "bomber", "artillery"]);

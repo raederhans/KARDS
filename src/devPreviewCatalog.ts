@@ -1,3 +1,4 @@
+import type { DevPreviewArtworkReferenceCrop } from "./devPreviewState";
 import type { CardKind, CardSpec } from "./types";
 import { DEFAULT_CARD_APPEARANCE } from "./cardModel";
 
@@ -16,14 +17,15 @@ export type DevPreviewSample = {
   kind: CardKind;
   set: string;
   referenceUrl: string;
+  artworkReferenceCrop?: DevPreviewArtworkReferenceCrop;
 } & ({ cardUrl: string } | { card: CardSpec });
 
 export const DEV_PREVIEW_HQ_SAMPLES: DevPreviewSample[] = [
-  hqSample("washington_hq", "WASHINGTON", "华盛顿", "us", "Washington.png"),
-  hqSample("london_hq", "LONDON", "伦敦", "britain", "London.png"),
-  hqSample("moscow_hq", "MOSCOW", "莫斯科", "soviet", "Moscow.png"),
-  hqSample("truk_hq", "TRUK", "特鲁克", "japan", "Truk.png"),
-  hqSample("danzig_hq", "DANZIG", "但泽", "germany", "Danzig.png"),
+  hqSample("washington_hq", "WASHINGTON", "华盛顿", "us", "Washington.png", "华盛顿特区在美国规划和准备二战的过程中发挥了重要作用。"),
+  hqSample("london_hq", "LONDON", "伦敦", "britain", "London.png", "大英帝国的首都，也是英国和盟国在欧洲的战时行政中心。"),
+  hqSample("moscow_hq", "MOSCOW", "莫斯科", "soviet", "Moscow.png", "莫斯科是苏联的首都。"),
+  hqSample("truk_hq", "TRUK", "特鲁克", "japan", "Truk.png", "特鲁克环礁是二战期间日本在南太平洋的主要海军基地。"),
+  hqSample("danzig_hq", "DANZIG", "但泽", "germany", "Danzig.png", "战争开始时被德军占领的但泽。"),
 ];
 
 export const DEV_PREVIEW_HQ_SAMPLE: DevPreviewSample = DEV_PREVIEW_HQ_SAMPLES[0];
@@ -98,8 +100,9 @@ export const DEV_PREVIEW_REFERENCE_SAMPLES: DevPreviewSample[] = [
   cardSample("usace", "base", "order", "USACE", "陆军工程兵团"),
   cardSample("vanguard", "winter-war", "order", "VANGUARD", "先峰"),
   cardSample("wespe", "theaters-of-war", "artillery", "WESPE", "黄蜂式自行火炮"),
-  ...DEV_PREVIEW_HQ_SAMPLES,
 ];
+
+const DEV_PREVIEW_ALL_SAMPLES = [...DEV_PREVIEW_REFERENCE_SAMPLES, ...DEV_PREVIEW_HQ_SAMPLES];
 
 export const DEV_PREVIEW_SET_SAMPLES: DevPreviewSample[] = [
   getDevPreviewSampleById("t70"),
@@ -124,11 +127,7 @@ export function getDefaultDevPreviewSample(): DevPreviewSample {
 }
 
 export function getDevPreviewSampleById(sampleId: string): DevPreviewSample | undefined {
-  return DEV_PREVIEW_REFERENCE_SAMPLES.find((sample) => sample.id === sampleId);
-}
-
-export function getDevPreviewHqSampleById(sampleId: string): DevPreviewSample | undefined {
-  return DEV_PREVIEW_HQ_SAMPLES.find((sample) => sample.id === sampleId);
+  return DEV_PREVIEW_ALL_SAMPLES.find((sample) => sample.id === sampleId);
 }
 
 export function getDevPreviewSampleBySet(setId: string): DevPreviewSample | undefined {
@@ -159,23 +158,36 @@ function cardSample(id: string, set: string, kind: CardKind, label: string, labe
   };
 }
 
-function hqSample(id: string, label: string, labelZh: string, nation: string, imageFile: string): DevPreviewSample {
+function hqSample(
+  id: string,
+  label: string,
+  labelZh: string,
+  nation: string,
+  imageFile: string,
+  body: string,
+): DevPreviewSample {
+  const referenceUrl = `${HQ_REFERENCE_ROOT}/${imageFile}`;
   return {
     id,
     label,
     labelZh,
     kind: "hq",
     set: "base",
-    referenceUrl: `${HQ_REFERENCE_ROOT}/${imageFile}`,
+    referenceUrl,
+    artworkReferenceCrop: {
+      sourceUrl: referenceUrl,
+      sourceRect: { x: 12, y: 13, width: 476, height: 476 },
+    },
     card: {
       version: 1,
       kind: "hq",
       nation,
       rarity: "standard",
       set: "base",
-      title: label,
-      body: "HQ reference sample from the private KARDS-Assets snapshot.",
-      keywordLine: "HQ",
+      title: labelZh,
+      body,
+      keywords: [],
+      keywordLine: "",
       costs: {},
       stats: {
         hqDefense: 20,

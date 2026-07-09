@@ -886,16 +886,21 @@ describe("card renderer output", () => {
     }
   });
 
-  it("keeps HQ defense board art below generated HQ text and values", () => {
+  it("uses the full HQ shield with only its centered defense value and no corner nation mark", () => {
     const { canvas, calls } = createFakeCanvas();
-    const boardImage = { width: 168, height: 112 } as CanvasImageSource;
-    const assets = createStaticAssetResolver([{ slot: "hq-defense-board", template: "hq", image: boardImage }]);
+    const boardImage = { width: 166, height: 179 } as CanvasImageSource;
+    const nationImage = { width: 54, height: 54 } as CanvasImageSource;
+    const assets = createStaticAssetResolver([
+      { slot: "hq-defense-board", template: "hq", image: boardImage },
+      { slot: "nation-mark", nationId: DEFAULT_CARD.nation, image: nationImage },
+    ]);
     const hqCard: CardSpec = {
       ...DEFAULT_CARD,
       kind: "hq",
       costs: {},
       stats: { hqDefense: 20 },
-      keywordLine: "HQ",
+      keywords: [],
+      keywordLine: "",
     };
 
     renderCard(canvas, hqCard, null, { assets, disablePrintWear: true });
@@ -903,14 +908,18 @@ describe("card renderer output", () => {
     const boardIndex = calls.drawImage.findIndex(([image]) => image === boardImage);
     const hqLabel = calls.fillText.find(([text]) => text === "HQ");
     const hqValue = calls.fillText.find(([text]) => text === "20");
+    const hqValueStyle = calls.fillTextStyles.find((call) => call.text === "20");
     const boardOpIndex = calls.operations.findIndex((op) => op.kind === "drawImage" && op.value === boardImage);
-    const labelOpIndex = calls.operations.findIndex((op) => op.kind === "fillText" && op.value === "HQ");
     const valueOpIndex = calls.operations.findIndex((op) => op.kind === "fillText" && op.value === "20");
 
     expect(boardIndex).toBeGreaterThanOrEqual(0);
-    expect(hqLabel).toBeDefined();
-    expect(hqValue).toBeDefined();
-    expect(boardOpIndex).toBeLessThan(labelOpIndex);
+    expect(calls.drawImage).toContainEqual([boardImage, 166, 343, 166, 179]);
+    expect(calls.drawImage.some(([image]) => image === nationImage)).toBe(false);
+    expect(hqLabel).toBeUndefined();
+    expect(hqValue?.[2]).toBeCloseTo(420.5);
+    expect(hqValueStyle?.font).toContain("104px");
+    expect(hqValueStyle?.font).toContain("Microsoft YaHei UI");
+    expect(hqValueStyle?.scaleX).toBeCloseTo(0.85);
     expect(boardOpIndex).toBeLessThan(valueOpIndex);
   });
 

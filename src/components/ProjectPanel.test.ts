@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { CARD_TEXTURE_BOUNDS } from "../cardModel";
 import {
   TEXTURE_CONTROL_LIMITS,
+  TemplateSamplePicker,
   canStartCardExport,
   downloadBlob,
   isImportableReferenceImageFile,
@@ -73,6 +76,53 @@ describe("ProjectPanel file names", () => {
 describe("ProjectPanel texture controls", () => {
   it("uses the same texture range as imported card normalization", () => {
     expect(TEXTURE_CONTROL_LIMITS).toEqual(CARD_TEXTURE_BOUNDS);
+  });
+});
+
+describe("ProjectPanel template sample picker", () => {
+  it("uses one action picker with separate card and HQ groups", () => {
+    const markup = renderToStaticMarkup(
+      createElement(TemplateSamplePicker, {
+        label: "载入示例模板",
+        loadingLabel: "正在载入模板……",
+        placeholder: "选择普通卡牌或总部模板……",
+        cardGroupLabel: "普通卡牌",
+        hqGroupLabel: "总部",
+        templateSamples: [{ id: "t70", label: "T-70" }],
+        hqSamples: [{ id: "london_hq", label: "伦敦" }],
+        isLoading: false,
+        error: null,
+        onLoad: vi.fn(),
+      }),
+    );
+
+    expect(markup.match(/<select/g)).toHaveLength(1);
+    expect(markup).toContain('name="card-template-sample"');
+    expect(markup).toContain('<optgroup label="普通卡牌">');
+    expect(markup).toContain('<optgroup label="总部">');
+    expect(markup).toContain('<option value="" disabled="" selected="">');
+  });
+
+  it("disables the action picker and exposes its busy state while loading", () => {
+    const markup = renderToStaticMarkup(
+      createElement(TemplateSamplePicker, {
+        label: "Load sample template",
+        loadingLabel: "Loading template...",
+        placeholder: "Choose a card or HQ template...",
+        cardGroupLabel: "Card",
+        hqGroupLabel: "HQ",
+        templateSamples: [],
+        hqSamples: [{ id: "washington_hq", label: "Washington" }],
+        isLoading: true,
+        error: "Template failed",
+        onLoad: vi.fn(),
+      }),
+    );
+
+    expect(markup).toContain("Loading template...");
+    expect(markup).toContain('disabled=""');
+    expect(markup).toContain('aria-busy="true"');
+    expect(markup).toContain("Template failed");
   });
 });
 

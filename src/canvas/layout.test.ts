@@ -47,7 +47,9 @@ describe("card face layout", () => {
 
     expect(layout.template).toBe("hq");
     expect(layout.artwork).toEqual({ x: 12, y: 13, width: 476, height: 476 });
-    expect(layout.hqDefenseBoard).toEqual({ x: 166, y: 343, width: 168, height: 112 });
+    expect(layout.hqDefenseBoard).toEqual({ x: 166, y: 343, width: 166, height: 179 });
+    expect(layout.text.titleY).toBe(548);
+    expect(layout.text.keywordY).toBe(598);
     expect(layout.attackBoard).toBeUndefined();
   });
 

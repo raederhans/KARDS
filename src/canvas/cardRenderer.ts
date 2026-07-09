@@ -32,6 +32,10 @@ const DEFAULT_BODY_FONT = `${CJK_CARD_FONT}, ${LATIN_CONDENSED_FONT}, sans-serif
 const DEFAULT_UTILITY_FONT = `${LATIN_CONDENSED_FONT}, ${CJK_CARD_FONT}, sans-serif`;
 const DEFAULT_NUMERIC_FONT = `${NUMERIC_CARD_FONT}, ${CJK_CARD_FONT}, sans-serif`;
 const DEFAULT_TEXT_FONT = DEFAULT_TITLE_FONT;
+const HQ_DEFENSE_FONT_SIZE = 104;
+const HQ_DEFENSE_SCALE_X = 0.85;
+const HQ_DEFENSE_Y_OFFSET = -12;
+const HQ_DEFENSE_FONT = "'Microsoft YaHei UI', 'Microsoft YaHei'";
 const DARK = "#4f514c";
 const LIGHT = "#cfd5c2";
 const PAPER = "#d8d2bd";
@@ -51,7 +55,7 @@ const TYPE_ICON_GLYPH_PLACEMENT: Partial<Record<CardKind, { offsetX?: number; of
 
 type TextMeasureContext = Pick<CanvasRenderingContext2D, "font" | "measureText">;
 
-type StatBoardShape = "shield" | "inverted-shield" | "reticle";
+type StatBoardShape = "shield" | "inverted-shield" | "reticle" | "hq-shield";
 
 type ResolvedRenderFonts = Required<CardRenderFontSet>;
 
@@ -109,7 +113,7 @@ export function renderCard(
   const fonts = resolveRenderFonts(options.fonts);
 
   drawCardMat(ctx, options, assetContext);
-  drawArtwork(ctx, layout.artwork, card, artworkImage, nation.deep);
+  drawArtwork(ctx, layout, card, artworkImage, nation.deep);
   if (layout.template === "unit") {
     drawNameBar(ctx, layout, nation.accent, options, assetContext);
   } else {
@@ -127,7 +131,9 @@ export function renderCard(
       layout.costBoardGap,
     );
   }
-  drawNationMark(ctx, layout, nation, options, assetContext, fonts);
+  if (layout.template !== "hq") {
+    drawNationMark(ctx, layout, nation, options, assetContext, fonts);
+  }
   drawFrame(ctx, options, assetContext);
   if (!options.disablePrintWear) {
     drawPrintWear(ctx, resolvePrintWearSettings(options), getPrintWearProtectedRegions(layout, card.kind), pixelScale);
@@ -158,11 +164,12 @@ function drawCardMat(
 
 function drawArtwork(
   ctx: CanvasRenderingContext2D,
-  rect: Rect,
+  layout: CardFaceLayout,
   card: CardSpec,
   artworkImage: HTMLImageElement | null | undefined,
   deepColor: string,
 ): void {
+  const rect = layout.artwork;
   ctx.save();
   ctx.beginPath();
   ctx.rect(rect.x, rect.y, rect.width, rect.height);
@@ -176,6 +183,8 @@ function drawArtwork(
     const x = rect.x + (rect.width - width) / 2 + card.artwork.crop.x;
     const y = rect.y + (rect.height - height) / 2 + card.artwork.crop.y;
     ctx.drawImage(artworkImage, x, y, width, height);
+  } else if (layout.template === "hq") {
+    drawHqArtworkPlaceholder(ctx, rect, deepColor);
   } else {
     const backdrop = ctx.createLinearGradient(rect.x, rect.y, rect.x, rect.y + rect.height);
     backdrop.addColorStop(0, "#dad1af");
@@ -469,7 +478,19 @@ function drawValues(
   fonts: ResolvedRenderFonts,
 ): void {
   if (layout.template === "hq" && layout.hqDefenseBoard) {
-    drawStatBoard(ctx, layout.hqDefenseBoard, card.stats.hqDefense, "HQ", 58, "hq-defense-board", options, assetContext, fonts);
+    drawStatBoard(
+      ctx,
+      layout.hqDefenseBoard,
+      card.stats.hqDefense,
+      "",
+      HQ_DEFENSE_FONT_SIZE,
+      "hq-defense-board",
+      options,
+      assetContext,
+      fonts,
+      HQ_DEFENSE_Y_OFFSET,
+      "hq-shield",
+    );
     return;
   }
 
@@ -566,14 +587,15 @@ function drawText(
   } else if (layout.text.titleY !== undefined) {
     ctx.fillStyle = DARK;
     const isCommandTemplate = layout.template === "command";
+    const isHqTemplate = layout.template === "hq";
     const baseScaleX = isCommandTemplate ? 0.98 : getTextScale(card.title, 1.08, 1.02);
     fitText(
       ctx,
       card.title.toUpperCase(),
       250 + titleAppearance.offsetX,
       layout.text.titleY + titleAppearance.offsetY,
-      isCommandTemplate ? 420 : 340,
-      Math.round((isCommandTemplate ? 40 : 36) * titleAppearance.fontScale),
+      isCommandTemplate ? 420 : isHqTemplate ? 440 : 340,
+      Math.round((isCommandTemplate || isHqTemplate ? 40 : 36) * titleAppearance.fontScale),
       fonts.title,
       baseScaleX * titleAppearance.scaleX,
       titleAppearance.scaleY,
@@ -679,18 +701,23 @@ function drawStatBoard(
     ctx.closePath();
     ctx.fill();
     ctx.strokeStyle = "rgba(223, 222, 196, 0.75)";
-    ctx.lineWidth = 3;
+    ctx.lineWidth = shape === "hq-shield" ? 9 : 3;
     ctx.stroke();
   }
 
   ctx.fillStyle = LIGHT;
   const valueText = formatCardFaceValue(value);
-  const valueStyle = resolveBoardNumberStyle(
-    valueText,
-    { fontSize: fontSize + 2, scaleX: getTextScale(valueText, 1.18, 1.02), scaleY: 1 },
-    { fontSize: Math.max(38, fontSize - 8), scaleX: 0.86, scaleY: 0.98 },
-  );
-  ctx.font = `900 ${valueStyle.fontSize}px ${fonts.stat}`;
+  const valueStyle =
+    shape === "hq-shield"
+      ? { fontSize, scaleX: HQ_DEFENSE_SCALE_X, scaleY: 1 }
+      : resolveBoardNumberStyle(
+          valueText,
+          { fontSize: fontSize + 2, scaleX: getTextScale(valueText, 1.18, 1.02), scaleY: 1 },
+          { fontSize: Math.max(38, fontSize - 8), scaleX: 0.86, scaleY: 0.98 },
+        );
+  const valueWeight = shape === "hq-shield" ? 700 : 900;
+  const valueFont = shape === "hq-shield" ? `${HQ_DEFENSE_FONT}, ${fonts.stat}` : fonts.stat;
+  ctx.font = `${valueWeight} ${valueStyle.fontSize}px ${valueFont}`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   fillScaledText(ctx, valueText, rect.x + rect.width / 2, rect.y + rect.height / 2 + valueYOffset, valueStyle.scaleX, valueStyle.scaleY);
@@ -737,6 +764,19 @@ function drawStatBoardFallbackPath(ctx: CanvasRenderingContext2D, rect: Rect, sh
     ctx.lineTo(reticleLeft + notchDepth, centerY - notchHalf);
     ctx.lineTo(reticleLeft, centerY - notchHalf);
     ctx.quadraticCurveTo(reticleLeft, reticleTop, centerX - notchHalf, reticleTop);
+    return;
+  }
+
+  if (shape === "hq-shield") {
+    const shoulderY = rect.y + rect.height * 0.58;
+    ctx.moveTo(left + radius, top);
+    ctx.lineTo(right - radius, top);
+    ctx.quadraticCurveTo(right, top, right, top + radius);
+    ctx.lineTo(right, shoulderY);
+    ctx.quadraticCurveTo(right, bottom - 24, centerX, bottom);
+    ctx.quadraticCurveTo(left, bottom - 24, left, shoulderY);
+    ctx.lineTo(left, top + radius);
+    ctx.quadraticCurveTo(left, top, left + radius, top);
     return;
   }
 
@@ -1119,6 +1159,31 @@ function fillOrganicPatch(
   ctx.restore();
 }
 
+function drawHqArtworkPlaceholder(ctx: CanvasRenderingContext2D, rect: Rect, deepColor: string): void {
+  const backdrop = ctx.createLinearGradient(rect.x, rect.y, rect.x, rect.y + rect.height);
+  backdrop.addColorStop(0, "#d8cfaf");
+  backdrop.addColorStop(1, deepColor);
+  ctx.fillStyle = backdrop;
+  ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+
+  ctx.globalAlpha = 0.24;
+  ctx.strokeStyle = "#4f514c";
+  ctx.lineWidth = 2;
+  for (let offset = -120; offset <= rect.width + 120; offset += 54) {
+    ctx.beginPath();
+    ctx.moveTo(rect.x + offset, rect.y);
+    ctx.lineTo(rect.x + offset + 150, rect.y + rect.height);
+    ctx.stroke();
+  }
+  for (let offset = 36; offset < rect.height; offset += 58) {
+    ctx.beginPath();
+    ctx.moveTo(rect.x, rect.y + offset);
+    ctx.lineTo(rect.x + rect.width, rect.y + offset - 28);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
 function drawCurvedFiber(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -1228,7 +1293,7 @@ function getPrintWearProtectedRegions(layout: CardFaceLayout, kind: CardKind): P
   }
 
   if (layout.template === "hq" && layout.hqDefenseBoard) {
-    regions.push({ kind: "stat-board", rect: layout.hqDefenseBoard, shape: "shield" });
+    regions.push({ kind: "stat-board", rect: layout.hqDefenseBoard, shape: "hq-shield" });
   } else if (isUnitKind(kind)) {
     const attackBoard = isSpecialAttackKind(kind) && layout.specialAttackBoard ? layout.specialAttackBoard : layout.attackBoard;
     if (attackBoard) {

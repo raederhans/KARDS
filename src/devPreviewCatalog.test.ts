@@ -7,7 +7,6 @@ import {
   DEV_PREVIEW_REFERENCE_SAMPLES,
   DEV_PREVIEW_SET_SAMPLES,
   getDefaultDevPreviewSample,
-  getDevPreviewHqSampleById,
   getDevPreviewReferenceForCard,
   getDevPreviewSampleById,
   getDevPreviewSampleByKind,
@@ -18,6 +17,7 @@ import {
   applyCardUpdate,
   resolveDevPreviewSampleCard,
   resolveDevPreviewReferenceSelection,
+  resolveDevPreviewTemplateSelection,
   shouldApplyDevPreviewSampleResult,
 } from "./devPreviewState";
 import { SETS } from "./presets";
@@ -57,9 +57,16 @@ describe("dev preview sample catalog", () => {
       "TRUK",
       "DANZIG",
     ]);
-    expect(getDevPreviewHqSampleById("london_hq")?.referenceUrl).toContain("London.png");
+    expect(getDevPreviewSampleById("london_hq")?.referenceUrl).toContain("London.png");
+    expect(getDevPreviewSampleById("moscow_hq")?.referenceUrl).toContain("Moscow.png");
     expect(DEV_PREVIEW_HQ_SAMPLE.referenceUrl).toContain("Washington.png");
-    expect("card" in DEV_PREVIEW_HQ_SAMPLE ? DEV_PREVIEW_HQ_SAMPLE.card.title : "").toBe("WASHINGTON");
+    expect(DEV_PREVIEW_REFERENCE_SAMPLES.every((sample) => sample.kind !== "hq")).toBe(true);
+    expect(DEV_PREVIEW_HQ_SAMPLES.every((sample) => sample.kind === "hq")).toBe(true);
+    expect("card" in DEV_PREVIEW_HQ_SAMPLE ? DEV_PREVIEW_HQ_SAMPLE.card.title : "").toBe("华盛顿");
+    expect(DEV_PREVIEW_HQ_SAMPLE.artworkReferenceCrop).toEqual({
+      sourceUrl: DEV_PREVIEW_HQ_SAMPLE.referenceUrl,
+      sourceRect: { x: 12, y: 13, width: 476, height: 476 },
+    });
   });
 
   it("resolves the reference image from the current card type and set", () => {
@@ -150,9 +157,39 @@ describe("dev preview sample catalog", () => {
       kind: "tank",
       set: "oceania-storm",
     });
-    expect(await resolveDevPreviewSampleCard(DEV_PREVIEW_HQ_SAMPLE, async () => DEFAULT_CARD)).toMatchObject({
-      title: "WASHINGTON",
+    expect(
+      await resolveDevPreviewSampleCard(
+        DEV_PREVIEW_HQ_SAMPLE,
+        async () => DEFAULT_CARD,
+        async () => "data:image/png;base64,hq-artwork",
+      ),
+    ).toMatchObject({
+      title: "华盛顿",
       kind: "hq",
+      artwork: {
+        source: "upload",
+        dataUrl: "data:image/png;base64,hq-artwork",
+      },
+    });
+  });
+
+  it("resolves a template load as one card and reference selection", async () => {
+    const sample = getDevPreviewSampleById("london_hq");
+
+    expect(sample).toBeDefined();
+    await expect(
+      resolveDevPreviewTemplateSelection(
+        sample!,
+        async () => DEFAULT_CARD,
+        async () => "data:image/png;base64,london-artwork",
+      ),
+    ).resolves.toMatchObject({
+      referenceImageUrl: sample!.referenceUrl,
+      card: {
+        kind: "hq",
+        title: "伦敦",
+        artwork: { source: "upload", dataUrl: "data:image/png;base64,london-artwork" },
+      },
     });
   });
 

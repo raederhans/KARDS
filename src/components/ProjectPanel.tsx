@@ -53,11 +53,10 @@ type ProjectPanelProps = {
   showReferenceComparison: boolean;
   onReferenceComparisonToggle: (enabled: boolean) => void;
   templateSamples: { id: string; label: string }[];
-  selectedTemplateSampleId: string;
-  onTemplateSampleLoad?: (sampleId: string) => void;
   hqSamples: { id: string; label: string }[];
-  selectedHqSampleId: string;
-  onHqSampleLoad?: (sampleId: string) => void;
+  isTemplateLoading: boolean;
+  templateLoadError: string | null;
+  onTemplateSampleLoad?: (sampleId: string) => void;
   onRandomTexture: () => void;
   textureSettings: {
     intensity: number;
@@ -67,6 +66,68 @@ type ProjectPanelProps = {
   textureSourceLabel: string;
   onTextureSettingChange: (key: "intensity" | "randomness" | "mottle", value: number) => void;
 };
+
+type TemplateSamplePickerProps = {
+  label: string;
+  loadingLabel: string;
+  placeholder: string;
+  cardGroupLabel: string;
+  hqGroupLabel: string;
+  templateSamples: { id: string; label: string }[];
+  hqSamples: { id: string; label: string }[];
+  isLoading: boolean;
+  error: string | null;
+  onLoad: (sampleId: string) => void;
+};
+
+export function TemplateSamplePicker({
+  label,
+  loadingLabel,
+  placeholder,
+  cardGroupLabel,
+  hqGroupLabel,
+  templateSamples,
+  hqSamples,
+  isLoading,
+  error,
+  onLoad,
+}: TemplateSamplePickerProps) {
+  return (
+    <label className="field-block compact-field-block">
+      <span>{isLoading ? loadingLabel : label}</span>
+      <select
+        name="card-template-sample"
+        value=""
+        disabled={isLoading}
+        aria-busy={isLoading}
+        onChange={(event) => {
+          if (event.target.value) {
+            onLoad(event.target.value);
+          }
+        }}
+      >
+        <option value="" disabled>
+          {placeholder}
+        </option>
+        <optgroup label={cardGroupLabel}>
+          {templateSamples.map((sample) => (
+            <option key={sample.id} value={sample.id}>
+              {sample.label}
+            </option>
+          ))}
+        </optgroup>
+        <optgroup label={hqGroupLabel}>
+          {hqSamples.map((sample) => (
+            <option key={sample.id} value={sample.id}>
+              {sample.label}
+            </option>
+          ))}
+        </optgroup>
+      </select>
+      {error ? <span className="status-warning">{error}</span> : null}
+    </label>
+  );
+}
 
 export function ProjectPanel({
   card,
@@ -86,11 +147,10 @@ export function ProjectPanel({
   showReferenceComparison,
   onReferenceComparisonToggle,
   templateSamples,
-  selectedTemplateSampleId,
-  onTemplateSampleLoad,
   hqSamples,
-  selectedHqSampleId,
-  onHqSampleLoad,
+  isTemplateLoading,
+  templateLoadError,
+  onTemplateSampleLoad,
   onRandomTexture,
   textureSettings,
   textureSourceLabel,
@@ -409,39 +469,19 @@ export function ProjectPanel({
           {text.comparePng}
           <input name="reference-card-image" type="file" accept="image/png,image/jpeg,image/webp" onChange={compareReference} />
         </label>
-        {onTemplateSampleLoad && templateSamples.length ? (
-          <label className="field-block compact-field-block">
-            <span>{text.cardTemplate}</span>
-            <select
-              name="card-template-sample"
-              value={selectedTemplateSampleId}
-              onChange={(event) => onTemplateSampleLoad(event.target.value)}
-            >
-              {templateSamples.map((sample) => (
-                <option key={sample.id} value={sample.id}>
-                  {sample.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
-        {onHqSampleLoad && hqSamples.length ? (
-          <div className="control-grid">
-            <label>
-              <span>{text.hqTemplate}</span>
-              <select
-                name="hq-template"
-                value={selectedHqSampleId}
-                onChange={(event) => onHqSampleLoad(event.target.value)}
-              >
-                {hqSamples.map((sample) => (
-                  <option key={sample.id} value={sample.id}>
-                    {sample.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+        {onTemplateSampleLoad && (templateSamples.length || hqSamples.length) ? (
+          <TemplateSamplePicker
+            label={text.sampleTemplate}
+            loadingLabel={text.loadingSampleTemplate}
+            placeholder={text.chooseSampleTemplate}
+            cardGroupLabel={text.cardTemplate}
+            hqGroupLabel={text.hqTemplate}
+            templateSamples={templateSamples}
+            hqSamples={hqSamples}
+            isLoading={isTemplateLoading}
+            error={templateLoadError ? localizeRuntimeMessage(language, templateLoadError) : null}
+            onLoad={onTemplateSampleLoad}
+          />
         ) : null}
       </div>
 

@@ -7,8 +7,9 @@ import { loadAssetPackFromFiles, loadAssetPackFromUrl, type LoadedAssetPack } fr
 import {
   applyCardUpdate,
   resolveDevPreviewReferenceSelection,
-  resolveDevPreviewSampleCard,
+  resolveDevPreviewTemplateSelection,
   shouldApplyDevPreviewSampleResult,
+  type DevPreviewArtworkReferenceCrop,
 } from "./devPreviewState";
 import {
   UI_TEXT,
@@ -43,7 +44,8 @@ function App() {
   const [assetPackError, setAssetPackError] = useState<string | null>(null);
   const [referenceImageUrl, setReferenceImageUrl] = useState<string | null>(null);
   const [selectedReferenceSampleId, setSelectedReferenceSampleId] = useState("t70");
-  const [selectedHqSampleId, setSelectedHqSampleId] = useState("washington_hq");
+  const [isTemplateLoading, setIsTemplateLoading] = useState(false);
+  const [templateLoadError, setTemplateLoadError] = useState<string | null>(null);
   const [showReferenceComparison, setShowReferenceComparison] = useState(true);
   const [textureImage, setTextureImage] = useState<HTMLImageElement | null>(null);
   const [textureImageStatus, setTextureImageStatus] = useState<TextureImageStatus>("loading");
@@ -270,7 +272,7 @@ function App() {
 
     const requestId = assetPackRequestRef.current + 1;
     assetPackRequestRef.current = requestId;
-    setAssetPackError(null);
+    setTemplateLoadError(null);
     try {
       const loadedPack = await loadAssetPackFromUrl(devPreviewCatalog.DEV_PREVIEW_ASSET_PACK_URL);
       if (!isMountedRef.current || requestId !== assetPackRequestRef.current) {
@@ -296,20 +298,25 @@ function App() {
     setReferenceDiffError(null);
   }
 
-  async function loadDevPreviewSampleCard(sample: DevPreviewSample) {
+  async function loadDevPreviewTemplate(sample: DevPreviewSample) {
     const requestId = sampleLoadRequestRef.current + 1;
     const cardEditVersionAtStart = cardEditVersionRef.current;
     sampleLoadRequestRef.current = requestId;
     setAssetPackError(null);
+    setIsTemplateLoading(true);
 
     try {
-      const sampleCard = await resolveDevPreviewSampleCard(sample, async (cardUrl) => {
-        const response = await fetch(cardUrl, { cache: "no-store" });
-        if (!response.ok) {
-          throw new Error(UI_TEXT.en.errors.loadCardUrl(cardUrl));
-        }
-        return response.json();
-      });
+      const selection = await resolveDevPreviewTemplateSelection(
+        sample,
+        async (cardUrl) => {
+          const response = await fetch(cardUrl, { cache: "no-store" });
+          if (!response.ok) {
+            throw new Error(UI_TEXT.en.errors.loadCardUrl(cardUrl));
+          }
+          return response.json();
+        },
+        cropDevPreviewArtwork,
+      );
 
       if (!shouldApplyDevPreviewSampleResult({
         isMounted: isMountedRef.current,
@@ -321,14 +328,22 @@ function App() {
         return;
       }
 
-      setCard(sampleCard);
+      setCard(selection.card);
+      setSelectedReferenceSampleId(sample.id);
+      setReferenceImageUrl(selection.referenceImageUrl);
+      setReferenceDiff(null);
+      setReferenceDiffError(null);
     } catch (error) {
       if (requestId !== sampleLoadRequestRef.current) {
         return;
       }
-      setAssetPackError(
+      setTemplateLoadError(
         error instanceof Error ? error.message : UI_TEXT.en.errors.privateReferencePreview,
       );
+    } finally {
+      if (requestId === sampleLoadRequestRef.current && isMountedRef.current) {
+        setIsTemplateLoading(false);
+      }
     }
   }
 
@@ -342,24 +357,7 @@ function App() {
       return;
     }
 
-    if (sample.kind === "hq") {
-      setSelectedHqSampleId(sample.id);
-    }
-    setShowReferenceComparison(true);
-    selectReferenceSample(sample);
-    void loadDevPreviewSampleCard(sample);
-  }
-
-  function handleHqSampleLoad(sampleId: string) {
-    if (!devPreviewCatalog) {
-      return;
-    }
-
-    const sample = devPreviewCatalog.getDevPreviewHqSampleById(sampleId) ?? devPreviewCatalog.DEV_PREVIEW_HQ_SAMPLE;
-    setSelectedHqSampleId(sample.id);
-    setShowReferenceComparison(true);
-    selectReferenceSample(sample);
-    void loadDevPreviewSampleCard(sample);
+    void loadDevPreviewTemplate(sample);
   }
 
   async function handleReferenceCompare(file: File | null) {
@@ -491,11 +489,10 @@ function App() {
           showReferenceComparison={showReferenceComparison}
           onReferenceComparisonToggle={setShowReferenceComparison}
           templateSamples={referenceSampleOptions}
-          selectedTemplateSampleId={selectedReferenceSampleId}
-          onTemplateSampleLoad={isDevPrivatePreviewEnabled && devPreviewCatalog ? handleTemplateSampleLoad : undefined}
           hqSamples={hqSampleOptions}
-          selectedHqSampleId={selectedHqSampleId}
-          onHqSampleLoad={isDevPrivatePreviewEnabled && devPreviewCatalog ? handleHqSampleLoad : undefined}
+          isTemplateLoading={isTemplateLoading}
+          templateLoadError={templateLoadError}
+          onTemplateSampleLoad={isDevPrivatePreviewEnabled && devPreviewCatalog ? handleTemplateSampleLoad : undefined}
           onRandomTexture={randomizeTexture}
           textureSettings={textureSettings}
           textureSourceLabel={
@@ -510,6 +507,37 @@ function App() {
 
 function localizedReferenceSampleTitle(sample: DevPreviewSample, language: Language): string {
   return language === "zh" ? sample.labelZh ?? sample.label : sample.label;
+}
+
+function cropDevPreviewArtwork(crop: DevPreviewArtworkReferenceCrop): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = crop.sourceRect.width;
+      canvas.height = crop.sourceRect.height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        reject(new Error("Could not create the private preview artwork crop."));
+        return;
+      }
+
+      ctx.drawImage(
+        image,
+        crop.sourceRect.x,
+        crop.sourceRect.y,
+        crop.sourceRect.width,
+        crop.sourceRect.height,
+        0,
+        0,
+        crop.sourceRect.width,
+        crop.sourceRect.height,
+      );
+      resolve(canvas.toDataURL("image/png"));
+    };
+    image.onerror = () => reject(new Error(`Could not load private preview artwork: ${crop.sourceUrl}`));
+    image.src = crop.sourceUrl;
+  });
 }
 
 export default App;
