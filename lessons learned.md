@@ -34,3 +34,4 @@
 - Persistence cleanup has to be symmetric: if autosave or local-library writes strip uploaded artwork data URLs, legacy draft/library reads must strip them too or old embedded images can re-enter the editor and propagate.
 - Paper-aging protected regions for non-rectangular boards should reuse the drawn shape paths, not expanded rectangles; otherwise the surrounding paper can lose texture and look like a square cutout.
 - Canvas `evenodd` texture clips must avoid nested protected holes; a small region inside an already-protected banner can cancel the protection and let texture leak back in.
+- Overlapping paper-aging protected regions should be erased from a texture layer as a union; `evenodd` clipping can leak high-randomness texture into partially overlapping stat and type overlays.

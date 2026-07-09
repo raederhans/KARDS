@@ -177,6 +177,50 @@ describe("card renderer output", () => {
     );
   });
 
+  it("erases randomized paper aging from protected stat and type regions as a union", () => {
+    const { canvas, calls } = createFakeCanvas({ enableLayerCanvas: true });
+
+    renderCard(canvas, DEFAULT_CARD, null, {
+      textureIntensity: 2.4,
+      textureRandomness: 2.2,
+      textureMottle: 2.1,
+    });
+
+    const layer = calls.layerCanvases[0];
+    expect(layer).toBeDefined();
+    const erasedPaths = layer.calls.paths.filter((path) => path.globalCompositeOperation === "destination-out");
+
+    expect(erasedPaths).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          points: expect.arrayContaining([expect.objectContaining({ kind: "rect", x: 12, y: 99, width: 476, height: 426 })]),
+        }),
+        expect.objectContaining({
+          points: expect.arrayContaining([expect.objectContaining({ kind: "moveTo", x: 129, y: 472 })]),
+        }),
+        expect.objectContaining({
+          points: expect.arrayContaining([expect.objectContaining({ kind: "lineTo", x: 371, y: 551 })]),
+        }),
+        expect.objectContaining({
+          points: expect.arrayContaining([expect.objectContaining({ kind: "arcTo", x1: 292, y1: 473, x2: 292, y2: 555, radius: 9 })]),
+        }),
+      ]),
+    );
+    expect(calls.drawImage.some(([image]) => image === layer.canvas)).toBe(true);
+  });
+
+  it("renders the paper aging layer at the export pixel scale", () => {
+    const { canvas, calls } = createFakeCanvas({ enableLayerCanvas: true });
+
+    renderCard(canvas, DEFAULT_CARD, null, { pixelScale: 2 });
+
+    const layer = calls.layerCanvases[0];
+    expect(layer.canvas.width).toBe(CARD_WIDTH * 2);
+    expect(layer.canvas.height).toBe(CARD_HEIGHT * 2);
+    expect(layer.calls.scales).toContainEqual([2, 2]);
+    expect(calls.drawImage).toContainEqual([layer.canvas, 0, 0, CARD_WIDTH, CARD_HEIGHT]);
+  });
+
   it("uses a supplied CC0 paper texture image when paper aging is enabled", () => {
     const { canvas, calls } = createFakeCanvas();
     const paperTexture = { width: 960, height: 563 } as CanvasImageSource;
@@ -787,7 +831,7 @@ type CanvasPathPoint =
   | { kind: "arcTo"; x1: number; y1: number; x2: number; y2: number; radius: number }
   | { kind: "rect"; x: number; y: number; width: number; height: number };
 
-function createFakeCanvas() {
+function createFakeCanvas(options: { enableLayerCanvas?: boolean } = {}) {
   const calls: {
     clearRect: Array<[number, number, number, number]>;
     drawImage: unknown[][];
@@ -799,9 +843,10 @@ function createFakeCanvas() {
     drawImageStyles: Array<{ image: unknown; centerX: number; centerY: number; width: number; height: number; rotation: number; clipDepth: number }>;
     operations: Array<{ kind: "drawImage" | "fillText"; value: unknown }>;
     fills: Array<{ fillStyle: unknown; rotation: number }>;
-    paths: Array<{ fillStyle: unknown; points: CanvasPathPoint[] }>;
+    paths: Array<{ fillStyle: unknown; points: CanvasPathPoint[]; globalCompositeOperation: string }>;
     clips: Array<{ fillRule: CanvasFillRule | undefined; points: CanvasPathPoint[] }>;
     scales: Array<[number, number]>;
+    layerCanvases: Array<ReturnType<typeof createFakeCanvas>>;
   } = {
     clearRect: [],
     drawImage: [],
@@ -816,20 +861,32 @@ function createFakeCanvas() {
     paths: [],
     clips: [],
     scales: [],
+    layerCanvases: [],
   };
 
   const gradient = { addColorStop() {} };
   let font = "400 24px Arial, sans-serif";
   let fillStyle = "";
+  let globalCompositeOperation = "source-over";
   let transform = { x: 0, y: 0, scaleX: 1, scaleY: 1, rotation: 0, clipDepth: 0 };
   const transformStack: Array<typeof transform> = [];
   let currentPath: CanvasPathPoint[] = [];
+  let canvas = {} as HTMLCanvasElement;
   const ctx = {
+    get canvas() {
+      return canvas;
+    },
     get fillStyle() {
       return fillStyle;
     },
     set fillStyle(value: string) {
       fillStyle = value;
+    },
+    get globalCompositeOperation() {
+      return globalCompositeOperation;
+    },
+    set globalCompositeOperation(value: string) {
+      globalCompositeOperation = value;
     },
     strokeStyle: "",
     get font() {
@@ -860,7 +917,7 @@ function createFakeCanvas() {
     fill() {
       calls.fills.push({ fillStyle, rotation: transform.rotation });
       if (currentPath.length > 0) {
-        calls.paths.push({ fillStyle, points: currentPath });
+        calls.paths.push({ fillStyle, points: currentPath, globalCompositeOperation });
       }
     },
     stroke() {},
@@ -931,9 +988,21 @@ function createFakeCanvas() {
     },
   } as unknown as CanvasRenderingContext2D;
 
-  const canvas = {
+  canvas = {
     width: 0,
     height: 0,
+    ownerDocument: options.enableLayerCanvas
+      ? {
+          createElement(elementName: string) {
+            if (elementName !== "canvas") {
+              throw new Error(`Unsupported fake element: ${elementName}`);
+            }
+            const layer = createFakeCanvas();
+            calls.layerCanvases.push(layer);
+            return layer.canvas;
+          },
+        }
+      : undefined,
     getContext: () => ctx,
   } as unknown as HTMLCanvasElement;
 

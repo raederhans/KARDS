@@ -135,7 +135,7 @@ export function renderCard(
   drawTypeIcon(ctx, layout, card.kind, kind.symbol, options, assetContext, fonts);
   drawText(ctx, layout, card, fonts, options);
   if (!options.disablePrintWear) {
-    drawPrintWear(ctx, resolvePrintWearSettings(options), getPrintWearProtectedRegions(layout, card.kind));
+    drawPrintWear(ctx, resolvePrintWearSettings(options), getPrintWearProtectedRegions(layout, card.kind), pixelScale);
   }
 }
 
@@ -715,9 +715,48 @@ function drawPrintWear(
   ctx: CanvasRenderingContext2D,
   settings: PrintWearSettings,
   protectedRegions: PrintWearProtectedRegion[],
+  pixelScale: number,
 ): void {
+  const layerCtx = createPrintWearLayerContext(ctx, pixelScale);
+  if (layerCtx) {
+    drawPrintWearLayer(layerCtx, settings, protectedRegions);
+    ctx.drawImage(layerCtx.canvas, 0, 0, CARD_WIDTH, CARD_HEIGHT);
+    return;
+  }
+
   ctx.save();
   applyPrintWearClip(ctx, protectedRegions);
+  drawPrintWearContent(ctx, settings);
+  ctx.restore();
+}
+
+function createPrintWearLayerContext(ctx: CanvasRenderingContext2D, pixelScale: number): CanvasRenderingContext2D | null {
+  const canvas = ctx.canvas as HTMLCanvasElement | undefined;
+  const ownerDocument = canvas?.ownerDocument ?? (typeof document === "undefined" ? undefined : document);
+  const layer = ownerDocument?.createElement("canvas");
+  if (!layer) {
+    return null;
+  }
+
+  layer.width = CARD_WIDTH * pixelScale;
+  layer.height = CARD_HEIGHT * pixelScale;
+  const layerCtx = layer.getContext("2d");
+  if (layerCtx && pixelScale !== 1) {
+    layerCtx.scale(pixelScale, pixelScale);
+  }
+  return layerCtx;
+}
+
+function drawPrintWearLayer(
+  ctx: CanvasRenderingContext2D,
+  settings: PrintWearSettings,
+  protectedRegions: PrintWearProtectedRegion[],
+): void {
+  drawPrintWearContent(ctx, settings);
+  erasePrintWearProtectedRegions(ctx, protectedRegions);
+}
+
+function drawPrintWearContent(ctx: CanvasRenderingContext2D, settings: PrintWearSettings): void {
   drawPaperTextureImage(ctx, settings);
   drawPaperToneVariation(ctx, settings);
   drawPaperFiberMesh(ctx, settings);
@@ -727,6 +766,20 @@ function drawPrintWear(
   drawPaperFibers(ctx, settings);
   drawPrintGrain(ctx, settings);
   drawFineDustAndScuffs(ctx, settings);
+}
+
+function erasePrintWearProtectedRegions(
+  ctx: CanvasRenderingContext2D,
+  protectedRegions: PrintWearProtectedRegion[],
+): void {
+  ctx.save();
+  ctx.globalCompositeOperation = "destination-out";
+  ctx.fillStyle = "#000";
+  for (const region of protectedRegions) {
+    ctx.beginPath();
+    addPrintWearProtectedRegionPath(ctx, region);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
