@@ -144,7 +144,7 @@ describe("card renderer output", () => {
     );
   });
 
-  it("clips paper aging away from artwork and the direct cost, stat, type, and nation regions", () => {
+  it("clips paper aging away from artwork, title bar, and the direct cost, stat, type, and nation regions", () => {
     const { canvas, calls } = createFakeCanvas();
 
     renderCard(canvas, DEFAULT_CARD, null);
@@ -155,6 +155,7 @@ describe("card renderer output", () => {
     expect(textureClip?.points).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ kind: "rect", x: 12, y: 99, width: 476, height: 426 }),
+        expect.objectContaining({ kind: "rect", x: 98, y: 13, width: 390, height: 86 }),
         expect.objectContaining({ kind: "rect", x: 10, y: 11, width: 82, height: 82 }),
         expect.objectContaining({ kind: "rect", x: 419, y: 21, width: 62, height: 62 }),
         expect.objectContaining({ kind: "moveTo", x: 129, y: 472 }),

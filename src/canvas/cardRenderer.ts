@@ -1095,6 +1095,9 @@ function getPrintWearProtectedRegions(layout: CardFaceLayout, kind: CardKind): P
   const regions: PrintWearProtectedRegion[] = [];
 
   regions.push({ kind: "rect", rect: layout.artwork });
+  if (layout.nameBar) {
+    regions.push({ kind: "rect", rect: layout.nameBar });
+  }
 
   if (layout.costBoard) {
     regions.push(
