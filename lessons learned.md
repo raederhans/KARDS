@@ -33,3 +33,4 @@
 - Card-face appearance control bounds should be shared between model normalization and UI inputs; otherwise imported legal values can render correctly but become impossible to preserve when edited.
 - Persistence cleanup has to be symmetric: if autosave or local-library writes strip uploaded artwork data URLs, legacy draft/library reads must strip them too or old embedded images can re-enter the editor and propagate.
 - Paper-aging protected regions for non-rectangular boards should reuse the drawn shape paths, not expanded rectangles; otherwise the surrounding paper can lose texture and look like a square cutout.
+- Canvas `evenodd` texture clips must avoid nested protected holes; a small region inside an already-protected banner can cancel the protection and let texture leak back in.

@@ -1115,7 +1115,10 @@ function getPrintWearProtectedRegions(layout: CardFaceLayout, kind: CardKind): P
     );
   }
 
-  regions.push({ kind: "rect", rect: expandRect(getNationMarkRect(layout), 4) });
+  const nationMarkRect = expandRect(getNationMarkRect(layout), 4);
+  if (!isRectCoveredByProtectedRect(regions, nationMarkRect)) {
+    regions.push({ kind: "rect", rect: nationMarkRect });
+  }
 
   if (layout.template === "hq" && layout.hqDefenseBoard) {
     regions.push({ kind: "stat-board", rect: layout.hqDefenseBoard, shape: "shield" });
@@ -1143,6 +1146,19 @@ function getNationMarkRect(layout: CardFaceLayout): Rect {
     width: layout.nationSize,
     height: layout.nationSize,
   };
+}
+
+function isRectCoveredByProtectedRect(regions: PrintWearProtectedRegion[], rect: Rect): boolean {
+  return regions.some((region) => region.kind === "rect" && containsRect(region.rect, rect));
+}
+
+function containsRect(container: Rect, rect: Rect): boolean {
+  return (
+    rect.x >= container.x &&
+    rect.y >= container.y &&
+    rect.x + rect.width <= container.x + container.width &&
+    rect.y + rect.height <= container.y + container.height
+  );
 }
 
 function expandRect(rect: Rect, padding: number): Rect {
