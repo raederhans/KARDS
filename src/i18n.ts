@@ -109,8 +109,8 @@ export const UI_TEXT = {
       chooseSampleTemplate: "Choose a card or HQ template...",
       cardTemplate: "Card",
       hqTemplate: "HQ",
-      stylePack: "Private style pack",
-      loadAssets: "Load Private Pack",
+      stylePack: "Reference style pack",
+      loadAssets: "Load a local pack",
       resetCard: "Reset Card",
       output: "Output",
       artwork: "Artwork",
@@ -119,7 +119,7 @@ export const UI_TEXT = {
       cardScope: "Scope",
       cardFaceOnly: "card face only",
       assets: "Assets",
-      assetsLoaded: "local pack loaded",
+      assetsLoaded: "reference pack loaded",
       assetsPlaceholder: "placeholder",
       manifest: "Style pack file",
       imageFontCounts: (imageCount: number, fontCount: number) => `${imageCount} images / ${fontCount} fonts`,
@@ -131,9 +131,9 @@ export const UI_TEXT = {
       jsonOpenFailed: "This JSON file could not be opened as a card project.",
     },
     errors: {
-      privatePreviewCatalog: "Could not load the local reference catalog.",
+      privatePreviewCatalog: "Could not load the reference catalog.",
       localAssetPack: "Could not load the local asset pack.",
-      privateReferencePreview: "Could not load the local reference preview.",
+      privateReferencePreview: "Could not load the reference preview.",
       referenceCompare: "Could not compare this reference image.",
       loadCardUrl: (url: string) => `Could not load ${url}.`,
     },
@@ -240,8 +240,8 @@ export const UI_TEXT = {
       chooseSampleTemplate: "选择普通卡牌或总部模板……",
       cardTemplate: "普通卡牌",
       hqTemplate: "总部",
-      stylePack: "私人风格包",
-      loadAssets: "加载私人包",
+      stylePack: "参考风格包",
+      loadAssets: "加载本地包",
       resetCard: "重置卡牌",
       output: "输出",
       artwork: "卡图",
@@ -250,7 +250,7 @@ export const UI_TEXT = {
       cardScope: "范围",
       cardFaceOnly: "仅卡面",
       assets: "素材",
-      assetsLoaded: "已加载本地包",
+      assetsLoaded: "参考包已加载",
       assetsPlaceholder: "占位素材",
       manifest: "风格包文件",
       imageFontCounts: (imageCount: number, fontCount: number) => `${imageCount} 张图片 / ${fontCount} 个字体`,
@@ -262,9 +262,9 @@ export const UI_TEXT = {
       jsonOpenFailed: "这个 JSON 文件无法作为卡牌项目打开。",
     },
     errors: {
-      privatePreviewCatalog: "无法加载本地参考目录。",
+      privatePreviewCatalog: "无法加载参考目录。",
       localAssetPack: "无法加载本地素材包。",
-      privateReferencePreview: "无法加载本地参考预览。",
+      privateReferencePreview: "无法加载参考预览。",
       referenceCompare: "无法对比这张参考图。",
       loadCardUrl: (url: string) => `无法加载 ${url}。`,
     },
@@ -481,15 +481,20 @@ export function localizeRuntimeMessage(language: Language, message: string): str
     return "kards-asset-pack.json 的 fonts 必须是数组。";
   }
 
+  if (message === "kards-asset-pack.json requiresPrivateExportConfirm must be a boolean.") {
+    return "kards-asset-pack.json 的 requiresPrivateExportConfirm 必须是布尔值。";
+  }
+
   if (message === "Every font entry needs both family and file.") {
     return "每个字体条目都需要 family 和 file。";
   }
 
   if (
     message === "Could not load the private preview catalog." ||
-    message === "Could not load the local reference catalog."
+    message === "Could not load the local reference catalog." ||
+    message === "Could not load the reference catalog."
   ) {
-    return "无法加载本地参考目录。";
+    return "无法加载参考目录。";
   }
 
   if (message === "Could not load the local asset pack.") {
@@ -498,9 +503,10 @@ export function localizeRuntimeMessage(language: Language, message: string): str
 
   if (
     message === "Could not load the private reference preview." ||
-    message === "Could not load the local reference preview."
+    message === "Could not load the local reference preview." ||
+    message === "Could not load the reference preview."
   ) {
-    return "无法加载本地参考预览。";
+    return "无法加载参考预览。";
   }
 
   if (message === "Could not compare this reference image.") {

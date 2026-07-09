@@ -1,0 +1,594 @@
+{
+  "version": 1,
+  "name": "KARDS authorized reference pack",
+  "rightsNotice": "Distributed by the project operator under separate authorization. KARDS and the referenced artwork remain owned by their respective rights holders.",
+  "requiresPrivateExportConfirm": false,
+  "images": [
+    {
+      "slot": "nation-mark",
+      "nationId": "anzac",
+      "kind": "tank",
+      "template": "unit",
+      "file": "images/nation-mark/unit/tank/anzac.png"
+    },
+    {
+      "slot": "type-icon",
+      "kind": "tank",
+      "file": "images/type-icon/tank/tank.png"
+    },
+    {
+      "slot": "rarity-pip",
+      "rarityId": "standard",
+      "file": "images/rarity-pip/standard-pip.png"
+    },
+    {
+      "slot": "set-mark",
+      "setId": "oceania-storm",
+      "file": "images/set-mark/oceania-storm.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "britain",
+      "kind": "infantry",
+      "template": "unit",
+      "file": "images/nation-mark/unit/infantry/britain.png"
+    },
+    {
+      "slot": "type-icon",
+      "kind": "infantry",
+      "file": "images/type-icon/infantry/infantry.png"
+    },
+    {
+      "slot": "set-mark",
+      "setId": "breakthrough",
+      "file": "images/set-mark/breakthrough.png"
+    },
+    {
+      "slot": "rarity-pip",
+      "rarityId": "special",
+      "file": "images/rarity-pip/special-pip.png"
+    },
+    {
+      "slot": "set-mark",
+      "setId": "winter-war",
+      "file": "images/set-mark/winter-war.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "finland",
+      "kind": "infantry",
+      "template": "unit",
+      "file": "images/nation-mark/unit/infantry/finland.png"
+    },
+    {
+      "slot": "set-mark",
+      "setId": "naval-warfare",
+      "file": "images/set-mark/naval-warfare.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "france",
+      "kind": "order",
+      "template": "command",
+      "file": "images/nation-mark/command/order/france.png"
+    },
+    {
+      "slot": "type-icon",
+      "kind": "order",
+      "file": "images/type-icon/order/order.png"
+    },
+    {
+      "slot": "set-mark",
+      "setId": "brothers-in-arms",
+      "file": "images/set-mark/brothers-in-arms.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "germany",
+      "kind": "artillery",
+      "template": "unit",
+      "file": "images/nation-mark/unit/artillery/germany.png"
+    },
+    {
+      "slot": "type-icon",
+      "kind": "artillery",
+      "file": "images/type-icon/artillery/artillery.png"
+    },
+    {
+      "slot": "rarity-pip",
+      "rarityId": "limited",
+      "file": "images/rarity-pip/limited-pip.png"
+    },
+    {
+      "slot": "set-mark",
+      "setId": "theaters-of-war",
+      "file": "images/set-mark/theaters-of-war.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "italy",
+      "kind": "fighter",
+      "template": "unit",
+      "file": "images/nation-mark/unit/fighter/italy.png"
+    },
+    {
+      "slot": "type-icon",
+      "kind": "fighter",
+      "file": "images/type-icon/fighter/fighter.png"
+    },
+    {
+      "slot": "set-mark",
+      "setId": "blood-and-iron",
+      "file": "images/set-mark/blood-and-iron.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "japan",
+      "kind": "fighter",
+      "template": "unit",
+      "file": "images/nation-mark/unit/fighter/japan.png"
+    },
+    {
+      "slot": "rarity-pip",
+      "rarityId": "elite",
+      "file": "images/rarity-pip/elite-pip.png"
+    },
+    {
+      "slot": "set-mark",
+      "setId": "legions",
+      "file": "images/set-mark/legions.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "neutral",
+      "kind": "infantry",
+      "template": "unit",
+      "file": "images/nation-mark/unit/infantry/neutral.png"
+    },
+    {
+      "slot": "set-mark",
+      "setId": "only-spawnable",
+      "file": "images/set-mark/only-spawnable.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "poland",
+      "kind": "countermeasure",
+      "template": "command",
+      "file": "images/nation-mark/command/countermeasure/poland.png"
+    },
+    {
+      "slot": "type-icon",
+      "kind": "countermeasure",
+      "file": "images/type-icon/countermeasure/countermeasure.png"
+    },
+    {
+      "slot": "set-mark",
+      "setId": "world-at-war",
+      "file": "images/set-mark/world-at-war.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "soviet",
+      "kind": "tank",
+      "template": "unit",
+      "file": "images/nation-mark/unit/tank/soviet.png"
+    },
+    {
+      "slot": "set-mark",
+      "setId": "base",
+      "file": "images/set-mark/base.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "soviet",
+      "kind": "bomber",
+      "template": "unit",
+      "file": "images/nation-mark/unit/bomber/soviet.png"
+    },
+    {
+      "slot": "type-icon",
+      "kind": "bomber",
+      "file": "images/type-icon/bomber/bomber.png"
+    },
+    {
+      "slot": "set-mark",
+      "setId": "covert-ops",
+      "file": "images/set-mark/covert-ops.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "us",
+      "kind": "infantry",
+      "template": "unit",
+      "file": "images/nation-mark/unit/infantry/us.png"
+    },
+    {
+      "slot": "set-mark",
+      "setId": "special",
+      "file": "images/set-mark/special.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "us",
+      "kind": "tank",
+      "template": "unit",
+      "file": "images/nation-mark/unit/tank/us.png"
+    },
+    {
+      "slot": "set-mark",
+      "setId": "homefront",
+      "file": "images/set-mark/homefront.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "us",
+      "kind": "bomber",
+      "template": "unit",
+      "file": "images/nation-mark/unit/bomber/us.png"
+    },
+    {
+      "slot": "set-mark",
+      "setId": "allegiance",
+      "file": "images/set-mark/allegiance.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "germany",
+      "kind": "tank",
+      "template": "unit",
+      "file": "images/nation-mark/unit/tank/germany.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "germany",
+      "kind": "fighter",
+      "template": "unit",
+      "file": "images/nation-mark/unit/fighter/germany.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "soviet",
+      "kind": "order",
+      "template": "command",
+      "file": "images/nation-mark/command/order/soviet.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "soviet",
+      "kind": "infantry",
+      "template": "unit",
+      "file": "images/nation-mark/unit/infantry/soviet.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "us",
+      "kind": "order",
+      "template": "command",
+      "file": "images/nation-mark/command/order/us.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "japan",
+      "kind": "tank",
+      "template": "unit",
+      "file": "images/nation-mark/unit/tank/japan.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "britain",
+      "kind": "artillery",
+      "template": "unit",
+      "file": "images/nation-mark/unit/artillery/britain.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "soviet",
+      "kind": "fighter",
+      "template": "unit",
+      "file": "images/nation-mark/unit/fighter/soviet.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "japan",
+      "kind": "bomber",
+      "template": "unit",
+      "file": "images/nation-mark/unit/bomber/japan.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "us",
+      "kind": "artillery",
+      "template": "unit",
+      "file": "images/nation-mark/unit/artillery/us.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "us",
+      "kind": "fighter",
+      "template": "unit",
+      "file": "images/nation-mark/unit/fighter/us.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "britain",
+      "kind": "tank",
+      "template": "unit",
+      "file": "images/nation-mark/unit/tank/britain.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "britain",
+      "kind": "fighter",
+      "template": "unit",
+      "file": "images/nation-mark/unit/fighter/britain.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "japan",
+      "kind": "infantry",
+      "template": "unit",
+      "file": "images/nation-mark/unit/infantry/japan.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "germany",
+      "kind": "bomber",
+      "template": "unit",
+      "file": "images/nation-mark/unit/bomber/germany.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "japan",
+      "kind": "artillery",
+      "template": "unit",
+      "file": "images/nation-mark/unit/artillery/japan.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "germany",
+      "kind": "infantry",
+      "template": "unit",
+      "file": "images/nation-mark/unit/infantry/germany.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "soviet",
+      "kind": "artillery",
+      "template": "unit",
+      "file": "images/nation-mark/unit/artillery/soviet.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "japan",
+      "kind": "order",
+      "template": "command",
+      "file": "images/nation-mark/command/order/japan.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "germany",
+      "kind": "order",
+      "template": "command",
+      "file": "images/nation-mark/command/order/germany.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "britain",
+      "kind": "order",
+      "template": "command",
+      "file": "images/nation-mark/command/order/britain.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "britain",
+      "kind": "countermeasure",
+      "template": "command",
+      "file": "images/nation-mark/command/countermeasure/britain.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "germany",
+      "kind": "countermeasure",
+      "template": "command",
+      "file": "images/nation-mark/command/countermeasure/germany.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "britain",
+      "kind": "bomber",
+      "template": "unit",
+      "file": "images/nation-mark/unit/bomber/britain.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "anzac",
+      "kind": "fighter",
+      "template": "unit",
+      "file": "images/nation-mark/unit/fighter/anzac.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "us",
+      "kind": "countermeasure",
+      "template": "command",
+      "file": "images/nation-mark/command/countermeasure/us.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "poland",
+      "kind": "tank",
+      "template": "unit",
+      "file": "images/nation-mark/unit/tank/poland.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "italy",
+      "kind": "tank",
+      "template": "unit",
+      "file": "images/nation-mark/unit/tank/italy.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "finland",
+      "kind": "tank",
+      "template": "unit",
+      "file": "images/nation-mark/unit/tank/finland.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "poland",
+      "kind": "fighter",
+      "template": "unit",
+      "file": "images/nation-mark/unit/fighter/poland.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "france",
+      "kind": "fighter",
+      "template": "unit",
+      "file": "images/nation-mark/unit/fighter/france.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "finland",
+      "kind": "artillery",
+      "template": "unit",
+      "file": "images/nation-mark/unit/artillery/finland.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "france",
+      "kind": "artillery",
+      "template": "unit",
+      "file": "images/nation-mark/unit/artillery/france.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "poland",
+      "kind": "infantry",
+      "template": "unit",
+      "file": "images/nation-mark/unit/infantry/poland.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "france",
+      "kind": "infantry",
+      "template": "unit",
+      "file": "images/nation-mark/unit/infantry/france.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "italy",
+      "kind": "infantry",
+      "template": "unit",
+      "file": "images/nation-mark/unit/infantry/italy.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "france",
+      "kind": "tank",
+      "template": "unit",
+      "file": "images/nation-mark/unit/tank/france.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "italy",
+      "kind": "artillery",
+      "template": "unit",
+      "file": "images/nation-mark/unit/artillery/italy.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "anzac",
+      "kind": "infantry",
+      "template": "unit",
+      "file": "images/nation-mark/unit/infantry/anzac.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "italy",
+      "kind": "order",
+      "template": "command",
+      "file": "images/nation-mark/command/order/italy.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "poland",
+      "kind": "order",
+      "template": "command",
+      "file": "images/nation-mark/command/order/poland.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "finland",
+      "kind": "order",
+      "template": "command",
+      "file": "images/nation-mark/command/order/finland.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "anzac",
+      "kind": "order",
+      "template": "command",
+      "file": "images/nation-mark/command/order/anzac.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "finland",
+      "kind": "countermeasure",
+      "template": "command",
+      "file": "images/nation-mark/command/countermeasure/finland.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "poland",
+      "kind": "bomber",
+      "template": "unit",
+      "file": "images/nation-mark/unit/bomber/poland.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "italy",
+      "kind": "bomber",
+      "template": "unit",
+      "file": "images/nation-mark/unit/bomber/italy.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "finland",
+      "kind": "fighter",
+      "template": "unit",
+      "file": "images/nation-mark/unit/fighter/finland.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "france",
+      "kind": "bomber",
+      "template": "unit",
+      "file": "images/nation-mark/unit/bomber/france.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "poland",
+      "kind": "artillery",
+      "template": "unit",
+      "file": "images/nation-mark/unit/artillery/poland.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "italy",
+      "kind": "countermeasure",
+      "template": "command",
+      "file": "images/nation-mark/command/countermeasure/italy.png"
+    },
+    {
+      "slot": "nation-mark",
+      "nationId": "neutral",
+      "kind": "order",
+      "template": "command",
+      "file": "images/nation-mark/command/order/neutral.png"
+    }
+  ],
+  "fonts": []
+}

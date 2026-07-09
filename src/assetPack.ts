@@ -41,6 +41,7 @@ type AssetPackManifest = {
   version: 1;
   name?: string;
   rightsNotice?: string;
+  requiresPrivateExportConfirm?: boolean;
   images?: AssetPackImageManifestEntry[];
   fonts?: AssetPackFontManifestEntry[];
 };
@@ -152,14 +153,27 @@ export async function loadAssetPackFromUrl(manifestUrl: string): Promise<LoadedA
   const imageEntries: CardRenderAssetEntry[] = [];
   const fonts: CardRenderFontSet = {};
 
-  for (const entry of manifest.images ?? []) {
-    try {
-      imageEntries.push({
-        ...entry,
-        image: await loadImageUrl(resolveManifestUrl(baseUrl, entry.file)),
-      });
-    } catch {
-      warnings.push(`Could not load image: ${entry.file}`);
+  const imageResults = await Promise.all(
+    (manifest.images ?? []).map(async (entry): Promise<
+      { asset: CardRenderAssetEntry } | { warning: string }
+    > => {
+      try {
+        return {
+          asset: {
+            ...entry,
+            image: await loadImageUrl(resolveManifestUrl(baseUrl, entry.file)),
+          } satisfies CardRenderAssetEntry,
+        };
+      } catch {
+        return { warning: `Could not load image: ${entry.file}` };
+      }
+    }),
+  );
+  for (const result of imageResults) {
+    if ("asset" in result) {
+      imageEntries.push(result.asset);
+    } else {
+      warnings.push(result.warning);
     }
   }
 
@@ -179,7 +193,7 @@ export async function loadAssetPackFromUrl(manifestUrl: string): Promise<LoadedA
     name: manifest.name ?? "Local KARDS asset pack",
     imageCount: imageEntries.length,
     fontCount: Object.keys(fonts).length,
-    requiresPrivateExportConfirm: true,
+    requiresPrivateExportConfirm: manifest.requiresPrivateExportConfirm ?? true,
     warnings,
     fonts,
     dispose() {
@@ -202,6 +216,12 @@ function parseAssetPackManifest(value: unknown): AssetPackManifest {
   }
   if (manifest.fonts !== undefined && !Array.isArray(manifest.fonts)) {
     throw new Error(`${LOCAL_ASSET_PACK_MANIFEST} fonts must be an array.`);
+  }
+  if (
+    manifest.requiresPrivateExportConfirm !== undefined &&
+    typeof manifest.requiresPrivateExportConfirm !== "boolean"
+  ) {
+    throw new Error(`${LOCAL_ASSET_PACK_MANIFEST} requiresPrivateExportConfirm must be a boolean.`);
   }
 
   for (const entry of manifest.images ?? []) {
@@ -228,6 +248,7 @@ function parseAssetPackManifest(value: unknown): AssetPackManifest {
     version: 1,
     name: manifest.name,
     rightsNotice: manifest.rightsNotice,
+    requiresPrivateExportConfirm: manifest.requiresPrivateExportConfirm,
     images: manifest.images ?? [],
     fonts: manifest.fonts ?? [],
   };

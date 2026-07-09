@@ -2,13 +2,13 @@ import type { DevPreviewArtworkReferenceCrop } from "./devPreviewState";
 import type { CardKind, CardSpec } from "./types";
 import { DEFAULT_CARD_APPEARANCE } from "./cardModel";
 
-const PRIVATE_PREVIEW_ROOT = "/.runtime/kards-private-assets/stage6-multisource-clean-extraction";
-const SAMPLE_ROOT = `${PRIVATE_PREVIEW_ROOT}/samples`;
-const REFERENCE_ROOT = "/.runtime/kards-private-assets/stage5-card-face-elements/references/cards";
-const HQ_REFERENCE_ROOT = `${PRIVATE_PREVIEW_ROOT}/references/kards-assets/hq2`;
+const PUBLIC_REFERENCE_ROOT = `${import.meta.env.BASE_URL}reference-pack/v1`;
+const SAMPLE_ROOT = `${PUBLIC_REFERENCE_ROOT}/samples`;
+const REFERENCE_ROOT = `${PUBLIC_REFERENCE_ROOT}/references/cards`;
+const HQ_REFERENCE_ROOT = `${PUBLIC_REFERENCE_ROOT}/references/hq`;
 
 export const DEV_PREVIEW_ASSET_PACK_URL =
-  `${PRIVATE_PREVIEW_ROOT}/kards-asset-pack.json`;
+  `${PUBLIC_REFERENCE_ROOT}/kards-asset-pack.json`;
 
 export type DevPreviewSample = {
   id: string;

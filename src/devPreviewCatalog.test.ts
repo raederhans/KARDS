@@ -23,10 +23,19 @@ import {
 import { SETS } from "./presets";
 
 describe("dev preview sample catalog", () => {
-  it("loads the renderer-ready Stage6 multisource asset pack", () => {
+  it("loads the bundled authorized reference pack", () => {
     expect(DEV_PREVIEW_ASSET_PACK_URL).toBe(
-      "/.runtime/kards-private-assets/stage6-multisource-clean-extraction/kards-asset-pack.json",
+      "/reference-pack/v1/kards-asset-pack.json",
     );
+    expect(DEV_PREVIEW_REFERENCE_SAMPLES.every((sample) =>
+      sample.referenceUrl.startsWith("/reference-pack/v1/references/cards/"),
+    )).toBe(true);
+    expect(DEV_PREVIEW_REFERENCE_SAMPLES.every((sample) =>
+      "cardUrl" in sample && sample.cardUrl.startsWith("/reference-pack/v1/samples/"),
+    )).toBe(true);
+    expect(DEV_PREVIEW_HQ_SAMPLES.every((sample) =>
+      sample.referenceUrl.startsWith("/reference-pack/v1/references/hq/"),
+    )).toBe(true);
   });
 
   it("covers every implemented official set with a reference sample", () => {

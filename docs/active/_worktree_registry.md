@@ -1,5 +1,22 @@
 # Worktree Registry
 
+## Authorized reference pack v0.2.0 release
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: publish all current local changes with the user-authorized card reference pack to GitHub and Vercel
+- Base branch/base commit: `main` / `origin/main`, `fb0aba244411889811ab2a0449990fa436c046a3`
+- Current branch/HEAD: `main`, initially aligned with `origin/main`
+- Task goal: ship v0.2.0 with the exact authorized reference-pack runtime closure, verified GitHub Pages output, GitHub release artifacts, and Vercel production deployment
+- Current status: in-progress; local implementation and verification complete, external publication pending
+- Main changed files: `src/App.tsx`, `src/assetPack.ts`, `src/devPreviewCatalog.ts`, `src/i18n.ts`, three existing tests, `tools/verify_dist_private_boundary.mjs`, package version files, `public/reference-pack/v1/**`, lessons, registry, and task records
+- Shared hotspot files: production startup, asset-pack manifest schema/loader, catalog paths, validation entrypoint, package release metadata
+- Validation run: focused 31/31 and 26/26 tests passed; final `npm run validate` passed 169 tests/typecheck/build/strict pack boundary; Pages-mode build passed; npm audit found 0 vulnerabilities
+- Tests not run: remote GitHub Pages and Vercel probes remain pending until the commit is pushed
+- Base/main divergence: none at task start; only this worktree exists
+- Potential overlap: green for worktrees; yellow semantic risk for startup and asset-loading behavior, closed by three independent reviews and regression tests
+- Recommended integration order: commit directly on clean, current `main`; push; wait for exact-SHA CI/Pages; tag final SHA; create draft release; deploy Preview; promote; publish release
+- Next action: explicitly stage all tracked and untracked release files, verify cached scope, then create the first Lore-protocol commit
+
 ## Card-kind reference samples and edit protection
 
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`

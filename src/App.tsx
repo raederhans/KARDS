@@ -64,9 +64,6 @@ function App() {
   const cardEditVersionRef = useRef(0);
   const isMountedRef = useRef(true);
   const didLoadDevPreviewRef = useRef(false);
-  const isDevPrivatePreviewEnabled =
-    import.meta.env.DEV && new URLSearchParams(window.location.search).get("privatePack") !== "off";
-
   useEffect(() => {
     saveLanguage(window.localStorage, language);
     document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
@@ -149,10 +146,6 @@ function App() {
   }, [card.artwork.dataUrl]);
 
   useEffect(() => {
-    if (!isDevPrivatePreviewEnabled) {
-      return;
-    }
-
     let cancelled = false;
     void import("./devPreviewCatalog")
       .then((catalog) => {
@@ -169,10 +162,10 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [isDevPrivatePreviewEnabled]);
+  }, []);
 
   useEffect(() => {
-    if (!isDevPrivatePreviewEnabled || !devPreviewCatalog) {
+    if (!devPreviewCatalog) {
       return;
     }
 
@@ -183,7 +176,7 @@ function App() {
 
     selectReferenceSample(devPreviewCatalog.getDefaultDevPreviewSample());
     void loadDevPreviewAssetPack();
-  }, [devPreviewCatalog, isDevPrivatePreviewEnabled]);
+  }, [devPreviewCatalog]);
 
   const previewCard = useMemo(() => normalizeCardSpec(card), [card]);
   const textureSettings = previewCard.appearance.texture;
@@ -202,14 +195,14 @@ function App() {
   );
   const referenceSample = useMemo(
     () =>
-      isDevPrivatePreviewEnabled && devPreviewCatalog && selectedReferenceSampleId
+      devPreviewCatalog && selectedReferenceSampleId
         ? devPreviewCatalog.getDevPreviewSampleById(selectedReferenceSampleId)
         : undefined,
-    [devPreviewCatalog, isDevPrivatePreviewEnabled, selectedReferenceSampleId],
+    [devPreviewCatalog, selectedReferenceSampleId],
   );
   const referenceSampleOptions = useMemo(
     () =>
-      isDevPrivatePreviewEnabled && devPreviewCatalog
+      devPreviewCatalog
         ? devPreviewCatalog.DEV_PREVIEW_REFERENCE_SAMPLES.map((sample) => ({
             id: sample.id,
             label: `${localizedReferenceSampleTitle(sample, language)} · ${translatePresetLabel(
@@ -220,23 +213,19 @@ function App() {
             )}`,
           }))
         : [],
-    [devPreviewCatalog, isDevPrivatePreviewEnabled, language],
+    [devPreviewCatalog, language],
   );
   const hqSampleOptions = useMemo(
     () =>
-      isDevPrivatePreviewEnabled && devPreviewCatalog
+      devPreviewCatalog
         ? devPreviewCatalog.DEV_PREVIEW_HQ_SAMPLES.map((sample) => ({
             id: sample.id,
             label: localizedReferenceSampleTitle(sample, language),
           }))
         : [],
-    [devPreviewCatalog, isDevPrivatePreviewEnabled, language],
+    [devPreviewCatalog, language],
   );
   useEffect(() => {
-    if (!isDevPrivatePreviewEnabled) {
-      return;
-    }
-
     const nextReferenceUrl = referenceSample?.referenceUrl ?? null;
     if (nextReferenceUrl === referenceImageUrl) {
       return;
@@ -245,7 +234,7 @@ function App() {
     setReferenceImageUrl(nextReferenceUrl);
     setReferenceDiff(null);
     setReferenceDiffError(null);
-  }, [isDevPrivatePreviewEnabled, referenceImageUrl, referenceSample]);
+  }, [referenceImageUrl, referenceSample]);
 
   function updateCard(update: CardUpdate) {
     cardEditVersionRef.current += 1;
@@ -521,7 +510,7 @@ function App() {
           hqSamples={hqSampleOptions}
           isTemplateLoading={isTemplateLoading}
           templateLoadError={templateLoadError}
-          onTemplateSampleLoad={isDevPrivatePreviewEnabled && devPreviewCatalog ? handleTemplateSampleLoad : undefined}
+          onTemplateSampleLoad={devPreviewCatalog ? handleTemplateSampleLoad : undefined}
           onRandomTexture={randomizeTexture}
           textureSettings={textureSettings}
           textureSourceLabel={

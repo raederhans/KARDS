@@ -1,0 +1,5 @@
+KARDS Authorized Reference Pack
+
+This resource pack is distributed by the project operator under separate authorization.
+KARDS, its artwork, and other referenced intellectual property remain owned by their respective rights holders.
+The authorization to distribute this pack does not transfer ownership or grant downstream users any rights beyond using the deployed KARDS Card Forge application.

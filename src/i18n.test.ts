@@ -60,6 +60,13 @@ describe("i18n", () => {
     expect(localizeRuntimeMessage("zh", "kards-asset-pack.json must use version 1.")).toBe(
       "kards-asset-pack.json 必须使用版本 1。",
     );
+    expect(
+      localizeRuntimeMessage(
+        "zh",
+        "kards-asset-pack.json requiresPrivateExportConfirm must be a boolean.",
+      ),
+    ).toBe("kards-asset-pack.json 的 requiresPrivateExportConfirm 必须是布尔值。");
+    expect(localizeRuntimeMessage("zh", "Could not load the reference catalog.")).toBe("无法加载参考目录。");
     expect(localizeRuntimeMessage("zh", "Unknown render asset slot: frame-board")).toBe(
       "未知渲染素材槽位：frame-board",
     );

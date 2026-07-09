@@ -224,6 +224,30 @@ describe("local asset pack loader", () => {
     expect(pack.resolveImage("type-icon", assetContext)).toBeInstanceOf(FakeImage);
   });
 
+  it("honors an explicit public-pack export confirmation policy", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            version: 1,
+            name: "Authorized public pack",
+            requiresPrivateExportConfirm: false,
+            images: [{ slot: "type-icon", kind: "tank", file: "images/tank.png" }],
+          }),
+        );
+      }),
+    );
+    vi.stubGlobal("window", { location: { href: "https://cards.example/" } });
+
+    const pack = await loadAssetPackFromUrl(
+      "https://cards.example/reference-pack/v1/kards-asset-pack.json",
+    );
+
+    expect(pack.name).toBe("Authorized public pack");
+    expect(pack.requiresPrivateExportConfirm).toBe(false);
+  });
+
   it("rejects manifest paths that escape the selected pack", async () => {
     await expect(
       loadAssetPackFromFiles([
