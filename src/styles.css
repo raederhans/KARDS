@@ -44,6 +44,7 @@ input,
 textarea,
 select {
   font: inherit;
+  font-size: 13px;
 }
 
 button {
@@ -51,7 +52,7 @@ button {
   border-radius: 6px;
   color: var(--text);
   background: linear-gradient(180deg, #29271c, #171712);
-  min-height: 42px;
+  min-height: 36px;
   cursor: pointer;
 }
 
@@ -196,8 +197,8 @@ button:disabled {
 .number-grid label,
 .crop-grid label {
   display: grid;
-  gap: 7px;
-  margin-bottom: 14px;
+  gap: 5px;
+  margin-bottom: 10px;
 }
 
 .field-block span,
@@ -227,14 +228,14 @@ select {
 
 input,
 select {
-  height: 40px;
-  padding: 0 11px;
+  height: 34px;
+  padding: 0 9px;
 }
 
 textarea {
   resize: vertical;
-  min-height: 104px;
-  padding: 10px 11px;
+  min-height: 88px;
+  padding: 8px 9px;
   line-height: 1.35;
 }
 
@@ -246,31 +247,31 @@ select:focus {
 }
 
 .field-block input[type="file"] {
-  min-height: 44px;
+  min-height: 38px;
   height: auto;
-  padding: 6px 8px;
+  padding: 5px 7px;
   overflow: hidden;
   color: var(--muted);
   font-size: 13px;
-  line-height: 30px;
+  line-height: 26px;
   text-overflow: ellipsis;
 }
 
 .field-block input[type="file"]::file-selector-button {
-  height: 30px;
-  margin: 0 9px 0 0;
-  padding: 0 10px;
+  height: 26px;
+  margin: 0 8px 0 0;
+  padding: 0 9px;
   border: 1px solid var(--line);
   border-radius: 4px;
   color: var(--text);
   background: linear-gradient(180deg, #3b3a32, #26251f);
   font: inherit;
   font-weight: 700;
-  line-height: 28px;
+  line-height: 24px;
 }
 
 input[type="range"] {
-  height: 32px;
+  height: 24px;
   padding: 0;
   accent-color: var(--accent);
 }
@@ -282,23 +283,23 @@ input[type="range"] {
 .keyword-chip-list {
   display: flex;
   position: relative;
-  min-height: 42px;
+  min-height: 36px;
   flex-wrap: wrap;
   align-items: center;
   align-content: center;
-  gap: 7px;
-  padding: 5px;
+  gap: 6px;
+  padding: 4px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.14);
 }
 
 .keyword-chip {
-  min-height: 30px;
+  min-height: 28px;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 0 9px;
+  gap: 6px;
+  padding: 0 8px;
   border-color: var(--line-strong);
   color: var(--accent-strong);
   cursor: grab;
@@ -340,13 +341,13 @@ input[type="range"] {
 .body-effect-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: 6px;
 }
 
 .body-effect-button {
-  min-height: 32px;
+  min-height: 28px;
   width: auto;
-  padding: 0 10px;
+  padding: 0 9px;
   border-color: var(--line-strong);
   color: var(--accent-strong);
   font-size: 12px;
@@ -404,16 +405,16 @@ input[type="range"] {
 }
 
 .crop-grid {
-  padding: 9px 10px 8px;
-  margin-bottom: 14px;
+  padding: 7px 9px;
+  margin-bottom: 10px;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.02);
 }
 
 .crop-grid .crop-control {
-  gap: 4px;
-  margin-bottom: 8px;
+  gap: 3px;
+  margin-bottom: 5px;
 }
 
 .crop-grid .crop-control:last-child {
@@ -424,32 +425,32 @@ input[type="range"] {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 .crop-value-input {
-  width: 76px;
-  height: 28px;
-  padding: 0 7px;
+  width: 70px;
+  height: 26px;
+  padding: 0 6px;
   text-align: right;
   font-size: 12px;
   font-weight: 700;
 }
 
 .crop-control input[type="range"] {
-  height: 22px;
+  height: 18px;
 }
 
 .select-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 8px;
 }
 
 .number-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
+  gap: 7px;
 }
 
 .number-grid input {
@@ -539,7 +540,7 @@ input[type="range"] {
 
 .export-stack {
   display: grid;
-  gap: 12px;
+  gap: 8px;
 }
 
 .export-stack.two-up {
@@ -548,8 +549,8 @@ input[type="range"] {
 
 .project-section {
   display: grid;
-  gap: 12px;
-  padding: 14px 0;
+  gap: 9px;
+  padding: 10px 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -561,7 +562,7 @@ input[type="range"] {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 .section-heading p {
@@ -582,13 +583,13 @@ input[type="range"] {
 .control-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  gap: 8px;
 }
 
 .control-grid label,
 .export-range {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .control-grid span,
@@ -614,19 +615,19 @@ input[type="range"] {
 }
 
 .texture-section {
-  gap: 10px;
+  gap: 8px;
 }
 
 .texture-range {
   display: grid;
-  gap: 6px;
+  gap: 4px;
 }
 
 .toggle-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 38px;
+  gap: 8px;
+  min-height: 32px;
   color: var(--text);
   font-size: 13px;
   font-weight: 700;
@@ -666,7 +667,7 @@ input[type="range"] {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 42px;
+  min-height: 36px;
   border: 1px solid var(--line);
   border-radius: 6px;
   color: var(--text);
@@ -683,9 +684,9 @@ input[type="range"] {
 
 .summary-list {
   display: grid;
-  gap: 10px;
-  margin: 24px 0;
-  padding: 16px 0;
+  gap: 7px;
+  margin: 16px 0;
+  padding: 12px 0;
   border-block: 1px solid var(--line);
 }
 
