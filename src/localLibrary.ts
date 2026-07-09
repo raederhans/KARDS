@@ -1,4 +1,5 @@
 import { normalizeCardSpec } from "./cardModel";
+import { MAX_LOCAL_LIBRARY_CARDS, MAX_LOCAL_LIBRARY_FILE_BYTES } from "./limits";
 import { toAutosaveCard } from "./storage";
 import type { CardSpec } from "./types";
 
@@ -62,6 +63,9 @@ export async function readLocalLibrary(directory: LocalDirectoryHandle): Promise
   if (file.size === 0) {
     return createEmptyLibrary();
   }
+  if (file.size > MAX_LOCAL_LIBRARY_FILE_BYTES) {
+    throw new Error("Local library file is too large.");
+  }
 
   return normalizeCardLibrary(JSON.parse(await file.text()));
 }
@@ -74,7 +78,7 @@ export async function saveCardToLocalLibrary(
   const nextLibrary: CardLibraryFile = {
     version: 1,
     updatedAt: new Date().toISOString(),
-    cards: [...library.cards, createCardLibraryEntry(card)],
+    cards: [...library.cards, createCardLibraryEntry(card)].slice(-MAX_LOCAL_LIBRARY_CARDS),
   };
   await writeLocalLibrary(directory, nextLibrary);
   return nextLibrary;
@@ -130,7 +134,7 @@ export function normalizeCardLibrary(input: unknown): CardLibraryFile {
     return createEmptyLibrary();
   }
 
-  const rawCards = Array.isArray(input.cards) ? input.cards : [];
+  const rawCards = Array.isArray(input.cards) ? input.cards.slice(-MAX_LOCAL_LIBRARY_CARDS) : [];
   const cards = rawCards
     .filter(isRecord)
     .map((rawCard): CardLibraryEntry => {

@@ -14,7 +14,10 @@ import {
   getDevPreviewSampleForCard,
   getDevPreviewSampleBySet,
 } from "./devPreviewCatalog";
-import { applyCardUpdate, shouldApplyDevPreviewSampleResult } from "./devPreviewState";
+import {
+  applyCardUpdate,
+  resolveDevPreviewReferenceSelection,
+} from "./devPreviewState";
 import { SETS } from "./presets";
 
 describe("dev preview sample catalog", () => {
@@ -106,18 +109,26 @@ describe("dev preview sample catalog", () => {
     expect(selectedSample?.label).toBe("DINGO");
   });
 
-  it("rejects stale private sample loads after newer requests or user edits", () => {
-    const currentRequest = {
-      isMounted: true,
-      requestId: 4,
-      activeRequestId: 4,
-      cardEditVersionAtStart: 2,
-      currentCardEditVersion: 2,
+  it("keeps right-panel reference selection separate from the editable card", () => {
+    const draftCard = {
+      ...DEFAULT_CARD,
+      title: "Custom draft",
+      body: "Do not replace me",
+      artwork: {
+        source: "upload" as const,
+        dataUrl: "data:image/png;base64,user-art",
+        crop: { x: 12, y: -8, scale: 1.4 },
+      },
     };
+    const selectedSample = DEV_PREVIEW_REFERENCE_SAMPLES.find((sample) => sample.id === "dingo");
 
-    expect(shouldApplyDevPreviewSampleResult(currentRequest)).toBe(true);
-    expect(shouldApplyDevPreviewSampleResult({ ...currentRequest, isMounted: false })).toBe(false);
-    expect(shouldApplyDevPreviewSampleResult({ ...currentRequest, activeRequestId: 5 })).toBe(false);
-    expect(shouldApplyDevPreviewSampleResult({ ...currentRequest, currentCardEditVersion: 3 })).toBe(false);
+    expect(selectedSample).toBeDefined();
+    expect(resolveDevPreviewReferenceSelection(selectedSample!)).toEqual({
+      selectedReferenceSampleId: "dingo",
+      referenceImageUrl: selectedSample!.referenceUrl,
+    });
+    expect(draftCard.title).toBe("Custom draft");
+    expect(draftCard.body).toBe("Do not replace me");
+    expect(draftCard.artwork.dataUrl).toBe("data:image/png;base64,user-art");
   });
 });

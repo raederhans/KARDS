@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CARD_TEXTURE_BOUNDS } from "../cardModel";
-import { TEXTURE_CONTROL_LIMITS, canStartCardExport, downloadBlob, safeFileName } from "./ProjectPanel";
+import {
+  TEXTURE_CONTROL_LIMITS,
+  canStartCardExport,
+  downloadBlob,
+  isImportableReferenceImageFile,
+  safeFileName,
+} from "./ProjectPanel";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -93,3 +99,42 @@ describe("ProjectPanel private export gate", () => {
     expect(confirmPrivateExport).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("ProjectPanel reference comparison import", () => {
+  it("uses the same bounded image conditions as artwork import", async () => {
+    await expect(isImportableReferenceImageFile(createImageFile("reference.png", pngHeader(), "image/png"))).resolves.toBe(true);
+    await expect(isImportableReferenceImageFile(createImageFile("reference.webp", webpHeader(), "image/webp"))).resolves.toBe(true);
+    await expect(isImportableReferenceImageFile(createImageFile("reference.jpg", jpegHeader(), ""))).resolves.toBe(true);
+    await expect(
+      isImportableReferenceImageFile(createImageFile("reference.gif", new Uint8Array([0x47, 0x49]), "image/gif")),
+    ).resolves.toBe(false);
+    await expect(
+      isImportableReferenceImageFile(createImageFile("reference.png", new Uint8Array(5 * 1024 * 1024 + 1), "image/png")),
+    ).resolves.toBe(false);
+    await expect(
+      isImportableReferenceImageFile(createImageFile("fake.png", new Uint8Array([1, 2, 3]), "image/png")),
+    ).resolves.toBe(false);
+  });
+});
+
+function createImageFile(name: string, content: Uint8Array, type: string): File {
+  return new File([toBlobPart(content)], name, { type });
+}
+
+function toBlobPart(content: Uint8Array): BlobPart {
+  const buffer = new ArrayBuffer(content.byteLength);
+  new Uint8Array(buffer).set(content);
+  return buffer;
+}
+
+function pngHeader(): Uint8Array {
+  return new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+}
+
+function webpHeader(): Uint8Array {
+  return new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50]);
+}
+
+function jpegHeader(): Uint8Array {
+  return new Uint8Array([0xff, 0xd8, 0xff]);
+}

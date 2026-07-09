@@ -1,12 +1,14 @@
 import { normalizeCardSpec } from "./cardModel";
 import type { CardSpec, CardUpdate } from "./types";
 
-export type DevPreviewSampleRequestState = {
-  isMounted: boolean;
-  requestId: number;
-  activeRequestId: number;
-  cardEditVersionAtStart: number;
-  currentCardEditVersion: number;
+export type DevPreviewReferenceSample = {
+  id: string;
+  referenceUrl: string;
+};
+
+export type DevPreviewReferenceSelection = {
+  selectedReferenceSampleId: string;
+  referenceImageUrl: string;
 };
 
 export function applyCardUpdate(currentCard: CardSpec, update: CardUpdate): CardSpec {
@@ -14,10 +16,11 @@ export function applyCardUpdate(currentCard: CardSpec, update: CardUpdate): Card
   return normalizeCardSpec(typeof update === "function" ? update(normalizedCurrent) : update);
 }
 
-export function shouldApplyDevPreviewSampleResult(state: DevPreviewSampleRequestState): boolean {
-  return (
-    state.isMounted &&
-    state.requestId === state.activeRequestId &&
-    state.cardEditVersionAtStart === state.currentCardEditVersion
-  );
+export function resolveDevPreviewReferenceSelection(
+  sample: DevPreviewReferenceSample,
+): DevPreviewReferenceSelection {
+  return {
+    selectedReferenceSampleId: sample.id,
+    referenceImageUrl: sample.referenceUrl,
+  };
 }

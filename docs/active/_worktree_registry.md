@@ -1,5 +1,60 @@
 # Worktree Registry
 
+## KARDS security scan hardening
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: repository security, integrity, and defensive capability assessment with fixes
+- Base branch/base commit: `main` / `origin/main`, `3be519432c1109a873a435f522094bd4507cc8be`
+- Current branch/HEAD: `main`, current security hardening closeout commit after `3be519432c1109a873a435f522094bd4507cc8be`
+- Task goal: run a repository-wide Codex Security scan, validate findings, safely harden confirmed issues, and leave a clear integration package
+- Status: integrated on `main` by this closeout; no separate KARDS worktree was present
+- Main changed files:
+  - Core files: `src/limits.ts`, `src/assetPack.ts`, `src/components/FieldPanel.tsx`, `src/components/ProjectPanel.tsx`, `src/visualDiff.ts`, `src/localLibrary.ts`, `src/i18n.ts`, `tools/kards_private_calibration.py`
+  - Test files: `src/assetPack.test.ts`, `src/components/FieldPanel.test.ts`, `src/components/ProjectPanel.test.ts`, `src/visualDiff.test.ts`, `src/localLibrary.test.ts`, `tools/kards_private_calibration_contract_test.py`
+  - Config/tool files: `package.json`, `tools/verify_dist_private_boundary.mjs`
+  - Docs/lessons files: `docs/active/security-scan/plan.md`, `docs/active/security-scan/context.md`, `docs/active/security-scan/task.md`, `docs/active/_worktree_registry.md`, `lessons learned.md`
+  - Temporary/security artifacts: `C:\Users\raede\AppData\Local\Temp\codex-security-scans\KARDS\3be519432c11_20260709T110919\**`
+- Shared hotspot files touched: asset-pack loader, ProjectPanel file import UI, i18n text, private calibration cleanup tooling, active worktree registry
+- Current diff summary:
+  - Treats symlinks and Windows junctions as link objects before private calibration cleanup recurses into directories, including top-level generated folders
+  - Requires asset-pack image/font manifest paths to stay relative to the selected pack, including URL-encoded traversal rejection
+  - Skips unsupported or oversized local asset-pack images/fonts before image decode or font load, and rejects oversized decoded images from dev-server packs
+  - Applies the existing PNG/JPEG/WebP under-5-MB policy to reference comparison image imports, including empty-MIME files with valid extension and magic bytes
+  - Adds shared PNG/JPEG/WebP magic-byte validation and decoded pixel caps for artwork upload, reference comparison, and local asset-pack image inputs
+  - Adds 2 MB local-library file and latest-200-card caps to keep local persistence recoverable
+  - Adds a `verify:dist-private-boundary` gate to `npm run validate`
+  - Adds Python private download allowlist, non-2xx rejection, invalid URL rejection, and 12 MB response caps
+  - Adds regression coverage and scan artifacts for the validated findings
+- Commit state: included in this closeout commit on `main`
+- Base/main divergence: `git fetch --prune origin` passed; `HEAD` and `origin/main` both equal `3be519432c1109a873a435f522094bd4507cc8be`
+- Potential conflict/overlap:
+  - Yellow: semantic overlap with future asset-pack loader, ProjectPanel file import/export, or private calibration tooling work
+  - Green: no separate KARDS worktree exists; `git worktree list --porcelain` showed only this checkout
+- Validation run:
+  - Codex Security preflight: ready
+  - Threat model written under the scan bundle
+  - Static `security-reviewer` pass: found private cleanup link handling and asset-pack resource-bound issues; false positives closed for project JSON XSS, private runtime leakage, and export path injection
+  - Final `security-reviewer` pass: found a low encoded-dot-segment gap in the asset-pack path fix; fixed with segment decoding and `%2e%2e/...` regressions
+  - `npm run validate`: passed, typecheck plus 15 Vitest files and 138 tests plus production build
+  - Follow-up targeted front-end tests: `npm test -- --run src/assetPack.test.ts src/components/FieldPanel.test.ts src/components/ProjectPanel.test.ts src/visualDiff.test.ts src/localLibrary.test.ts` passed, 5 files and 30 tests
+  - `py -3 -B -m py_compile tools\kards_private_calibration.py tools\kards_multisource_extraction.py tools\kards_private_calibration_contract_test.py`: passed
+  - `py -3 tools\kards_private_calibration_contract_test.py`: passed, 12 tests after follow-up
+  - Follow-up `npm run validate`: passed, typecheck plus 15 Vitest files and 142 tests, production build, and `verify:dist-private-boundary`
+  - Automation code-review lane: `REQUEST CHANGES`, found top-level private cleanup link risk, stale TypeScript helper signatures, dev-server asset-pack decoded-pixel gap, and dist marker-canary limitations; first three were fixed, marker-canary scope remains documented
+  - Automation architecture lane: `BLOCK`, found empty-MIME image import drift, local-library first-vs-latest 200 drift, and dev-server asset-pack pixel-bound drift; fixed in this closeout
+  - Follow-up targeted front-end tests after automation fixes: `npm test -- --run src/assetPack.test.ts src/components/FieldPanel.test.ts src/components/ProjectPanel.test.ts src/localLibrary.test.ts src/visualDiff.test.ts` passed, 5 files and 31 tests
+  - Follow-up `py -3 -B -m py_compile tools\kards_private_calibration.py tools\kards_multisource_extraction.py tools\kards_private_calibration_contract_test.py`: passed
+  - Follow-up `py -3 tools\kards_private_calibration_contract_test.py`: passed, 13 tests
+  - Final `npm run validate`: passed, typecheck plus 15 Vitest files and 143 tests, production build, and `verify:dist-private-boundary`
+  - `npm audit --audit-level=moderate`: passed, found 0 vulnerabilities
+  - `rg -n "\.runtime|kards-private-assets|stage5|stage6|DEV_PREVIEW|Washington\.png|t70\.card|dingo\.card" dist`: no matches
+  - `git diff --check`: passed with Windows LF-to-CRLF warnings only
+- Tests not run:
+  - No browser smoke; fixed paths are local file/import and private-tool boundaries covered by unit/type/build/Python checks
+  - No private visual smoke; it depends on private `.runtime` assets and is not needed for these security fixes
+- Recommended integration order: integrated directly on `main`; no rebase, cherry-pick, or worktree cleanup is needed
+- Next action: keep `verify:dist-private-boundary` as a marker canary and expand it only if future private asset names or production bundle shape change
+
 ## KARDS legacy persistence cleanup audit
 
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`

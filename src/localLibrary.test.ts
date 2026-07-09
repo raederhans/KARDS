@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_CARD } from "./cardModel";
-import { createCardLibraryEntry, normalizeCardLibrary, saveLibraryDirectoryHandle } from "./localLibrary";
+import {
+  createCardLibraryEntry,
+  normalizeCardLibrary,
+  readLocalLibrary,
+  saveLibraryDirectoryHandle,
+  type LocalDirectoryHandle,
+} from "./localLibrary";
 import type { CardSpec } from "./types";
 
 describe("local card library records", () => {
@@ -73,6 +79,42 @@ describe("local card library records", () => {
     expect(library.cards[0].card.artwork.source).toBe("none");
     expect(library.cards[0].card.artwork.dataUrl).toBeUndefined();
     expect(library.cards[0].card.artwork.crop).toEqual({ x: 2, y: 3, scale: 1.2 });
+  });
+
+  it("keeps only the most recent 200 cards when normalizing large local libraries", () => {
+    const cards = Array.from({ length: 205 }, (_, index) => ({
+      id: `card-${index}`,
+      title: `Card ${index}`,
+      updatedAt: "2026-07-04T00:00:00.000Z",
+      card: {
+        ...DEFAULT_CARD,
+        title: `Card ${index}`,
+      },
+    }));
+
+    const library = normalizeCardLibrary({ version: 1, cards });
+
+    expect(library.cards).toHaveLength(200);
+    expect(library.cards[0].id).toBe("card-5");
+    expect(library.cards[199].id).toBe("card-204");
+  });
+
+  it("rejects oversized local library files before parsing JSON", async () => {
+    const directory = {
+      name: "Cards",
+      getFileHandle: vi.fn(async () => ({
+        getFile: async () => ({
+          size: 2 * 1024 * 1024 + 1,
+          text: vi.fn(async () => "{}"),
+        }),
+        createWritable: async () => ({
+          write: vi.fn(async () => undefined),
+          close: vi.fn(async () => undefined),
+        }),
+      })),
+    } as unknown as LocalDirectoryHandle;
+
+    await expect(readLocalLibrary(directory)).rejects.toThrow("Local library file is too large");
   });
 
   it("waits for IndexedDB transaction completion before resolving saved handles", async () => {

@@ -1,4 +1,5 @@
 import { CARD_HEIGHT, CARD_WIDTH } from "./canvas/layout";
+import { isAllowedImageDimensions } from "./limits";
 
 export type ImageDataLike = {
   width: number;
@@ -103,6 +104,10 @@ function loadImageFromFile(file: File): Promise<HTMLImageElement> {
     const image = new Image();
     image.onload = () => {
       URL.revokeObjectURL(url);
+      if (!isAllowedImageDimensions(image)) {
+        reject(new Error(`Image dimensions are too large for ${file.name}.`));
+        return;
+      }
       resolve(image);
     };
     image.onerror = () => {

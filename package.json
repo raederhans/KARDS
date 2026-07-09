@@ -8,8 +8,9 @@
     "build": "npm run typecheck && vite build",
     "test": "vitest run",
     "smoke:visual:kards": "node tools/kards_browser_visual_smoke.mjs",
+    "verify:dist-private-boundary": "node tools/verify_dist_private_boundary.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json --pretty false && tsc --noEmit -p tsconfig.node.json --pretty false",
-    "validate": "npm run typecheck && npm test -- --run && npm run build"
+    "validate": "npm run typecheck && npm test -- --run && npm run build && npm run verify:dist-private-boundary"
   },
   "dependencies": {
     "@fontsource/libre-franklin": "^5.2.8",

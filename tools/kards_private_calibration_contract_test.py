@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from PIL import Image, ImageDraw
 
@@ -14,8 +15,10 @@ sys.path.insert(0, str(TOOLS_DIR))
 from kards_multisource_extraction import copy_stage5_clean_assets
 from kards_private_calibration import (
     add_manifest_crop,
+    download_bytes,
     extract_nation_mark_subject,
     extract_set_mark_subject,
+    remove_tree_contents,
     validate_output_dir,
 )
 
@@ -27,6 +30,28 @@ class PrivateCalibrationContractTest(unittest.TestCase):
             with self.subTest(segment=segment):
                 with self.assertRaises(SystemExit):
                     validate_output_dir(workspace / segment / ".runtime" / "private-assets", allow_outside_runtime=False)
+
+    def test_private_generator_cleanup_does_not_follow_links(self) -> None:
+        symlink = FakePath("symlink", is_symlink=True, is_dir=True)
+        junction = FakePath("junction", is_junction=True, is_dir=True)
+        normal_file = FakePath("file")
+        root = FakePath("root", children=[symlink, junction, normal_file])
+
+        remove_tree_contents(root)  # type: ignore[arg-type]
+
+        self.assertEqual(symlink.calls, ["unlink"])
+        self.assertEqual(junction.calls, ["rmdir"])
+        self.assertEqual(normal_file.calls, ["unlink"])
+
+    def test_private_generator_cleanup_does_not_follow_top_level_links(self) -> None:
+        symlink = FakePath("references", is_symlink=True, is_dir=True)
+        junction = FakePath("images", is_junction=True, is_dir=True)
+
+        remove_tree_contents(symlink)  # type: ignore[arg-type]
+        remove_tree_contents(junction)  # type: ignore[arg-type]
+
+        self.assertEqual(symlink.calls, ["unlink"])
+        self.assertEqual(junction.calls, ["rmdir"])
 
     def test_nation_mark_manifest_keeps_kind_and_template_entries(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -211,6 +236,36 @@ class PrivateCalibrationContractTest(unittest.TestCase):
 
         self.assertEqual(sum(1 for alpha in alpha_values if alpha > 0), 0)
 
+    def test_download_bytes_allows_known_https_sources_only(self) -> None:
+        with patch("kards_private_calibration.urlopen", return_value=FakeResponse(b"ok")) as urlopen:
+            self.assertEqual(
+                download_bytes("https://raw.githubusercontent.com/CraftSoul/kards-image-tool/main/data.json"),
+                b"ok",
+            )
+            urlopen.assert_called_once()
+
+        with self.assertRaises(SystemExit):
+            download_bytes("https://example.com/data.json")
+
+        with self.assertRaises(SystemExit):
+            download_bytes("http://www.kards.com/images/card/v52/en-EN/sample.png")
+
+    def test_download_bytes_rejects_bad_status_and_oversized_responses(self) -> None:
+        with patch("kards_private_calibration.urlopen", return_value=FakeResponse(b"nope", status=404)):
+            with self.assertRaises(SystemExit):
+                download_bytes("https://www.kards.com/images/card/v52/en-EN/sample.png")
+
+        with patch(
+            "kards_private_calibration.urlopen",
+            return_value=FakeResponse(b"ok", headers={"Content-Length": str(12 * 1024 * 1024 + 1)}),
+        ):
+            with self.assertRaises(SystemExit):
+                download_bytes("https://www.kards.com/images/card/v52/en-EN/sample.png")
+
+        with patch("kards_private_calibration.urlopen", return_value=FakeResponse(b"x" * (12 * 1024 * 1024 + 1))):
+            with self.assertRaises(SystemExit):
+                download_bytes("https://www.kards.com/images/card/v52/en-EN/sample.png")
+
 
 def make_mark_fixture() -> tuple[Image.Image, tuple[int, int, int, int]]:
     rect = (8, 8, 54, 54)
@@ -240,6 +295,61 @@ def assert_outer_ring_and_clear_corners(test: unittest.TestCase, output: Image.I
     for point in ((0, 0), (53, 0), (0, 53), (53, 53)):
         with test.subTest(point=point):
             test.assertEqual(pixels[point][3], 0)
+
+
+class FakePath:
+    def __init__(
+        self,
+        name: str,
+        *,
+        children: list["FakePath"] | None = None,
+        is_symlink: bool = False,
+        is_junction: bool = False,
+        is_dir: bool = False,
+    ) -> None:
+        self.name = name
+        self.children = children or []
+        self._is_symlink = is_symlink
+        self._is_junction = is_junction
+        self._is_dir = is_dir or bool(children)
+        self.calls: list[str] = []
+
+    def iterdir(self) -> list["FakePath"]:
+        return self.children
+
+    def is_symlink(self) -> bool:
+        return self._is_symlink
+
+    def is_junction(self) -> bool:
+        return self._is_junction
+
+    def is_dir(self) -> bool:
+        return self._is_dir
+
+    def unlink(self) -> None:
+        self.calls.append("unlink")
+
+    def rmdir(self) -> None:
+        self.calls.append("rmdir")
+
+
+class FakeResponse:
+    def __init__(self, data: bytes, *, status: int = 200, headers: dict[str, str] | None = None) -> None:
+        self.data = data
+        self.status = status
+        self.headers = headers or {}
+
+    def __enter__(self) -> "FakeResponse":
+        return self
+
+    def __exit__(self, _exc_type: object, _exc_value: object, _traceback: object) -> None:
+        return None
+
+    def getcode(self) -> int:
+        return self.status
+
+    def read(self, size: int = -1) -> bytes:
+        return self.data if size < 0 else self.data[:size]
 
 
 if __name__ == "__main__":

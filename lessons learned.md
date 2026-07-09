@@ -36,3 +36,6 @@
 - Canvas `evenodd` texture clips must avoid nested protected holes; a small region inside an already-protected banner can cancel the protection and let texture leak back in.
 - Overlapping paper-aging protected regions should be erased from a texture layer as a union; `evenodd` clipping can leak high-randomness texture into partially overlapping stat and type overlays.
 - Paper-aging layers should sit below readable foreground marks such as keywords, rarity pips, set marks, values, and type icons; masking alone is not a substitute for correct draw order.
+- Reference image selectors must not reuse sample-card loading paths that write into the editable card; changing a comparison image should only update comparison state.
+- Private output cleanup must treat symlinks and Windows junctions as link objects, not directories; marker ownership alone does not make recursive deletion safe across filesystem boundaries.
+- User-supplied image safety needs two separate gates: magic bytes prove the file type, while decoded pixel limits bound memory/CPU cost after the browser accepts the image.

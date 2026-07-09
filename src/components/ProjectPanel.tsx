@@ -21,7 +21,7 @@ import {
   type LocalDirectoryHandle,
 } from "../localLibrary";
 import type { CardSpec, CardUpdate } from "../types";
-import { MAX_PROJECT_FILE_BYTES } from "../limits";
+import { isAllowedImageFile, MAX_PROJECT_FILE_BYTES } from "../limits";
 import { LOCAL_ASSET_PACK_MANIFEST } from "../assetPack";
 import type { ImageDiffMetrics } from "../visualDiff";
 
@@ -197,8 +197,19 @@ export function ProjectPanel({
   }
 
   function compareReference(event: React.ChangeEvent<HTMLInputElement>) {
-    onReferenceCompare(event.target.files?.[0] ?? null);
-    event.target.value = "";
+    const input = event.target;
+    const file = event.target.files?.[0] ?? null;
+    void compareReferenceFile(file, input);
+  }
+
+  async function compareReferenceFile(file: File | null, input: HTMLInputElement) {
+    if (file && !(await isImportableReferenceImageFile(file))) {
+      window.alert(text.invalidReferenceImage);
+      input.value = "";
+      return;
+    }
+    onReferenceCompare(file);
+    input.value = "";
   }
 
   async function chooseExportDirectory() {
@@ -396,7 +407,7 @@ export function ProjectPanel({
         </label>
         <label className="file-button">
           {text.comparePng}
-          <input name="reference-card-image" type="file" accept="image/*" onChange={compareReference} />
+          <input name="reference-card-image" type="file" accept="image/png,image/jpeg,image/webp" onChange={compareReference} />
         </label>
         {onTemplateSampleLoad && templateSamples.length ? (
           <label className="field-block compact-field-block">
@@ -549,6 +560,10 @@ export function safeFileName(value: string): string {
     .normalize("NFKD")
     .replace(/[^\p{Letter}\p{Number}]+/gu, "-")
     .replace(/(^-|-$)/g, "") || "custom-card";
+}
+
+export function isImportableReferenceImageFile(file: Pick<File, "name" | "type" | "size" | "slice">): Promise<boolean> {
+  return isAllowedImageFile(file);
 }
 
 function ExportRange({

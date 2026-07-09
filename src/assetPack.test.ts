@@ -23,8 +23,12 @@ class FakeImage {
   onerror: (() => void) | null = null;
   width = 1;
   height = 1;
+  naturalWidth = 1;
+  naturalHeight = 1;
 
   set src(value: string) {
+    this.naturalWidth = value.includes("huge-pixels") ? 5000 : 1;
+    this.naturalHeight = value.includes("huge-pixels") ? 5000 : 1;
     queueMicrotask(() => {
       if (value.includes("bad-image")) {
         this.onerror?.();
@@ -92,13 +96,13 @@ describe("local asset pack loader", () => {
         JSON.stringify({
           version: 1,
           name: "Test pack",
-          images: [{ slot: "frame", file: "images/frame.png", template: "unit" }],
-          fonts: [{ role: "title", family: "Kards Test", file: "fonts/header.ttf" }],
+          images: [{ slot: "frame", file: "images/FRAME.PNG", template: "unit" }],
+          fonts: [{ role: "title", family: "Kards Test", file: "fonts/HEADER.TTF" }],
         }),
         "pack/kards-asset-pack.json",
       ),
-      createFile("frame.png", "image", "pack/images/frame.png"),
-      createFile("header.ttf", "font", "pack/fonts/header.ttf"),
+      createFile("FRAME.PNG", pngHeader(), "pack/images/FRAME.PNG"),
+      createFile("HEADER.TTF", "font", "pack/fonts/HEADER.TTF"),
     ]);
 
     expect(pack.name).toBe("Test pack");
@@ -131,6 +135,70 @@ describe("local asset pack loader", () => {
     expect(pack.warnings).toEqual(["Missing image: images/missing.png"]);
   });
 
+  it("skips unsupported or oversized local asset pack files", async () => {
+    const pack = await loadAssetPackFromFiles([
+      createFile(
+        "kards-asset-pack.json",
+        JSON.stringify({
+          version: 1,
+          images: [
+            { slot: "frame", file: "images/frame.gif" },
+            { slot: "cost-board", file: "images/huge.png" },
+          ],
+          fonts: [
+            { role: "title", family: "Bad Font", file: "fonts/font.exe" },
+            { role: "body", family: "Huge Font", file: "fonts/huge.ttf" },
+          ],
+        }),
+        "pack/kards-asset-pack.json",
+      ),
+      createFile("frame.gif", "gif", "pack/images/frame.gif", "image/gif"),
+      createFile("huge.png", new Uint8Array(5 * 1024 * 1024 + 1), "pack/images/huge.png", "image/png"),
+      createFile("font.exe", "font", "pack/fonts/font.exe"),
+      createFile("huge.ttf", new Uint8Array(8 * 1024 * 1024 + 1), "pack/fonts/huge.ttf"),
+    ]);
+
+    expect(pack.imageCount).toBe(0);
+    expect(pack.fontCount).toBe(0);
+    expect(pack.warnings).toEqual([
+      "Unsupported image: images/frame.gif",
+      "Image too large: images/huge.png",
+      "Unsupported font: fonts/font.exe",
+      "Font too large: fonts/huge.ttf",
+    ]);
+  });
+
+  it("rejects local asset pack images with fake signatures or excessive decoded pixels", async () => {
+    const fakeSignaturePack = await loadAssetPackFromFiles([
+      createFile(
+        "kards-asset-pack.json",
+        JSON.stringify({
+          version: 1,
+          images: [{ slot: "frame", file: "images/fake.png" }],
+        }),
+        "pack/kards-asset-pack.json",
+      ),
+      createFile("fake.png", new Uint8Array([1, 2, 3]), "pack/images/fake.png", "image/png"),
+    ]);
+
+    expect(fakeSignaturePack.imageCount).toBe(0);
+    expect(fakeSignaturePack.warnings).toEqual(["Unsupported image: images/fake.png"]);
+
+    await expect(
+      loadAssetPackFromFiles([
+        createFile(
+          "kards-asset-pack.json",
+          JSON.stringify({
+            version: 1,
+            images: [{ slot: "frame", file: "images/huge-pixels.png" }],
+          }),
+          "pack/kards-asset-pack.json",
+        ),
+        createFile("huge-pixels.png", pngHeader(), "pack/images/huge-pixels.png", "image/png"),
+      ]),
+    ).rejects.toThrow("Image dimensions are too large");
+  });
+
   it("loads manifest images from a dev-server URL", async () => {
     vi.stubGlobal(
       "fetch",
@@ -156,6 +224,98 @@ describe("local asset pack loader", () => {
     expect(pack.resolveImage("type-icon", assetContext)).toBeInstanceOf(FakeImage);
   });
 
+  it("rejects manifest paths that escape the selected pack", async () => {
+    await expect(
+      loadAssetPackFromFiles([
+        createFile(
+          "kards-asset-pack.json",
+          JSON.stringify({
+            version: 1,
+            images: [{ slot: "frame", file: "../private/frame.png" }],
+          }),
+          "pack/kards-asset-pack.json",
+        ),
+      ]),
+    ).rejects.toThrow("Asset manifest paths must stay relative");
+
+    await expect(
+      loadAssetPackFromFiles([
+        createFile(
+          "kards-asset-pack.json",
+          JSON.stringify({
+            version: 1,
+            images: [{ slot: "frame", file: "%2e%2e/private/frame.png" }],
+          }),
+          "pack/kards-asset-pack.json",
+        ),
+      ]),
+    ).rejects.toThrow("Asset manifest paths must stay relative");
+  });
+
+  it("rejects absolute URLs in dev-server manifests", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            version: 1,
+            images: [{ slot: "type-icon", kind: "tank", file: "https://example.test/tank.png" }],
+          }),
+        );
+      }),
+    );
+    vi.stubGlobal("window", { location: { href: "http://127.0.0.1:5174/" } });
+
+    await expect(
+      loadAssetPackFromUrl(
+        "http://127.0.0.1:5174/.runtime/kards-private-assets/stage6/kards-asset-pack.json",
+      ),
+    ).rejects.toThrow("Asset manifest paths must stay relative");
+  });
+
+  it("rejects encoded traversal in dev-server manifests", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            version: 1,
+            images: [{ slot: "type-icon", kind: "tank", file: "%2e%2e/private/tank.png" }],
+          }),
+        );
+      }),
+    );
+    vi.stubGlobal("window", { location: { href: "http://127.0.0.1:5174/" } });
+
+    await expect(
+      loadAssetPackFromUrl(
+        "http://127.0.0.1:5174/.runtime/kards-private-assets/stage6/kards-asset-pack.json",
+      ),
+    ).rejects.toThrow("Asset manifest paths must stay relative");
+  });
+
+  it("skips dev-server images that decode to excessive pixels", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        return new Response(
+          JSON.stringify({
+            version: 1,
+            images: [{ slot: "frame", file: "images/huge-pixels.png" }],
+          }),
+        );
+      }),
+    );
+    vi.stubGlobal("window", { location: { href: "http://127.0.0.1:5174/" } });
+
+    const pack = await loadAssetPackFromUrl(
+      "http://127.0.0.1:5174/.runtime/kards-private-assets/stage6/kards-asset-pack.json",
+    );
+
+    expect(pack.imageCount).toBe(0);
+    expect(pack.warnings).toEqual(["Could not load image: images/huge-pixels.png"]);
+  });
+
   it("releases already loaded URLs when a later image fails", async () => {
     await expect(
       loadAssetPackFromFiles([
@@ -170,8 +330,8 @@ describe("local asset pack loader", () => {
           }),
           "pack/kards-asset-pack.json",
         ),
-        createFile("good.png", "good", "pack/images/good.png"),
-        createFile("bad-image.png", "bad", "pack/images/bad-image.png"),
+        createFile("good.png", pngHeader(), "pack/images/good.png"),
+        createFile("bad-image.png", pngHeader(), "pack/images/bad-image.png"),
       ]),
     ).rejects.toThrow("Could not read bad-image.png as an image");
 
@@ -179,10 +339,29 @@ describe("local asset pack loader", () => {
   });
 });
 
-function createFile(name: string, content: string, webkitRelativePath: string): File {
-  const file = new File([content], name);
+function createFile(
+  name: string,
+  content: string | Uint8Array,
+  webkitRelativePath: string,
+  type = "",
+): File {
+  const file = new File([toBlobPart(content)], name, { type });
   Object.defineProperty(file, "webkitRelativePath", {
     value: webkitRelativePath,
   });
   return file;
+}
+
+function toBlobPart(content: string | Uint8Array): BlobPart {
+  if (typeof content === "string") {
+    return content;
+  }
+
+  const buffer = new ArrayBuffer(content.byteLength);
+  new Uint8Array(buffer).set(content);
+  return buffer;
+}
+
+function pngHeader(): Uint8Array {
+  return new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 }

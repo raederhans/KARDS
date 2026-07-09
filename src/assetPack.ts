@@ -6,11 +6,20 @@ import {
   type CardRenderAssets,
   type CardRenderFontSet,
 } from "./canvas/renderAssets";
+import {
+  hasAllowedImageSignature,
+  isAllowedImageDimensions,
+  isAllowedImageType,
+  MAX_IMAGE_FILE_BYTES,
+} from "./limits";
 import type { CardKind } from "./types";
 import type { CardTemplate } from "./canvas/layout";
 
 export const LOCAL_ASSET_PACK_MANIFEST = "kards-asset-pack.json";
 const FONT_ROLES = new Set(["title", "body", "keyword", "cost", "stat", "utility"]);
+const ALLOWED_IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp"]);
+const ALLOWED_FONT_EXTENSIONS = new Set([".ttf", ".otf", ".woff", ".woff2"]);
+const MAX_ASSET_PACK_FONT_BYTES = 8 * 1024 * 1024;
 
 type AssetPackImageManifestEntry = {
   slot: CardRenderAssetSlot;
@@ -69,6 +78,18 @@ export async function loadAssetPackFromFiles(fileList: FileList | File[]): Promi
         warnings.push(`Missing image: ${entry.file}`);
         continue;
       }
+      if (!isAllowedAssetPackImageType(imageFile)) {
+        warnings.push(`Unsupported image: ${entry.file}`);
+        continue;
+      }
+      if (imageFile.size > MAX_IMAGE_FILE_BYTES) {
+        warnings.push(`Image too large: ${entry.file}`);
+        continue;
+      }
+      if (!(await hasAllowedImageSignature(imageFile))) {
+        warnings.push(`Unsupported image: ${entry.file}`);
+        continue;
+      }
 
       const loadedImage = await loadImageFile(imageFile);
       objectUrls.push(loadedImage.url);
@@ -79,6 +100,14 @@ export async function loadAssetPackFromFiles(fileList: FileList | File[]): Promi
       const fontFile = filesByPath.get(normalizePath(entry.file));
       if (!fontFile) {
         warnings.push(`Missing font: ${entry.file}`);
+        continue;
+      }
+      if (!isAllowedAssetPackFont(fontFile)) {
+        warnings.push(`Unsupported font: ${entry.file}`);
+        continue;
+      }
+      if (fontFile.size > MAX_ASSET_PACK_FONT_BYTES) {
+        warnings.push(`Font too large: ${entry.file}`);
         continue;
       }
 
@@ -182,12 +211,14 @@ function parseAssetPackManifest(value: unknown): AssetPackManifest {
     if (!entry.file) {
       throw new Error(`Asset slot ${entry.slot} is missing a file path.`);
     }
+    validateManifestRelativePath(entry.file);
   }
 
   for (const entry of manifest.fonts ?? []) {
     if (!entry.family || !entry.file) {
       throw new Error("Every font entry needs both family and file.");
     }
+    validateManifestRelativePath(entry.file);
     if (entry.role && !FONT_ROLES.has(entry.role)) {
       throw new Error(`Unknown font role: ${entry.role}`);
     }
@@ -228,11 +259,74 @@ function normalizePath(path: string): string {
   return path.replace(/\\/g, "/").replace(/^\/+/, "").toLowerCase();
 }
 
+function isAllowedAssetPackImageType(file: File): boolean {
+  return isAllowedImageType(file.type) || (!file.type && ALLOWED_IMAGE_EXTENSIONS.has(getFileExtension(file.name)));
+}
+
+function isAllowedAssetPackFont(file: File): boolean {
+  return ALLOWED_FONT_EXTENSIONS.has(getFileExtension(file.name));
+}
+
+function getFileExtension(path: string): string {
+  const baseName = getBaseName(path);
+  const dotIndex = baseName.lastIndexOf(".");
+  return dotIndex >= 0 ? baseName.slice(dotIndex).toLowerCase() : "";
+}
+
+function validateManifestRelativePath(path: string): void {
+  const normalizedPath = path.replace(/\\/g, "/");
+  const pathSegments = normalizedPath.split("/");
+  if (
+    /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(normalizedPath) ||
+    normalizedPath.startsWith("/") ||
+    normalizedPath.startsWith("//") ||
+    pathSegments.some((part) => !isSafeManifestPathSegment(part, path))
+  ) {
+    throw new Error(`Asset manifest paths must stay relative to the selected pack: ${path}`);
+  }
+}
+
+function isSafeManifestPathSegment(segment: string, fullPath: string): boolean {
+  let decodedSegment: string;
+  try {
+    decodedSegment = decodeManifestPathSegment(segment);
+  } catch {
+    throw new Error(`Asset manifest paths must stay relative to the selected pack: ${fullPath}`);
+  }
+  return (
+    segment !== "" &&
+    decodedSegment !== "" &&
+    decodedSegment !== "." &&
+    decodedSegment !== ".." &&
+    !decodedSegment.includes("/") &&
+    !decodedSegment.includes("\\")
+  );
+}
+
+function decodeManifestPathSegment(segment: string): string {
+  let decodedSegment = segment;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const nextSegment = decodeURIComponent(decodedSegment);
+    if (nextSegment === decodedSegment) {
+      return decodedSegment;
+    }
+    decodedSegment = nextSegment;
+  }
+  return decodedSegment;
+}
+
 function loadImageFile(file: File): Promise<{ image: HTMLImageElement; url: string }> {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file);
     const image = new Image();
-    image.onload = () => resolve({ image, url });
+    image.onload = () => {
+      if (!isAllowedImageDimensions(image)) {
+        URL.revokeObjectURL(url);
+        reject(new Error(`Image dimensions are too large for ${file.name}.`));
+        return;
+      }
+      resolve({ image, url });
+    };
     image.onerror = () => {
       URL.revokeObjectURL(url);
       reject(new Error(`Could not read ${file.name} as an image.`));
@@ -244,7 +338,13 @@ function loadImageFile(file: File): Promise<{ image: HTMLImageElement; url: stri
 function loadImageUrl(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
-    image.onload = () => resolve(image);
+    image.onload = () => {
+      if (!isAllowedImageDimensions(image)) {
+        reject(new Error(`Image dimensions are too large for ${url}.`));
+        return;
+      }
+      resolve(image);
+    };
     image.onerror = () => reject(new Error(`Could not read ${url} as an image.`));
     image.src = url;
   });

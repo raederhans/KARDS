@@ -13,8 +13,8 @@ import {
 import {
   BODY_MAX_LENGTH,
   CARD_FACE_VALUE_MAX,
-  isAllowedImageType,
-  MAX_IMAGE_FILE_BYTES,
+  isAllowedImageDimensions,
+  isAllowedImageFile,
   TITLE_MAX_LENGTH,
 } from "../limits";
 import {
@@ -31,13 +31,17 @@ type FieldPanelProps = {
   language: Language;
   text: UiText["fieldPanel"];
   onCardChange: (update: CardUpdate) => void;
-  referenceSamples?: {
-    id: string;
-    label: string;
-  }[];
-  selectedReferenceSampleId?: string;
-  onReferenceSampleSelect?: (sampleId: string) => void;
 };
+
+export type FieldPanelSectionId =
+  | "artwork"
+  | "title"
+  | "keywords"
+  | "body"
+  | "identity"
+  | "values";
+
+export type CollapsedFieldPanelSections = Partial<Record<FieldPanelSectionId, boolean>>;
 
 type KeywordDragState = {
   keywordId: string;
@@ -60,13 +64,13 @@ export function FieldPanel({
   language,
   text,
   onCardChange,
-  referenceSamples = [],
-  selectedReferenceSampleId = "",
-  onReferenceSampleSelect,
 }: FieldPanelProps) {
   const [keywordDrag, setKeywordDrag] = useState<KeywordDragState | null>(null);
+  const [collapsedSections, setCollapsedSections] = useState<CollapsedFieldPanelSections>({});
+  const [isArtworkDragActive, setIsArtworkDragActive] = useState(false);
   const suppressKeywordClickRef = useRef(false);
   const bodyTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const artworkDragDepthRef = useRef(0);
   const kind = getKind(card.kind);
   const selectedKeywordIds = resolveCardKeywordIds(card);
   const availableKeywords = KEYWORD_PRESETS.filter((keyword) => canAddKeywordId(selectedKeywordIds, keyword.id));
@@ -319,16 +323,14 @@ export function FieldPanel({
     }));
   }
 
-  function handleArtworkUpload(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+  async function importArtworkFile(file: File | null | undefined): Promise<boolean> {
     if (!file) {
-      return;
+      return false;
     }
 
-    if (!isAllowedImageType(file.type) || file.size > MAX_IMAGE_FILE_BYTES) {
+    if (!(await isImportableArtworkFile(file)) || !(await hasAllowedArtworkDimensions(file))) {
       window.alert(text.invalidArtwork);
-      event.target.value = "";
-      return;
+      return false;
     }
 
     const reader = new FileReader();
@@ -347,398 +349,571 @@ export function FieldPanel({
       }));
     });
     reader.readAsDataURL(file);
+    return true;
+  }
+
+  function handleArtworkUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const input = event.target;
+    void importArtworkFile(input.files?.[0]).then((imported) => {
+      if (!imported) {
+        input.value = "";
+      }
+    });
+  }
+
+  function handleArtworkDragEnter(event: React.DragEvent<HTMLDivElement>) {
+    if (!hasDraggedFiles(event.dataTransfer)) {
+      return;
+    }
+
+    event.preventDefault();
+    artworkDragDepthRef.current += 1;
+    setIsArtworkDragActive(true);
+  }
+
+  function handleArtworkDragOver(event: React.DragEvent<HTMLDivElement>) {
+    if (!hasDraggedFiles(event.dataTransfer)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  }
+
+  function handleArtworkDragLeave(event: React.DragEvent<HTMLDivElement>) {
+    if (!hasDraggedFiles(event.dataTransfer)) {
+      return;
+    }
+
+    artworkDragDepthRef.current = Math.max(0, artworkDragDepthRef.current - 1);
+    if (artworkDragDepthRef.current === 0) {
+      setIsArtworkDragActive(false);
+    }
+  }
+
+  function handleArtworkDrop(event: React.DragEvent<HTMLDivElement>) {
+    if (!hasDraggedFiles(event.dataTransfer)) {
+      return;
+    }
+
+    event.preventDefault();
+    artworkDragDepthRef.current = 0;
+    setIsArtworkDragActive(false);
+    void importArtworkFile(event.dataTransfer.files?.[0]);
+  }
+
+  function toggleSection(sectionId: FieldPanelSectionId) {
+    setCollapsedSections((currentSections) => toggleFieldPanelSection(currentSections, sectionId));
   }
 
   return (
     <aside className="panel field-panel" aria-label={text.aria}>
-      <label className="field-block">
-        <span>{text.artwork}</span>
-        <input name="artwork-upload" type="file" accept="image/png,image/jpeg,image/webp" onChange={handleArtworkUpload} />
-      </label>
-
-      <div className="crop-grid">
-        <label className="crop-control">
-          <span className="crop-control-header">
-            <span>{text.artX}</span>
-            <input
-              className="crop-value-input"
-              name="artwork-crop-x-value"
-              type="number"
-              min="-300"
-              max="300"
-              step="1"
-              value={card.artwork.crop.x}
-              onChange={(event) => updateCrop("x", event.target.value)}
-            />
-          </span>
-          <input
-            name="artwork-crop-x"
-            type="range"
-            min="-300"
-            max="300"
-            value={card.artwork.crop.x}
-            onChange={(event) => updateCrop("x", event.target.value)}
-          />
-        </label>
-        <label className="crop-control">
-          <span className="crop-control-header">
-            <span>{text.artY}</span>
-            <input
-              className="crop-value-input"
-              name="artwork-crop-y-value"
-              type="number"
-              min="-300"
-              max="300"
-              step="1"
-              value={card.artwork.crop.y}
-              onChange={(event) => updateCrop("y", event.target.value)}
-            />
-          </span>
-          <input
-            name="artwork-crop-y"
-            type="range"
-            min="-300"
-            max="300"
-            value={card.artwork.crop.y}
-            onChange={(event) => updateCrop("y", event.target.value)}
-          />
-        </label>
-        <label className="crop-control">
-          <span className="crop-control-header">
-            <span>{text.zoom}</span>
-            <input
-              className="crop-value-input"
-              name="artwork-crop-scale-value"
-              type="number"
-              min="0.6"
-              max="3"
-              step="0.05"
-              value={card.artwork.crop.scale}
-              onChange={(event) => updateCrop("scale", event.target.value)}
-            />
-          </span>
-          <input
-            name="artwork-crop-scale"
-            type="range"
-            min="0.6"
-            max="3"
-            step="0.05"
-            value={card.artwork.crop.scale}
-            onChange={(event) => updateCrop("scale", event.target.value)}
-          />
-        </label>
-      </div>
-
-      <label className="field-block">
-        <span>{text.title}</span>
-        <input
-          name="card-title"
-          value={card.title}
-          maxLength={TITLE_MAX_LENGTH}
-          onChange={(event) => update({ title: event.target.value })}
-        />
-      </label>
-      <div className="text-appearance-grid" aria-label={text.titleAppearance}>
-        <TextAppearanceRange
-          label={text.fontSize}
-          name="card-title-font-scale"
-          value={card.appearance.text.title.fontScale}
-          bounds={CARD_TEXT_APPEARANCE_BOUNDS.fontScale}
-          onChange={(value) => updateTextAppearance("title", { fontScale: value })}
-        />
-        <TextAppearanceRange
-          label={text.horizontalScale}
-          name="card-title-scale-x"
-          value={card.appearance.text.title.scaleX}
-          bounds={CARD_TEXT_APPEARANCE_BOUNDS.scaleX}
-          onChange={(value) => updateTextAppearance("title", { scaleX: value })}
-        />
-        <TextAppearanceRange
-          label={text.verticalScale}
-          name="card-title-scale-y"
-          value={card.appearance.text.title.scaleY}
-          bounds={CARD_TEXT_APPEARANCE_BOUNDS.scaleY}
-          onChange={(value) => updateTextAppearance("title", { scaleY: value })}
-        />
-        <TextAppearanceRange
-          label={text.offsetX}
-          name="card-title-offset-x"
-          value={card.appearance.text.title.offsetX}
-          bounds={CARD_TEXT_APPEARANCE_BOUNDS.offsetX}
-          onChange={(value) => updateTextAppearance("title", { offsetX: value })}
-        />
-        <TextAppearanceRange
-          label={text.offsetY}
-          name="card-title-offset-y"
-          value={card.appearance.text.title.offsetY}
-          bounds={CARD_TEXT_APPEARANCE_BOUNDS.offsetY}
-          onChange={(value) => updateTextAppearance("title", { offsetY: value })}
-        />
-        <label className="text-toggle">
-          <span>{text.titleBold}</span>
-          <input
-            name="card-title-bold"
-            type="checkbox"
-            checked={card.appearance.text.title.bold}
-            onChange={(event) => updateTextAppearance("title", { bold: event.target.checked })}
-          />
-        </label>
-      </div>
-
-      <div className="field-block keyword-field">
-        <span>{text.keywords}</span>
-        <div className="keyword-chip-list">
-          {selectedKeywordIds.map((keywordId, index) => {
-            const keyword = KEYWORD_PRESETS.find((keywordOption) => keywordOption.id === keywordId);
-            const label = keyword ? translateKeywordLabel(language, keyword.id, keyword.label) : keywordId;
-            const isDragging = keywordDrag?.keywordId === keywordId;
-            const chipTransform = getKeywordChipTransform(keywordId, index);
-            return (
-              <button
-                key={keywordId}
-                type="button"
-                className={`keyword-chip${isDragging ? " is-dragging" : ""}${chipTransform && !isDragging ? " is-shifting" : ""}`}
-                data-keyword-chip="true"
-                data-keyword-id={keywordId}
-                aria-label={text.removeKeyword(label)}
-                style={chipTransform ? { transform: chipTransform } : undefined}
-                onClick={() => handleKeywordClick(keywordId)}
-                onPointerDown={(event) => handleKeywordPointerDown(event, keywordId, index)}
-                onPointerMove={(event) => handleKeywordPointerMove(event, keywordId)}
-                onPointerUp={(event) => handleKeywordPointerUp(event, keywordId)}
-                onPointerCancel={(event) => handleKeywordPointerCancel(event, keywordId)}
-              >
-                <span>{label}</span>
-                <strong aria-hidden="true">x</strong>
-              </button>
-            );
-          })}
-        </div>
-        <select
-          name="card-keyword-add"
-          value=""
-          disabled={selectedKeywordIds.length >= MAX_CARD_KEYWORDS || availableKeywords.length === 0}
-          onChange={(event) => addKeyword(event.target.value)}
+      <FieldPanelSection
+        id="artwork"
+        title={text.artwork}
+        collapsed={Boolean(collapsedSections.artwork)}
+        toggleLabel={text.toggleSection(text.artwork)}
+        onToggle={toggleSection}
+      >
+        <div
+          className={`artwork-drop-zone${isArtworkDragActive ? " is-drag-active" : ""}`}
+          onDragEnter={handleArtworkDragEnter}
+          onDragOver={handleArtworkDragOver}
+          onDragLeave={handleArtworkDragLeave}
+          onDrop={handleArtworkDrop}
         >
-          <option value="">{text.addKeyword}</option>
-          {availableKeywords.map((keyword) => (
-            <option key={keyword.id} value={keyword.id}>
-              {translateKeywordLabel(language, keyword.id, keyword.label)}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div className="text-appearance-grid" aria-label={text.keywordAppearance}>
-        <TextAppearanceRange
-          label={text.fontSize}
-          name="card-keyword-font-scale"
-          value={card.appearance.text.keywords.fontScale}
-          bounds={CARD_TEXT_APPEARANCE_BOUNDS.fontScale}
-          onChange={(value) => updateTextAppearance("keywords", { fontScale: value })}
-        />
-        <TextAppearanceRange
-          label={text.horizontalScale}
-          name="card-keyword-scale-x"
-          value={card.appearance.text.keywords.scaleX}
-          bounds={CARD_TEXT_APPEARANCE_BOUNDS.scaleX}
-          onChange={(value) => updateTextAppearance("keywords", { scaleX: value })}
-        />
-        <TextAppearanceRange
-          label={text.verticalScale}
-          name="card-keyword-scale-y"
-          value={card.appearance.text.keywords.scaleY}
-          bounds={CARD_TEXT_APPEARANCE_BOUNDS.scaleY}
-          onChange={(value) => updateTextAppearance("keywords", { scaleY: value })}
-        />
-        <TextAppearanceRange
-          label={text.offsetX}
-          name="card-keyword-offset-x"
-          value={card.appearance.text.keywords.offsetX}
-          bounds={CARD_TEXT_APPEARANCE_BOUNDS.offsetX}
-          onChange={(value) => updateTextAppearance("keywords", { offsetX: value })}
-        />
-        <TextAppearanceRange
-          label={text.offsetY}
-          name="card-keyword-offset-y"
-          value={card.appearance.text.keywords.offsetY}
-          bounds={CARD_TEXT_APPEARANCE_BOUNDS.offsetY}
-          onChange={(value) => updateTextAppearance("keywords", { offsetY: value })}
-        />
-      </div>
+          <label className="field-block">
+            <span>{text.artwork}</span>
+            <input name="artwork-upload" type="file" accept="image/png,image/jpeg,image/webp" onChange={handleArtworkUpload} />
+          </label>
 
-      <div className="field-block body-field">
-        <span>{text.body}</span>
-        <div className="body-effect-buttons" aria-label={text.addBodyEmphasis}>
-          <button type="button" className="body-effect-button" onClick={addBodyBoldMarkers} aria-label={text.addBodyBold}>
-            {text.addBodyBold}
-          </button>
-          {BODY_EFFECT_PRESETS.map((preset) => (
-            <button key={preset.id} type="button" className="body-effect-button" onClick={() => insertBodyEffect(preset.id)}>
-              {getBodyEffectPresetLabel(language, preset.id)}
-            </button>
-          ))}
+          <div className="crop-grid">
+            <label className="crop-control">
+              <span className="crop-control-header">
+                <span>{text.artX}</span>
+                <input
+                  className="crop-value-input"
+                  name="artwork-crop-x-value"
+                  type="number"
+                  min="-300"
+                  max="300"
+                  step="1"
+                  value={card.artwork.crop.x}
+                  onChange={(event) => updateCrop("x", event.target.value)}
+                />
+              </span>
+              <input
+                name="artwork-crop-x"
+                type="range"
+                min="-300"
+                max="300"
+                value={card.artwork.crop.x}
+                onChange={(event) => updateCrop("x", event.target.value)}
+              />
+            </label>
+            <label className="crop-control">
+              <span className="crop-control-header">
+                <span>{text.artY}</span>
+                <input
+                  className="crop-value-input"
+                  name="artwork-crop-y-value"
+                  type="number"
+                  min="-300"
+                  max="300"
+                  step="1"
+                  value={card.artwork.crop.y}
+                  onChange={(event) => updateCrop("y", event.target.value)}
+                />
+              </span>
+              <input
+                name="artwork-crop-y"
+                type="range"
+                min="-300"
+                max="300"
+                value={card.artwork.crop.y}
+                onChange={(event) => updateCrop("y", event.target.value)}
+              />
+            </label>
+            <label className="crop-control">
+              <span className="crop-control-header">
+                <span>{text.zoom}</span>
+                <input
+                  className="crop-value-input"
+                  name="artwork-crop-scale-value"
+                  type="number"
+                  min="0.6"
+                  max="3"
+                  step="0.05"
+                  value={card.artwork.crop.scale}
+                  onChange={(event) => updateCrop("scale", event.target.value)}
+                />
+              </span>
+              <input
+                name="artwork-crop-scale"
+                type="range"
+                min="0.6"
+                max="3"
+                step="0.05"
+                value={card.artwork.crop.scale}
+                onChange={(event) => updateCrop("scale", event.target.value)}
+              />
+            </label>
+          </div>
         </div>
-        <textarea
-          ref={bodyTextareaRef}
-          name="card-body"
-          value={card.body}
-          rows={5}
-          maxLength={BODY_MAX_LENGTH}
-          onChange={(event) => update({ body: event.target.value })}
-        />
-      </div>
-      <div className="text-appearance-grid" aria-label={text.bodyAppearance}>
-        <TextAppearanceRange
-          label={text.fontSize}
-          name="card-body-font-scale"
-          value={card.appearance.text.body.fontScale}
-          bounds={CARD_TEXT_APPEARANCE_BOUNDS.fontScale}
-          onChange={(value) => updateTextAppearance("body", { fontScale: value })}
-        />
-        <TextAppearanceRange
-          label={text.horizontalScale}
-          name="card-body-scale-x"
-          value={card.appearance.text.body.scaleX}
-          bounds={CARD_TEXT_APPEARANCE_BOUNDS.scaleX}
-          onChange={(value) => updateTextAppearance("body", { scaleX: value })}
-        />
-        <TextAppearanceRange
-          label={text.verticalScale}
-          name="card-body-scale-y"
-          value={card.appearance.text.body.scaleY}
-          bounds={CARD_TEXT_APPEARANCE_BOUNDS.scaleY}
-          onChange={(value) => updateTextAppearance("body", { scaleY: value })}
-        />
-        <TextAppearanceRange
-          label={text.offsetX}
-          name="card-body-offset-x"
-          value={card.appearance.text.body.offsetX}
-          bounds={CARD_TEXT_APPEARANCE_BOUNDS.offsetX}
-          onChange={(value) => updateTextAppearance("body", { offsetX: value })}
-        />
-        <TextAppearanceRange
-          label={text.offsetY}
-          name="card-body-offset-y"
-          value={card.appearance.text.body.offsetY}
-          bounds={CARD_TEXT_APPEARANCE_BOUNDS.offsetY}
-          onChange={(value) => updateTextAppearance("body", { offsetY: value })}
-        />
-      </div>
+      </FieldPanelSection>
 
-      <div className="select-grid">
-        <label>
-          <span>{text.nation}</span>
-          <select name="card-nation" value={card.nation} onChange={(event) => update({ nation: event.target.value })}>
-            {NATIONS.map((nation) => (
-              <option key={nation.id} value={nation.id}>
-                {translatePresetLabel(language, "nation", nation.id, nation.label)}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          <span>{text.type}</span>
-          <select
-            name="card-kind"
-            value={card.kind}
-            onChange={(event) => update({ kind: event.target.value as CardSpec["kind"] })}
-          >
-            {CARD_KINDS.map((kindOption) => (
-              <option key={kindOption.id} value={kindOption.id}>
-                {translatePresetLabel(language, "kind", kindOption.id, kindOption.label)}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          <span>{text.rarity}</span>
-          <select name="card-rarity" value={card.rarity} onChange={(event) => update({ rarity: event.target.value })}>
-            {RARITIES.map((rarity) => (
-              <option key={rarity.id} value={rarity.id}>
-                {translatePresetLabel(language, "rarity", rarity.id, rarity.label)}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          <span>{text.set}</span>
-          <select name="card-set" value={card.set} onChange={(event) => update({ set: event.target.value })}>
-            {SETS.map((set) => (
-              <option key={set.id} value={set.id}>
-                {translatePresetLabel(language, "set", set.id, set.label)}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <div className="number-grid">
-        <NumberField
-          label={text.cost}
-          name="card-deployment-cost"
-          value={card.costs.deployment}
-          max={CARD_FACE_VALUE_MAX}
-          onChange={(value) => updateCost("deployment", value)}
-        />
-        {kind.hasOperationCost ? (
-          <NumberField
-            label={text.operation}
-            name="card-operation-cost"
-            value={card.costs.operation}
-            max={CARD_FACE_VALUE_MAX}
-            onChange={(value) => updateCost("operation", value)}
-          />
-        ) : null}
-        {kind.hasStats ? (
-          <>
-            <NumberField
-              label={text.attack}
-              name="card-attack"
-              value={card.stats.attack}
-              max={CARD_FACE_VALUE_MAX}
-              onChange={(value) => updateStat("attack", value)}
-            />
-            <NumberField
-              label={text.defense}
-              name="card-defense"
-              value={card.stats.defense}
-              max={CARD_FACE_VALUE_MAX}
-              onChange={(value) => updateStat("defense", value)}
-            />
-          </>
-        ) : null}
-        {card.kind === "hq" ? (
-          <NumberField
-            label={text.hqDefense}
-            name="card-hq-defense"
-            value={card.stats.hqDefense}
-            min={1}
-            max={CARD_FACE_VALUE_MAX}
-            onChange={(value) => updateStat("hqDefense", value)}
-          />
-        ) : null}
-      </div>
-
-      {referenceSamples.length && onReferenceSampleSelect ? (
+      <FieldPanelSection
+        id="title"
+        title={text.title}
+        collapsed={Boolean(collapsedSections.title)}
+        toggleLabel={text.toggleSection(text.title)}
+        onToggle={toggleSection}
+      >
         <label className="field-block">
-          <span>{text.officialReference}</span>
+          <span>{text.title}</span>
+          <input
+            name="card-title"
+            value={card.title}
+            maxLength={TITLE_MAX_LENGTH}
+            onChange={(event) => update({ title: event.target.value })}
+          />
+        </label>
+        <div className="text-appearance-grid" aria-label={text.titleAppearance}>
+          <TextAppearanceRange
+            label={text.fontSize}
+            name="card-title-font-scale"
+            value={card.appearance.text.title.fontScale}
+            bounds={CARD_TEXT_APPEARANCE_BOUNDS.fontScale}
+            onChange={(value) => updateTextAppearance("title", { fontScale: value })}
+          />
+          <TextAppearanceRange
+            label={text.horizontalScale}
+            name="card-title-scale-x"
+            value={card.appearance.text.title.scaleX}
+            bounds={CARD_TEXT_APPEARANCE_BOUNDS.scaleX}
+            onChange={(value) => updateTextAppearance("title", { scaleX: value })}
+          />
+          <TextAppearanceRange
+            label={text.verticalScale}
+            name="card-title-scale-y"
+            value={card.appearance.text.title.scaleY}
+            bounds={CARD_TEXT_APPEARANCE_BOUNDS.scaleY}
+            onChange={(value) => updateTextAppearance("title", { scaleY: value })}
+          />
+          <TextAppearanceRange
+            label={text.offsetX}
+            name="card-title-offset-x"
+            value={card.appearance.text.title.offsetX}
+            bounds={CARD_TEXT_APPEARANCE_BOUNDS.offsetX}
+            onChange={(value) => updateTextAppearance("title", { offsetX: value })}
+          />
+          <TextAppearanceRange
+            label={text.offsetY}
+            name="card-title-offset-y"
+            value={card.appearance.text.title.offsetY}
+            bounds={CARD_TEXT_APPEARANCE_BOUNDS.offsetY}
+            onChange={(value) => updateTextAppearance("title", { offsetY: value })}
+          />
+          <label className="text-toggle">
+            <span>{text.titleBold}</span>
+            <input
+              name="card-title-bold"
+              type="checkbox"
+              checked={card.appearance.text.title.bold}
+              onChange={(event) => updateTextAppearance("title", { bold: event.target.checked })}
+            />
+          </label>
+        </div>
+      </FieldPanelSection>
+
+      <FieldPanelSection
+        id="keywords"
+        title={text.keywords}
+        collapsed={Boolean(collapsedSections.keywords)}
+        toggleLabel={text.toggleSection(text.keywords)}
+        onToggle={toggleSection}
+      >
+        <div className="field-block keyword-field">
+          <span>{text.keywords}</span>
+          <div className="keyword-chip-list">
+            {selectedKeywordIds.map((keywordId, index) => {
+              const keyword = KEYWORD_PRESETS.find((keywordOption) => keywordOption.id === keywordId);
+              const label = keyword ? translateKeywordLabel(language, keyword.id, keyword.label) : keywordId;
+              const isDragging = keywordDrag?.keywordId === keywordId;
+              const chipTransform = getKeywordChipTransform(keywordId, index);
+              return (
+                <button
+                  key={keywordId}
+                  type="button"
+                  className={`keyword-chip${isDragging ? " is-dragging" : ""}${chipTransform && !isDragging ? " is-shifting" : ""}`}
+                  data-keyword-chip="true"
+                  data-keyword-id={keywordId}
+                  aria-label={text.removeKeyword(label)}
+                  style={chipTransform ? { transform: chipTransform } : undefined}
+                  onClick={() => handleKeywordClick(keywordId)}
+                  onPointerDown={(event) => handleKeywordPointerDown(event, keywordId, index)}
+                  onPointerMove={(event) => handleKeywordPointerMove(event, keywordId)}
+                  onPointerUp={(event) => handleKeywordPointerUp(event, keywordId)}
+                  onPointerCancel={(event) => handleKeywordPointerCancel(event, keywordId)}
+                >
+                  <span>{label}</span>
+                  <strong aria-hidden="true">x</strong>
+                </button>
+              );
+            })}
+          </div>
           <select
-            name="official-reference-sample"
-            value={selectedReferenceSampleId}
-            onChange={(event) => onReferenceSampleSelect(event.target.value)}
+            name="card-keyword-add"
+            value=""
+            disabled={selectedKeywordIds.length >= MAX_CARD_KEYWORDS || availableKeywords.length === 0}
+            onChange={(event) => addKeyword(event.target.value)}
           >
-            {referenceSamples.map((sample) => (
-              <option key={sample.id} value={sample.id}>
-                {sample.label}
+            <option value="">{text.addKeyword}</option>
+            {availableKeywords.map((keyword) => (
+              <option key={keyword.id} value={keyword.id}>
+                {translateKeywordLabel(language, keyword.id, keyword.label)}
               </option>
             ))}
           </select>
-        </label>
-      ) : null}
+        </div>
+        <div className="text-appearance-grid" aria-label={text.keywordAppearance}>
+          <TextAppearanceRange
+            label={text.fontSize}
+            name="card-keyword-font-scale"
+            value={card.appearance.text.keywords.fontScale}
+            bounds={CARD_TEXT_APPEARANCE_BOUNDS.fontScale}
+            onChange={(value) => updateTextAppearance("keywords", { fontScale: value })}
+          />
+          <TextAppearanceRange
+            label={text.horizontalScale}
+            name="card-keyword-scale-x"
+            value={card.appearance.text.keywords.scaleX}
+            bounds={CARD_TEXT_APPEARANCE_BOUNDS.scaleX}
+            onChange={(value) => updateTextAppearance("keywords", { scaleX: value })}
+          />
+          <TextAppearanceRange
+            label={text.verticalScale}
+            name="card-keyword-scale-y"
+            value={card.appearance.text.keywords.scaleY}
+            bounds={CARD_TEXT_APPEARANCE_BOUNDS.scaleY}
+            onChange={(value) => updateTextAppearance("keywords", { scaleY: value })}
+          />
+          <TextAppearanceRange
+            label={text.offsetX}
+            name="card-keyword-offset-x"
+            value={card.appearance.text.keywords.offsetX}
+            bounds={CARD_TEXT_APPEARANCE_BOUNDS.offsetX}
+            onChange={(value) => updateTextAppearance("keywords", { offsetX: value })}
+          />
+          <TextAppearanceRange
+            label={text.offsetY}
+            name="card-keyword-offset-y"
+            value={card.appearance.text.keywords.offsetY}
+            bounds={CARD_TEXT_APPEARANCE_BOUNDS.offsetY}
+            onChange={(value) => updateTextAppearance("keywords", { offsetY: value })}
+          />
+        </div>
+      </FieldPanelSection>
+
+      <FieldPanelSection
+        id="body"
+        title={text.body}
+        collapsed={Boolean(collapsedSections.body)}
+        toggleLabel={text.toggleSection(text.body)}
+        onToggle={toggleSection}
+      >
+        <div className="field-block body-field">
+          <span>{text.body}</span>
+          <div className="body-effect-buttons" aria-label={text.addBodyEmphasis}>
+            <button type="button" className="body-effect-button" onClick={addBodyBoldMarkers} aria-label={text.addBodyBold}>
+              {text.addBodyBold}
+            </button>
+            {BODY_EFFECT_PRESETS.map((preset) => (
+              <button key={preset.id} type="button" className="body-effect-button" onClick={() => insertBodyEffect(preset.id)}>
+                {getBodyEffectPresetLabel(language, preset.id)}
+              </button>
+            ))}
+          </div>
+          <textarea
+            ref={bodyTextareaRef}
+            name="card-body"
+            value={card.body}
+            rows={5}
+            maxLength={BODY_MAX_LENGTH}
+            onChange={(event) => update({ body: event.target.value })}
+          />
+        </div>
+        <div className="text-appearance-grid" aria-label={text.bodyAppearance}>
+          <TextAppearanceRange
+            label={text.fontSize}
+            name="card-body-font-scale"
+            value={card.appearance.text.body.fontScale}
+            bounds={CARD_TEXT_APPEARANCE_BOUNDS.fontScale}
+            onChange={(value) => updateTextAppearance("body", { fontScale: value })}
+          />
+          <TextAppearanceRange
+            label={text.horizontalScale}
+            name="card-body-scale-x"
+            value={card.appearance.text.body.scaleX}
+            bounds={CARD_TEXT_APPEARANCE_BOUNDS.scaleX}
+            onChange={(value) => updateTextAppearance("body", { scaleX: value })}
+          />
+          <TextAppearanceRange
+            label={text.verticalScale}
+            name="card-body-scale-y"
+            value={card.appearance.text.body.scaleY}
+            bounds={CARD_TEXT_APPEARANCE_BOUNDS.scaleY}
+            onChange={(value) => updateTextAppearance("body", { scaleY: value })}
+          />
+          <TextAppearanceRange
+            label={text.offsetX}
+            name="card-body-offset-x"
+            value={card.appearance.text.body.offsetX}
+            bounds={CARD_TEXT_APPEARANCE_BOUNDS.offsetX}
+            onChange={(value) => updateTextAppearance("body", { offsetX: value })}
+          />
+          <TextAppearanceRange
+            label={text.offsetY}
+            name="card-body-offset-y"
+            value={card.appearance.text.body.offsetY}
+            bounds={CARD_TEXT_APPEARANCE_BOUNDS.offsetY}
+            onChange={(value) => updateTextAppearance("body", { offsetY: value })}
+          />
+        </div>
+      </FieldPanelSection>
+
+      <FieldPanelSection
+        id="identity"
+        title={text.identitySection}
+        collapsed={Boolean(collapsedSections.identity)}
+        toggleLabel={text.toggleSection(text.identitySection)}
+        onToggle={toggleSection}
+      >
+        <div className="select-grid">
+          <label>
+            <span>{text.nation}</span>
+            <select name="card-nation" value={card.nation} onChange={(event) => update({ nation: event.target.value })}>
+              {NATIONS.map((nation) => (
+                <option key={nation.id} value={nation.id}>
+                  {translatePresetLabel(language, "nation", nation.id, nation.label)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span>{text.type}</span>
+            <select
+              name="card-kind"
+              value={card.kind}
+              onChange={(event) => update({ kind: event.target.value as CardSpec["kind"] })}
+            >
+              {CARD_KINDS.map((kindOption) => (
+                <option key={kindOption.id} value={kindOption.id}>
+                  {translatePresetLabel(language, "kind", kindOption.id, kindOption.label)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span>{text.rarity}</span>
+            <select name="card-rarity" value={card.rarity} onChange={(event) => update({ rarity: event.target.value })}>
+              {RARITIES.map((rarity) => (
+                <option key={rarity.id} value={rarity.id}>
+                  {translatePresetLabel(language, "rarity", rarity.id, rarity.label)}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label>
+            <span>{text.set}</span>
+            <select name="card-set" value={card.set} onChange={(event) => update({ set: event.target.value })}>
+              {SETS.map((set) => (
+                <option key={set.id} value={set.id}>
+                  {translatePresetLabel(language, "set", set.id, set.label)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </FieldPanelSection>
+
+      <FieldPanelSection
+        id="values"
+        title={text.valuesSection}
+        collapsed={Boolean(collapsedSections.values)}
+        toggleLabel={text.toggleSection(text.valuesSection)}
+        onToggle={toggleSection}
+      >
+        <div className="number-grid">
+          <NumberField
+            label={text.cost}
+            name="card-deployment-cost"
+            value={card.costs.deployment}
+            max={CARD_FACE_VALUE_MAX}
+            onChange={(value) => updateCost("deployment", value)}
+          />
+          {kind.hasOperationCost ? (
+            <NumberField
+              label={text.operation}
+              name="card-operation-cost"
+              value={card.costs.operation}
+              max={CARD_FACE_VALUE_MAX}
+              onChange={(value) => updateCost("operation", value)}
+            />
+          ) : null}
+          {kind.hasStats ? (
+            <>
+              <NumberField
+                label={text.attack}
+                name="card-attack"
+                value={card.stats.attack}
+                max={CARD_FACE_VALUE_MAX}
+                onChange={(value) => updateStat("attack", value)}
+              />
+              <NumberField
+                label={text.defense}
+                name="card-defense"
+                value={card.stats.defense}
+                max={CARD_FACE_VALUE_MAX}
+                onChange={(value) => updateStat("defense", value)}
+              />
+            </>
+          ) : null}
+          {card.kind === "hq" ? (
+            <NumberField
+              label={text.hqDefense}
+              name="card-hq-defense"
+              value={card.stats.hqDefense}
+              min={1}
+              max={CARD_FACE_VALUE_MAX}
+              onChange={(value) => updateStat("hqDefense", value)}
+            />
+          ) : null}
+        </div>
+      </FieldPanelSection>
     </aside>
+  );
+}
+
+export function toggleFieldPanelSection(
+  sections: CollapsedFieldPanelSections,
+  sectionId: FieldPanelSectionId,
+): CollapsedFieldPanelSections {
+  return {
+    ...sections,
+    [sectionId]: !sections[sectionId],
+  };
+}
+
+export function isImportableArtworkFile(file: Pick<File, "name" | "type" | "size" | "slice">): Promise<boolean> {
+  return isAllowedImageFile(file);
+}
+
+export function hasDraggedFiles(dataTransfer: Pick<DataTransfer, "items" | "files">): boolean {
+  if (dataTransfer.items.length > 0) {
+    return Array.from(dataTransfer.items).some((item) => item.kind === "file");
+  }
+
+  return dataTransfer.files.length > 0;
+}
+
+function hasAllowedArtworkDimensions(file: File): Promise<boolean> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(isAllowedImageDimensions(image));
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(false);
+    };
+    image.src = url;
+  });
+}
+
+function FieldPanelSection({
+  id,
+  title,
+  collapsed,
+  toggleLabel,
+  onToggle,
+  children,
+}: {
+  id: FieldPanelSectionId;
+  title: string;
+  collapsed: boolean;
+  toggleLabel: string;
+  onToggle: (sectionId: FieldPanelSectionId) => void;
+  children: React.ReactNode;
+}) {
+  const contentId = `field-section-${id}`;
+
+  return (
+    <section className={`field-section${collapsed ? " is-collapsed" : ""}`} aria-labelledby={`${contentId}-heading`}>
+      <div className="field-section-header">
+        <h2 id={`${contentId}-heading`}>{title}</h2>
+        <button
+          type="button"
+          className="section-toggle"
+          aria-label={toggleLabel}
+          aria-controls={contentId}
+          aria-expanded={!collapsed}
+          onClick={() => onToggle(id)}
+        >
+          <span aria-hidden="true" />
+        </button>
+      </div>
+      {!collapsed ? (
+        <div id={contentId} className="field-section-body">
+          {children}
+        </div>
+      ) : null}
+    </section>
   );
 }
 

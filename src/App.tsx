@@ -4,7 +4,7 @@ import { CardCanvas } from "./components/CardCanvas";
 import { FieldPanel } from "./components/FieldPanel";
 import { ProjectPanel } from "./components/ProjectPanel";
 import { loadAssetPackFromFiles, loadAssetPackFromUrl, type LoadedAssetPack } from "./assetPack";
-import { applyCardUpdate, shouldApplyDevPreviewSampleResult } from "./devPreviewState";
+import { applyCardUpdate, resolveDevPreviewReferenceSelection } from "./devPreviewState";
 import {
   UI_TEXT,
   getInitialLanguage,
@@ -46,7 +46,6 @@ function App() {
   const [referenceDiffError, setReferenceDiffError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const assetPackRequestRef = useRef(0);
-  const cardEditVersionRef = useRef(0);
   const isMountedRef = useRef(true);
   const didLoadDevPreviewRef = useRef(false);
   const isDevPrivatePreviewEnabled =
@@ -161,7 +160,8 @@ function App() {
     }
     didLoadDevPreviewRef.current = true;
 
-    void loadDevPreviewSample(devPreviewCatalog.getDefaultDevPreviewSample());
+    selectReferenceSample(devPreviewCatalog.getDefaultDevPreviewSample());
+    void loadDevPreviewAssetPack();
   }, [devPreviewCatalog, isDevPrivatePreviewEnabled]);
 
   const previewCard = useMemo(() => normalizeCardSpec(card), [card]);
@@ -227,7 +227,6 @@ function App() {
   }, [isDevPrivatePreviewEnabled, referenceImageUrl, referenceSample]);
 
   function updateCard(update: CardUpdate) {
-    cardEditVersionRef.current += 1;
     setCard((currentCard) => applyCardUpdate(currentCard, update));
   }
 
@@ -256,36 +255,21 @@ function App() {
     }
   }
 
-  async function loadDevPreviewSample(sample: DevPreviewSample) {
+  async function loadDevPreviewAssetPack() {
     if (!devPreviewCatalog) {
       return;
     }
 
     const requestId = assetPackRequestRef.current + 1;
-    const cardEditVersionAtStart = cardEditVersionRef.current;
     assetPackRequestRef.current = requestId;
     setAssetPackError(null);
-    setReferenceDiff(null);
-    setReferenceDiffError(null);
     try {
-      const [loadedPack, sampleCard] = await Promise.all([
-        loadAssetPackFromUrl(devPreviewCatalog.DEV_PREVIEW_ASSET_PACK_URL),
-        loadDevPreviewSampleCard(sample),
-      ]);
-      if (!shouldApplyDevPreviewSampleResult({
-        isMounted: isMountedRef.current,
-        requestId,
-        activeRequestId: assetPackRequestRef.current,
-        cardEditVersionAtStart,
-        currentCardEditVersion: cardEditVersionRef.current,
-      })) {
+      const loadedPack = await loadAssetPackFromUrl(devPreviewCatalog.DEV_PREVIEW_ASSET_PACK_URL);
+      if (!isMountedRef.current || requestId !== assetPackRequestRef.current) {
         loadedPack.dispose();
         return;
       }
       setAssetPack(loadedPack);
-      setCard(normalizeCardSpec(sampleCard));
-      setSelectedReferenceSampleId(sample.id);
-      setReferenceImageUrl(sample.referenceUrl);
     } catch (error) {
       if (requestId !== assetPackRequestRef.current) {
         return;
@@ -296,23 +280,15 @@ function App() {
     }
   }
 
-  function handleReferenceSampleSelect(sampleId: string) {
-    if (!devPreviewCatalog) {
-      return;
-    }
-
-    const sample = devPreviewCatalog.getDevPreviewSampleById(sampleId);
-    if (!sample) {
-      return;
-    }
-
-    setSelectedReferenceSampleId(sample.id);
-    setReferenceImageUrl(sample.referenceUrl);
+  function selectReferenceSample(sample: DevPreviewSample) {
+    const selection = resolveDevPreviewReferenceSelection(sample);
+    setSelectedReferenceSampleId(selection.selectedReferenceSampleId);
+    setReferenceImageUrl(selection.referenceImageUrl);
     setReferenceDiff(null);
     setReferenceDiffError(null);
   }
 
-  async function handleTemplateSampleLoad(sampleId: string) {
+  function handleTemplateSampleLoad(sampleId: string) {
     if (!devPreviewCatalog) {
       return;
     }
@@ -326,10 +302,10 @@ function App() {
       setSelectedHqSampleId(sample.id);
     }
     setShowReferenceComparison(true);
-    await loadDevPreviewSample(sample);
+    selectReferenceSample(sample);
   }
 
-  async function handleHqSampleLoad(sampleId: string) {
+  function handleHqSampleLoad(sampleId: string) {
     if (!devPreviewCatalog) {
       return;
     }
@@ -337,19 +313,7 @@ function App() {
     const sample = devPreviewCatalog.getDevPreviewHqSampleById(sampleId) ?? devPreviewCatalog.DEV_PREVIEW_HQ_SAMPLE;
     setSelectedHqSampleId(sample.id);
     setShowReferenceComparison(true);
-    await loadDevPreviewSample(sample);
-  }
-
-  async function loadDevPreviewSampleCard(sample: DevPreviewSample): Promise<CardSpec> {
-    if ("card" in sample) {
-      return sample.card;
-    }
-
-    const response = await fetch(sample.cardUrl, { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(UI_TEXT.en.errors.loadCardUrl(sample.cardUrl));
-    }
-    return normalizeCardSpec(await response.json());
+    selectReferenceSample(sample);
   }
 
   async function handleReferenceCompare(file: File | null) {
@@ -432,9 +396,6 @@ function App() {
           language={language}
           text={text.fieldPanel}
           onCardChange={updateCard}
-          referenceSamples={referenceSampleOptions}
-          selectedReferenceSampleId={referenceSample?.id}
-          onReferenceSampleSelect={handleReferenceSampleSelect}
         />
         <CardCanvas
           card={previewCard}

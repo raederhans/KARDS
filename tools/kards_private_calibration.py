@@ -13,6 +13,8 @@ from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 from PIL import Image, ImageStat
@@ -23,6 +25,11 @@ CARD_HEIGHT = 702
 DATA_URL_TEXT_LIMIT = 180
 RAW_DATA_URL = "https://raw.githubusercontent.com/CraftSoul/kards-image-tool/main/data.json"
 OFFICIAL_CARD_BASE_URL = "https://www.kards.com/images/card/v52"
+ALLOWED_DOWNLOAD_URL_PREFIXES = (
+    "https://raw.githubusercontent.com/CraftSoul/kards-image-tool/",
+    "https://www.kards.com/images/card/",
+)
+MAX_DOWNLOAD_BYTES = 12 * 1024 * 1024
 OUTPUT_MARKER_FILE = ".kards-private-calibration-output"
 NATION_BACKGROUND_SAMPLE_MARGIN = 6
 NATION_BACKGROUND_DISTANCE_THRESHOLD = 30
@@ -1180,8 +1187,21 @@ def validate_output_dir(output_dir: Path, allow_outside_runtime: bool) -> None:
 
 
 def remove_tree_contents(path: Path) -> None:
+    if path.is_symlink():
+        path.unlink()
+        return
+    is_root_junction = getattr(path, "is_junction", lambda: False)
+    if is_root_junction():
+        path.rmdir()
+        return
+
     for child in path.iterdir():
-        if child.is_dir():
+        is_junction = getattr(child, "is_junction", lambda: False)
+        if child.is_symlink():
+            child.unlink()
+        elif is_junction():
+            child.rmdir()
+        elif child.is_dir():
             remove_tree_contents(child)
             child.rmdir()
         else:
@@ -1195,9 +1215,43 @@ def load_official_card_image(card: dict[str, Any], language: str, card_base_url:
 
 
 def download_bytes(url: str) -> bytes:
+    validate_download_url(url)
     request = Request(url, headers={"User-Agent": "KARDS private calibration tool"})
-    with urlopen(request, timeout=45) as response:
-        return response.read()
+    try:
+        with urlopen(request, timeout=45) as response:
+            status = getattr(response, "status", None)
+            if status is None and hasattr(response, "getcode"):
+                status = response.getcode()
+            if status is not None and not 200 <= int(status) < 300:
+                raise SystemExit(f"Download failed with HTTP status {status}: {url}")
+
+            content_length = response.headers.get("Content-Length") if hasattr(response, "headers") else None
+            if content_length and int(content_length) > MAX_DOWNLOAD_BYTES:
+                raise SystemExit(f"Download is too large: {url}")
+
+            data = response.read(MAX_DOWNLOAD_BYTES + 1)
+    except HTTPError as error:
+        raise SystemExit(f"Download failed with HTTP status {error.code}: {url}") from error
+    except (URLError, ValueError) as error:
+        raise SystemExit(f"Download failed: {url}") from error
+
+    if len(data) > MAX_DOWNLOAD_BYTES:
+        raise SystemExit(f"Download is too large: {url}")
+    return data
+
+
+def validate_download_url(url: str) -> None:
+    try:
+        parsed_url = urlparse(url)
+    except ValueError as error:
+        raise SystemExit(f"Invalid download URL: {url}") from error
+
+    if (
+        parsed_url.scheme != "https"
+        or not parsed_url.netloc
+        or not any(url.startswith(prefix) for prefix in ALLOWED_DOWNLOAD_URL_PREFIXES)
+    ):
+        raise SystemExit(f"Download URL is not allowed: {url}")
 
 
 def normalize_card_image(image: Image.Image) -> Image.Image:

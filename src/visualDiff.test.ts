@@ -1,5 +1,9 @@
-import { describe, expect, it } from "vitest";
-import { calculateImageDataDiff } from "./visualDiff";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { calculateImageDataDiff, compareCanvasToReferenceFile } from "./visualDiff";
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe("visual pixel diff", () => {
   it("returns zero deltas for identical image data", () => {
@@ -48,5 +52,35 @@ describe("visual pixel diff", () => {
         { width: 1, height: 1, data: new Uint8ClampedArray(4) },
       ),
     ).toThrow("RGBA values");
+  });
+
+  it("rejects reference files that decode to excessive pixels", async () => {
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn(() => "blob:huge-reference"),
+      revokeObjectURL: vi.fn(),
+    });
+    vi.stubGlobal(
+      "Image",
+      class HugeImage {
+        onload: (() => void) | null = null;
+        onerror: (() => void) | null = null;
+        naturalWidth = 5000;
+        naturalHeight = 5000;
+        width = 5000;
+        height = 5000;
+
+        set src(_value: string) {
+          queueMicrotask(() => this.onload?.());
+        }
+      },
+    );
+
+    const canvas = {
+      getContext: vi.fn(() => ({ getImageData: vi.fn() })),
+    } as unknown as HTMLCanvasElement;
+
+    await expect(compareCanvasToReferenceFile(canvas, new File([new Uint8Array([1])], "huge.png"))).rejects.toThrow(
+      "Image dimensions are too large",
+    );
   });
 });
