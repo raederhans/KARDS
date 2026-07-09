@@ -41,6 +41,10 @@ describe("FieldPanel value fields", () => {
     expect(markup).not.toContain('name="card-operation-cost"');
     expect(markup).not.toContain('name="card-attack"');
     expect(markup).not.toContain('name="card-defense"');
+    expect(markup).not.toContain('id="field-section-keywords"');
+    expect(markup).not.toContain('name="card-keyword-add"');
+    expect(markup.match(/<select[^>]*name="card-rarity"[^>]*>/)?.[0]).toContain('disabled=""');
+    expect(markup.match(/<select[^>]*name="card-set"[^>]*>/)?.[0]).toContain('disabled=""');
   });
 
   it("keeps ordinary unit values without showing HQ defense", () => {
@@ -58,6 +62,10 @@ describe("FieldPanel value fields", () => {
     expect(markup).toContain('name="card-attack"');
     expect(markup).toContain('name="card-defense"');
     expect(markup).not.toContain('name="card-hq-defense"');
+    expect(markup).toContain('id="field-section-keywords"');
+    expect(markup).toContain('name="card-keyword-add"');
+    expect(markup.match(/<select[^>]*name="card-rarity"[^>]*>/)?.[0]).not.toContain('disabled=""');
+    expect(markup.match(/<select[^>]*name="card-set"[^>]*>/)?.[0]).not.toContain('disabled=""');
   });
 });
 

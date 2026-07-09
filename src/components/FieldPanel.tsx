@@ -566,13 +566,14 @@ export function FieldPanel({
         </div>
       </FieldPanelSection>
 
-      <FieldPanelSection
-        id="keywords"
-        title={text.keywords}
-        collapsed={Boolean(collapsedSections.keywords)}
-        toggleLabel={text.toggleSection(text.keywords)}
-        onToggle={toggleSection}
-      >
+      {card.kind !== "hq" ? (
+        <FieldPanelSection
+          id="keywords"
+          title={text.keywords}
+          collapsed={Boolean(collapsedSections.keywords)}
+          toggleLabel={text.toggleSection(text.keywords)}
+          onToggle={toggleSection}
+        >
         <div className="field-block keyword-field">
           <span>{text.keywords}</span>
           <div className="keyword-chip-list">
@@ -653,7 +654,8 @@ export function FieldPanel({
             onChange={(value) => updateTextAppearance("keywords", { offsetY: value })}
           />
         </div>
-      </FieldPanelSection>
+        </FieldPanelSection>
+      ) : null}
 
       <FieldPanelSection
         id="body"
@@ -758,7 +760,12 @@ export function FieldPanel({
 
           <label>
             <span>{text.rarity}</span>
-            <select name="card-rarity" value={card.rarity} onChange={(event) => update({ rarity: event.target.value })}>
+            <select
+              name="card-rarity"
+              value={card.rarity}
+              disabled={card.kind === "hq"}
+              onChange={(event) => update({ rarity: event.target.value })}
+            >
               {RARITIES.map((rarity) => (
                 <option key={rarity.id} value={rarity.id}>
                   {translatePresetLabel(language, "rarity", rarity.id, rarity.label)}
@@ -769,7 +776,12 @@ export function FieldPanel({
 
           <label>
             <span>{text.set}</span>
-            <select name="card-set" value={card.set} onChange={(event) => update({ set: event.target.value })}>
+            <select
+              name="card-set"
+              value={card.set}
+              disabled={card.kind === "hq"}
+              onChange={(event) => update({ set: event.target.value })}
+            >
               {SETS.map((set) => (
                 <option key={set.id} value={set.id}>
                   {translatePresetLabel(language, "set", set.id, set.label)}
