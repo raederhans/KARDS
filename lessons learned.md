@@ -40,3 +40,4 @@
 - Private output cleanup must treat symlinks and Windows junctions as link objects, not directories; marker ownership alone does not make recursive deletion safe across filesystem boundaries.
 - User-supplied image safety needs two separate gates: magic bytes prove the file type, while decoded pixel limits bound memory/CPU cost after the browser accepts the image.
 - Right-panel card sample loaders and reference-only selectors need separate handlers: an explicit sample load should replace the editable card, while a reference-image change must preserve the current draft.
+- Special attack types need one shared geometry resolver for both fallback drawing and paper-aging protection; selecting a dedicated asset slot or wider layout does not prevent the fallback from silently inheriting the ordinary inverted-shield shape.

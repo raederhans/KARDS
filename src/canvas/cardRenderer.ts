@@ -51,7 +51,7 @@ const TYPE_ICON_GLYPH_PLACEMENT: Partial<Record<CardKind, { offsetX?: number; of
 
 type TextMeasureContext = Pick<CanvasRenderingContext2D, "font" | "measureText">;
 
-type StatBoardShape = "shield" | "inverted-shield";
+type StatBoardShape = "shield" | "inverted-shield" | "reticle";
 
 type ResolvedRenderFonts = Required<CardRenderFontSet>;
 
@@ -477,7 +477,8 @@ function drawValues(
     return;
   }
 
-  const attackRect = isSpecialAttackKind(card.kind) && layout.specialAttackBoard ? layout.specialAttackBoard : layout.attackBoard;
+  const specialAttack = isSpecialAttackKind(card.kind);
+  const attackRect = specialAttack && layout.specialAttackBoard ? layout.specialAttackBoard : layout.attackBoard;
   if (attackRect) {
     drawStatBoard(
       ctx,
@@ -485,12 +486,12 @@ function drawValues(
       card.stats.attack,
       "",
       52,
-      isSpecialAttackKind(card.kind) ? "special-attack-board" : "attack-board",
+      specialAttack ? "special-attack-board" : "attack-board",
       options,
       assetContext,
       fonts,
       7,
-      "inverted-shield",
+      getAttackBoardShape(card.kind),
     );
   }
   drawStatBoard(ctx, layout.defenseBoard, card.stats.defense, "", 52, "defense-board", options, assetContext, fonts);
@@ -709,6 +710,35 @@ function drawStatBoardFallbackPath(ctx: CanvasRenderingContext2D, rect: Rect, sh
   const upperShoulderY = rect.y + 18;
   const lowerShoulderY = rect.y + rect.height - 18;
   const radius = 6;
+
+  if (shape === "reticle") {
+    const reticleLeft = rect.x + 4;
+    const reticleRight = rect.x + rect.width - 4;
+    const reticleTop = rect.y + 2;
+    const reticleBottom = rect.y + rect.height - 2;
+    const centerY = rect.y + rect.height / 2;
+    const notchHalf = 5;
+    const notchDepth = 7;
+
+    ctx.moveTo(centerX - notchHalf, reticleTop);
+    ctx.lineTo(centerX - notchHalf, reticleTop + notchDepth);
+    ctx.lineTo(centerX + notchHalf, reticleTop + notchDepth);
+    ctx.lineTo(centerX + notchHalf, reticleTop);
+    ctx.quadraticCurveTo(reticleRight, reticleTop, reticleRight, centerY - notchHalf);
+    ctx.lineTo(reticleRight - notchDepth, centerY - notchHalf);
+    ctx.lineTo(reticleRight - notchDepth, centerY + notchHalf);
+    ctx.lineTo(reticleRight, centerY + notchHalf);
+    ctx.quadraticCurveTo(reticleRight, reticleBottom, centerX + notchHalf, reticleBottom);
+    ctx.lineTo(centerX + notchHalf, reticleBottom - notchDepth);
+    ctx.lineTo(centerX - notchHalf, reticleBottom - notchDepth);
+    ctx.lineTo(centerX - notchHalf, reticleBottom);
+    ctx.quadraticCurveTo(reticleLeft, reticleBottom, reticleLeft, centerY + notchHalf);
+    ctx.lineTo(reticleLeft + notchDepth, centerY + notchHalf);
+    ctx.lineTo(reticleLeft + notchDepth, centerY - notchHalf);
+    ctx.lineTo(reticleLeft, centerY - notchHalf);
+    ctx.quadraticCurveTo(reticleLeft, reticleTop, centerX - notchHalf, reticleTop);
+    return;
+  }
 
   if (shape === "inverted-shield") {
     ctx.moveTo(centerX, top);
@@ -1202,7 +1232,7 @@ function getPrintWearProtectedRegions(layout: CardFaceLayout, kind: CardKind): P
   } else if (isUnitKind(kind)) {
     const attackBoard = isSpecialAttackKind(kind) && layout.specialAttackBoard ? layout.specialAttackBoard : layout.attackBoard;
     if (attackBoard) {
-      regions.push({ kind: "stat-board", rect: attackBoard, shape: "inverted-shield" });
+      regions.push({ kind: "stat-board", rect: attackBoard, shape: getAttackBoardShape(kind) });
     }
     if (layout.defenseBoard) {
       regions.push({ kind: "stat-board", rect: layout.defenseBoard, shape: "shield" });
@@ -1613,6 +1643,10 @@ function getRarityPipCount(rarityId: string): number {
 
 function isSpecialAttackKind(kind: CardKind): boolean {
   return kind === "fighter" || kind === "bomber" || kind === "artillery";
+}
+
+function getAttackBoardShape(kind: CardKind): StatBoardShape {
+  return isSpecialAttackKind(kind) ? "reticle" : "inverted-shield";
 }
 
 function shouldUseDarkTitle(nationId: string): boolean {

@@ -854,6 +854,38 @@ describe("card renderer output", () => {
     expect(defenseBoardPath?.points.some((point) => point.kind === "quadraticCurveTo")).toBe(true);
   });
 
+  it("uses reticle fallback boards for fighter, bomber, and artillery attack values", () => {
+    const specialAttackKinds: CardSpec["kind"][] = ["fighter", "bomber", "artillery"];
+
+    for (const kind of specialAttackKinds) {
+      const { canvas, calls } = createFakeCanvas();
+
+      renderCard(canvas, { ...DEFAULT_CARD, kind }, null);
+
+      const reticlePath = calls.paths.find((path) =>
+        path.points.some((point) => point.kind === "moveTo" && point.x === 125 && point.y === 470),
+      );
+      const textureClip = calls.clips.find((clip) => clip.fillRule === "evenodd");
+
+      expect(reticlePath?.points).toEqual(
+        expect.arrayContaining([
+          { kind: "lineTo", x: 125, y: 477 },
+          { kind: "lineTo", x: 135, y: 477 },
+          { kind: "lineTo", x: 167, y: 504 },
+          { kind: "lineTo", x: 167, y: 514 },
+        ]),
+      );
+      expect(reticlePath?.points).not.toContainEqual({ kind: "moveTo", x: 130, y: 472 });
+      expect(textureClip?.points).toEqual(
+        expect.arrayContaining([
+          { kind: "moveTo", x: 125, y: 470 },
+          { kind: "lineTo", x: 167, y: 504 },
+          { kind: "lineTo", x: 167, y: 514 },
+        ]),
+      );
+    }
+  });
+
   it("keeps HQ defense board art below generated HQ text and values", () => {
     const { canvas, calls } = createFakeCanvas();
     const boardImage = { width: 168, height: 112 } as CanvasImageSource;
