@@ -899,8 +899,8 @@ describe("card renderer output", () => {
       kind: "hq",
       costs: {},
       stats: { hqDefense: 20 },
-      keywords: [],
-      keywordLine: "",
+      keywords: ["guard"],
+      keywordLine: "GUARD",
     };
 
     renderCard(canvas, hqCard, null, { assets, disablePrintWear: true });
@@ -916,6 +916,7 @@ describe("card renderer output", () => {
     expect(calls.drawImage).toContainEqual([boardImage, 166, 343, 166, 179]);
     expect(calls.drawImage.some(([image]) => image === nationImage)).toBe(false);
     expect(hqLabel).toBeUndefined();
+    expect(calls.fillText.some(([text]) => text === "Guard")).toBe(false);
     expect(hqValue?.[2]).toBeCloseTo(420.5);
     expect(hqValueStyle?.font).toContain("104px");
     expect(hqValueStyle?.font).toContain("Microsoft YaHei UI");

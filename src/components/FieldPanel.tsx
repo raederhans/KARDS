@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { CARD_TEXT_APPEARANCE_BOUNDS } from "../cardModel";
 import { CARD_KINDS, NATIONS, RARITIES, SETS, getKind } from "../presets";
 import { translateKeywordLabel, translatePresetLabel, type Language, type UiText } from "../i18n";
-import type { CardSpec, CardUpdate } from "../types";
+import type { CardKind, CardSpec, CardUpdate } from "../types";
 import {
   BODY_EFFECT_PRESETS,
   getBodyEffectPresetInsert,
@@ -31,6 +31,7 @@ type FieldPanelProps = {
   language: Language;
   text: UiText["fieldPanel"];
   onCardChange: (update: CardUpdate) => void;
+  onCardKindChange: (kind: CardKind) => void;
 };
 
 export type FieldPanelSectionId =
@@ -64,6 +65,7 @@ export function FieldPanel({
   language,
   text,
   onCardChange,
+  onCardKindChange,
 }: FieldPanelProps) {
   const [keywordDrag, setKeywordDrag] = useState<KeywordDragState | null>(null);
   const [collapsedSections, setCollapsedSections] = useState<CollapsedFieldPanelSections>({});
@@ -748,7 +750,7 @@ export function FieldPanel({
             <select
               name="card-kind"
               value={card.kind}
-              onChange={(event) => update({ kind: event.target.value as CardSpec["kind"] })}
+              onChange={(event) => onCardKindChange(event.target.value as CardKind)}
             >
               {CARD_KINDS.map((kindOption) => (
                 <option key={kindOption.id} value={kindOption.id}>

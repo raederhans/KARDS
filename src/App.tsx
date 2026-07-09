@@ -1,11 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { normalizeCardSpec } from "./cardModel";
+import {
+  applyUserCardUpdate,
+  createCardEditorState,
+  getCardKindReferenceCard,
+  replaceCardEditorContent,
+  resetCardEditorState,
+  selectCardKind,
+} from "./cardEditorState";
 import { CardCanvas } from "./components/CardCanvas";
 import { FieldPanel } from "./components/FieldPanel";
 import { ProjectPanel } from "./components/ProjectPanel";
 import { loadAssetPackFromFiles, loadAssetPackFromUrl, type LoadedAssetPack } from "./assetPack";
 import {
-  applyCardUpdate,
   resolveDevPreviewReferenceSelection,
   resolveDevPreviewTemplateSelection,
   shouldApplyDevPreviewSampleResult,
@@ -14,14 +21,13 @@ import {
 import {
   UI_TEXT,
   getInitialLanguage,
-  getLocalizedDefaultCard,
   getNextLanguage,
   saveLanguage,
   translatePresetLabel,
   type Language,
 } from "./i18n";
-import { loadDraftCard, saveDraftCard } from "./storage";
-import type { CardSpec, CardUpdate } from "./types";
+import { loadDraftCardState, saveDraftCard } from "./storage";
+import type { CardKind, CardSpec, CardUpdate } from "./types";
 import { compareCanvasToReferenceFile, type ImageDiffMetrics } from "./visualDiff";
 import "./styles.css";
 
@@ -34,10 +40,11 @@ const PAPER_TEXTURE_URL = `${import.meta.env.BASE_URL}textures/ambientcg-paper00
 function App() {
   const [language, setLanguage] = useState<Language>(() => getInitialLanguage(window.localStorage));
   const text = UI_TEXT[language];
-  const localizedDefaultCard = useMemo(() => getLocalizedDefaultCard(language), [language]);
-  const [card, setCard] = useState<CardSpec>(() =>
-    loadDraftCard(window.localStorage, getLocalizedDefaultCard(getInitialLanguage(window.localStorage))),
-  );
+  const [editorState, setEditorState] = useState(() => {
+    const draft = loadDraftCardState(window.localStorage, getCardKindReferenceCard("tank", language));
+    return createCardEditorState(draft.card, draft.hasUserEdits, draft.clearedNumericFields);
+  });
+  const card = editorState.card;
   const [artworkImage, setArtworkImage] = useState<HTMLImageElement | null>(null);
   const [assetPack, setAssetPack] = useState<LoadedAssetPack | null>(null);
   const [devPreviewCatalog, setDevPreviewCatalog] = useState<DevPreviewCatalogModule | null>(null);
@@ -70,8 +77,13 @@ function App() {
   }, [language, text.documentDescription, text.documentTitle]);
 
   useEffect(() => {
-    saveDraftCard(window.localStorage, card);
-  }, [card]);
+    saveDraftCard(
+      window.localStorage,
+      card,
+      editorState.hasUserEdits,
+      editorState.clearedNumericFields,
+    );
+  }, [card, editorState.clearedNumericFields, editorState.hasUserEdits]);
 
   useEffect(() => () => assetPack?.dispose(), [assetPack]);
 
@@ -237,7 +249,22 @@ function App() {
 
   function updateCard(update: CardUpdate) {
     cardEditVersionRef.current += 1;
-    setCard((currentCard) => applyCardUpdate(currentCard, update));
+    setEditorState((currentState) => applyUserCardUpdate(currentState, update));
+  }
+
+  function handleCardKindChange(kind: CardKind) {
+    cardEditVersionRef.current += 1;
+    setEditorState((currentState) => selectCardKind(currentState, kind, language));
+  }
+
+  function handleCardReset() {
+    cardEditVersionRef.current += 1;
+    setEditorState(resetCardEditorState(language));
+  }
+
+  function handleCardImport(importedCard: CardSpec) {
+    cardEditVersionRef.current += 1;
+    setEditorState(replaceCardEditorContent(importedCard));
   }
 
   async function handleAssetPackLoad(files: FileList | null) {
@@ -272,7 +299,7 @@ function App() {
 
     const requestId = assetPackRequestRef.current + 1;
     assetPackRequestRef.current = requestId;
-    setTemplateLoadError(null);
+    setAssetPackError(null);
     try {
       const loadedPack = await loadAssetPackFromUrl(devPreviewCatalog.DEV_PREVIEW_ASSET_PACK_URL);
       if (!isMountedRef.current || requestId !== assetPackRequestRef.current) {
@@ -302,7 +329,7 @@ function App() {
     const requestId = sampleLoadRequestRef.current + 1;
     const cardEditVersionAtStart = cardEditVersionRef.current;
     sampleLoadRequestRef.current = requestId;
-    setAssetPackError(null);
+    setTemplateLoadError(null);
     setIsTemplateLoading(true);
 
     try {
@@ -328,7 +355,8 @@ function App() {
         return;
       }
 
-      setCard(selection.card);
+      cardEditVersionRef.current += 1;
+      setEditorState(replaceCardEditorContent(selection.card));
       setSelectedReferenceSampleId(sample.id);
       setReferenceImageUrl(selection.referenceImageUrl);
       setReferenceDiff(null);
@@ -440,6 +468,7 @@ function App() {
           language={language}
           text={text.fieldPanel}
           onCardChange={updateCard}
+          onCardKindChange={handleCardKindChange}
         />
         <CardCanvas
           card={previewCard}
@@ -465,8 +494,8 @@ function App() {
           card={previewCard}
           language={language}
           text={text.projectPanel}
-          defaultCard={localizedDefaultCard}
-          onCardChange={updateCard}
+          onCardImport={handleCardImport}
+          onCardReset={handleCardReset}
           canvasRef={canvasRef}
           artworkImage={artworkImage}
           renderOptions={renderOptions}

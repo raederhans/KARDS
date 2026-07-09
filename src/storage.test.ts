@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_CARD } from "./cardModel";
-import { loadDraftCard, saveDraftCard, STORAGE_KEY, toAutosaveCard } from "./storage";
+import {
+  DRAFT_STATE_STORAGE_KEY,
+  loadDraftCard,
+  loadDraftCardState,
+  saveDraftCard,
+  STORAGE_KEY,
+  toAutosaveCard,
+} from "./storage";
 import type { CardSpec } from "./types";
 
 describe("card draft storage", () => {
@@ -53,11 +60,13 @@ describe("card draft storage", () => {
 
   it("loads normalized drafts and falls back on invalid JSON", () => {
     const savedStorage = {
-      getItem: () => JSON.stringify({ ...DEFAULT_CARD, title: "SAVED" }),
+      getItem: (key: string) => key === DRAFT_STATE_STORAGE_KEY
+        ? JSON.stringify({ card: { ...DEFAULT_CARD, title: "SAVED" }, hasUserEdits: true })
+        : null,
       setItem: () => undefined,
     };
     const invalidStorage = {
-      getItem: () => "{",
+      getItem: (key: string) => key === DRAFT_STATE_STORAGE_KEY ? "{" : null,
       setItem: () => undefined,
     };
 
@@ -67,14 +76,16 @@ describe("card draft storage", () => {
 
   it("cleans uploaded artwork from legacy drafts when loading", () => {
     const savedStorage = {
-      getItem: () => JSON.stringify({
-        ...DEFAULT_CARD,
-        artwork: {
-          source: "upload",
-          dataUrl: "data:image/png;base64,legacy-image",
-          crop: { x: 9, y: -4, scale: 1.3 },
-        },
-      }),
+      getItem: (key: string) => key === STORAGE_KEY
+        ? JSON.stringify({
+            ...DEFAULT_CARD,
+            artwork: {
+              source: "upload",
+              dataUrl: "data:image/png;base64,legacy-image",
+              crop: { x: 9, y: -4, scale: 1.3 },
+            },
+          })
+        : null,
       setItem: () => undefined,
     };
 
@@ -96,17 +107,104 @@ describe("card draft storage", () => {
     expect(loadDraftCard(storage, DEFAULT_CARD).title).toBe(DEFAULT_CARD.title);
   });
 
-  it("writes under the versioned storage key", () => {
-    let writtenKey = "";
+  it("writes card content and edit protection under one atomic versioned key", () => {
+    const writtenKeys: string[] = [];
     const storage = {
       getItem: () => null,
       setItem: (key: string) => {
-        writtenKey = key;
+        writtenKeys.push(key);
       },
     };
 
     saveDraftCard(storage, DEFAULT_CARD);
 
-    expect(writtenKey).toBe(STORAGE_KEY);
+    expect(writtenKeys).toEqual([DRAFT_STATE_STORAGE_KEY]);
+  });
+
+  it("persists pristine and edited status together with the card payload", () => {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        values.set(key, value);
+      },
+    };
+
+    saveDraftCard(storage, DEFAULT_CARD, false);
+    expect(loadDraftCardState(storage, DEFAULT_CARD).hasUserEdits).toBe(false);
+
+    saveDraftCard(storage, DEFAULT_CARD, true);
+    expect(loadDraftCardState(storage, DEFAULT_CARD).hasUserEdits).toBe(true);
+  });
+
+  it("persists deliberately cleared numeric fields with the atomic draft", () => {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        values.set(key, value);
+      },
+    };
+
+    saveDraftCard(storage, DEFAULT_CARD, true, ["attack", "operation"]);
+
+    expect(loadDraftCardState(storage, DEFAULT_CARD).clearedNumericFields).toEqual([
+      "attack",
+      "operation",
+    ]);
+  });
+
+  it("protects legacy saved cards but keeps fallback cards pristine", () => {
+    const legacyStorage = {
+      getItem: (key: string) => key === STORAGE_KEY ? JSON.stringify(DEFAULT_CARD) : null,
+      setItem: () => undefined,
+    };
+    const emptyStorage = {
+      getItem: () => null,
+      setItem: () => undefined,
+    };
+
+    expect(loadDraftCardState(legacyStorage, DEFAULT_CARD).hasUserEdits).toBe(true);
+    expect(loadDraftCardState(emptyStorage, DEFAULT_CARD).hasUserEdits).toBe(false);
+  });
+
+  it("recovers a protected legacy card when the atomic state is corrupted", () => {
+    const legacyCard = { ...DEFAULT_CARD, title: "LEGACY AUTHORED" };
+    const storage = {
+      getItem: (key: string) => {
+        if (key === DRAFT_STATE_STORAGE_KEY) return "{";
+        if (key === STORAGE_KEY) return JSON.stringify(legacyCard);
+        return null;
+      },
+      setItem: () => undefined,
+    };
+
+    expect(loadDraftCardState(storage, DEFAULT_CARD)).toMatchObject({
+      card: { title: "LEGACY AUTHORED" },
+      hasUserEdits: true,
+    });
+  });
+
+  it("keeps the previous atomic state when a save fails", () => {
+    const previousState = {
+      card: DEFAULT_CARD,
+      hasUserEdits: false,
+    };
+    const values = new Map<string, string>([
+      [DRAFT_STATE_STORAGE_KEY, JSON.stringify(previousState)],
+    ]);
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        throw new DOMException(`Write blocked for ${key}: ${value.length}`, "QuotaExceededError");
+      },
+    };
+
+    expect(saveDraftCard(storage, { ...DEFAULT_CARD, title: "AUTHORED" }, true)).toBe(false);
+    expect(loadDraftCardState(storage, DEFAULT_CARD)).toEqual({
+      card: DEFAULT_CARD,
+      hasUserEdits: false,
+      clearedNumericFields: [],
+    });
   });
 });

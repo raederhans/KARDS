@@ -42,3 +42,4 @@
 - Right-panel card sample loaders and reference-only selectors need separate handlers: an explicit sample load should replace the editable card, while a reference-image change must preserve the current draft.
 - Special attack types need one shared geometry resolver for both fallback drawing and paper-aging protection; selecting a dedicated asset slot or wider layout does not prevent the fallback from silently inheriting the ordinary inverted-shield shape.
 - A sample dropdown that replaces the editable card should behave as an action picker, not persistent selection state; returning it to a placeholder prevents stale labels, same-value no-op changes, and async selection races.
+- Draft edit protection must be stored atomically with the card, and deliberate numeric clears need field-level provenance; separate keys or kind-only inference can misclassify authored drafts or refill cleared values after cross-type round trips.

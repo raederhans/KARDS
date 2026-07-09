@@ -1,5 +1,24 @@
 # Worktree Registry
 
+## Card-kind reference samples and edit protection
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: add per-kind starter content without overwriting authored cards
+- Base branch/base commit: `main` / `origin/main`, `6ce42fde1b9af6e8613e9887185842fa8c91f082`
+- Current branch/HEAD: `main`, initially aligned with `origin/main`
+- Task goal: load a complete reference card for each kind while the editor is pristine, then preserve all authored content after the first real card edit
+- Status: integrated on `main` by this closeout; task records archived under `docs/archive/card-kind-reference-samples/`
+- Main changed files: `src/cardEditorState.ts`, `src/App.tsx`, `src/storage.ts`, `src/components/FieldPanel.tsx`, `src/components/ProjectPanel.tsx`, `src/canvas/cardRenderer.ts`, four existing test files, lessons, registry, and archived task records
+- Shared hotspot files: app card state, left-panel kind selector, project reset/import flow, autosave classification, and existing card-model tests
+- Current diff summary: eight localized starter cards; explicit authored/pristine state; field-level numeric-clear provenance; atomic draft persistence; dedicated type/import/reset handlers; HQ keyword suppression
+- Commit state: implementation and records are committed together by the final Lore-protocol closeout commit and pushed to `origin/main`
+- Base/main divergence: none at task start; only the main checkout exists and final local/remote state is aligned
+- Potential conflict/overlap: green for worktree overlap. Yellow semantic risk around async private templates, imports, autosave, and renderer keywords was closed by regressions and three independent reviews.
+- Validation run: targeted 103 tests and TypeScript passed; `npm run validate` passed 168 tests, TypeScript, production build, and private-boundary verification; browser interaction and persistence checks passed with a clean console
+- Tests not run: no known test gap for the requested behavior; private reference assets remain intentionally excluded from production
+- Recommended integration order: already integrated directly on clean `main`; no merge, rebase, or cherry-pick is required
+- Next action: none for this task
+
 ## HQ template alignment and selector repair
 
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`

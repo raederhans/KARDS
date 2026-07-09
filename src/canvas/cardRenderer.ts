@@ -564,6 +564,7 @@ function drawText(
       return preset ? translateKeywordLabel(options.language ?? "en", keywordId, preset.label) : undefined;
     })
     .filter(Boolean) as string[];
+  const visibleKeywordLabels = layout.template === "hq" ? [] : keywordLabels;
 
   ctx.save();
   ctx.textAlign = "center";
@@ -603,10 +604,10 @@ function drawText(
     );
   }
 
-  if (keywordLabels.length > 0) {
+  if (visibleKeywordLabels.length > 0) {
     drawKeywordLabels(
       ctx,
-      keywordLabels,
+      visibleKeywordLabels,
       250 + keywordAppearance.offsetX,
       layout.text.keywordY + keywordAppearance.offsetY,
       layout.text.maxWidth,
@@ -621,7 +622,7 @@ function drawText(
   const bodyWeights = layout.template === "command" ? { regular: 400, bold: 800 } : undefined;
   const bodyFontSize = Math.round(24 * bodyAppearance.fontScale);
   ctx.font = `${bodyWeights?.regular ?? 500} ${bodyFontSize}px ${bodyFont}`;
-  const bodyY = keywordLabels.length > 0 ? layout.text.bodyY : layout.text.keywordY;
+  const bodyY = visibleKeywordLabels.length > 0 ? layout.text.bodyY : layout.text.keywordY;
   drawMarkedBodyText(
     ctx,
     card.body,

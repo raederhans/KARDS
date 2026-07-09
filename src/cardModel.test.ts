@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { CARD_TEXT_APPEARANCE_BOUNDS, DEFAULT_CARD, normalizeCardSpec, sanitizeInteger } from "./cardModel";
+import {
+  applyUserCardUpdate,
+  createCardEditorState,
+  getCardKindReferenceCard,
+  replaceCardEditorContent,
+  resetCardEditorState,
+  selectCardKind,
+} from "./cardEditorState";
+import { getLocalizedDefaultCard, type Language } from "./i18n";
 import { BODY_MAX_LENGTH, MAX_DATA_URL_LENGTH } from "./limits";
+import { CARD_KINDS } from "./presets";
 
 describe("sanitizeInteger", () => {
   it("rounds finite values and clamps to the allowed range", () => {
@@ -209,5 +219,228 @@ describe("normalizeCardSpec", () => {
     expect(card.costs.deployment).toBe(99);
     expect(card.artwork.source).toBe("none");
     expect(card.artwork.crop.scale).toBe(3);
+  });
+});
+
+describe("card editor reference samples", () => {
+  it("provides complete, kind-appropriate reference content for every card kind", () => {
+    let state = createCardEditorState(getLocalizedDefaultCard("zh"), false);
+
+    for (const kind of CARD_KINDS) {
+      state = selectCardKind(state, kind.id, "zh");
+      const sample = state.card;
+
+      expect(state.hasUserEdits).toBe(false);
+      expect(sample.kind).toBe(kind.id);
+      expect(sample.title.trim()).not.toBe("");
+      expect(sample.body.trim()).not.toBe("");
+      expect(sample.artwork.source).toBe("none");
+
+      if (kind.id === "hq") {
+        expect(sample.costs.deployment).toBeUndefined();
+        expect(sample.costs.operation).toBeUndefined();
+        expect(sample.stats.attack).toBeUndefined();
+        expect(sample.stats.defense).toBeUndefined();
+        expect(sample.stats.hqDefense).toBeGreaterThan(0);
+        expect(sample.keywords).toEqual([]);
+      } else if (kind.hasStats) {
+        expect(sample.costs.deployment).toBeTypeOf("number");
+        expect(sample.costs.operation).toBeTypeOf("number");
+        expect(sample.stats.attack).toBeTypeOf("number");
+        expect(sample.stats.defense).toBeTypeOf("number");
+        expect(sample.stats.hqDefense).toBeUndefined();
+      } else {
+        expect(sample.costs.deployment).toBeTypeOf("number");
+        expect(sample.costs.operation).toBeUndefined();
+        expect(sample.stats.attack).toBeUndefined();
+        expect(sample.stats.defense).toBeUndefined();
+        expect(sample.stats.hqDefense).toBeUndefined();
+      }
+    }
+  });
+
+  it("changes only the kind after the player has edited card content", () => {
+    const pristine = createCardEditorState(getLocalizedDefaultCard("zh"), false);
+    const edited = applyUserCardUpdate(pristine, (currentCard) => ({
+      ...currentCard,
+      title: "玩家自定义标题",
+      body: "这段正文必须在切换类型后保留。",
+      nation: "japan",
+      rarity: "elite",
+      set: "winter-war",
+      keywords: ["ambush"],
+      keywordLine: "AMBUSH",
+      costs: { deployment: 9, operation: 8 },
+      stats: { attack: 7, defense: 6, hqDefense: 25 },
+      artwork: {
+        source: "upload",
+        dataUrl: "data:image/png;base64,abc",
+        crop: { x: 14, y: -9, scale: 1.4 },
+      },
+      appearance: {
+        ...currentCard.appearance,
+        text: {
+          ...currentCard.appearance.text,
+          title: {
+            ...currentCard.appearance.text.title,
+            offsetX: 18,
+          },
+        },
+      },
+    }));
+
+    const selected = selectCardKind(edited, "bomber", "zh");
+
+    expect(selected.hasUserEdits).toBe(true);
+    expect(selected.card).toEqual({
+      ...edited.card,
+      kind: "bomber",
+    });
+  });
+
+  it("fills only missing HQ values when an edited unit changes type", () => {
+    const tank = getCardKindReferenceCard("tank", "zh");
+    const edited = applyUserCardUpdate(createCardEditorState(tank, false), {
+      ...tank,
+      title: "玩家保留的坦克标题",
+    });
+
+    const selected = selectCardKind(edited, "hq", "zh");
+
+    expect(selected.card.title).toBe("玩家保留的坦克标题");
+    expect(selected.card.stats.hqDefense).toBe(20);
+    expect(selected.card.stats.attack).toBe(tank.stats.attack);
+    expect(selected.card.stats.defense).toBe(tank.stats.defense);
+    expect(selected.card.keywords).toEqual(tank.keywords);
+  });
+
+  it("fills only missing unit values when an edited HQ changes type", () => {
+    const hq = getCardKindReferenceCard("hq", "zh");
+    const edited = applyUserCardUpdate(createCardEditorState(hq, false), {
+      ...hq,
+      title: "玩家保留的总部标题",
+    });
+
+    const selected = selectCardKind(edited, "fighter", "zh");
+
+    expect(selected.card.title).toBe("玩家保留的总部标题");
+    expect(selected.card.costs.deployment).toBe(3);
+    expect(selected.card.costs.operation).toBe(1);
+    expect(selected.card.stats.attack).toBe(3);
+    expect(selected.card.stats.defense).toBe(3);
+    expect(selected.card.stats.hqDefense).toBe(hq.stats.hqDefense);
+  });
+
+  it("does not refill visible numeric fields the player deliberately cleared", () => {
+    const fighter = getCardKindReferenceCard("fighter", "zh");
+    const edited = applyUserCardUpdate(createCardEditorState(fighter, false), {
+      ...fighter,
+      costs: { deployment: undefined, operation: undefined },
+      stats: { attack: undefined, defense: fighter.stats.defense },
+    });
+
+    const selected = selectCardKind(edited, "bomber", "zh");
+
+    expect(selected.card.costs.deployment).toBeUndefined();
+    expect(selected.card.costs.operation).toBeUndefined();
+    expect(selected.card.stats.attack).toBeUndefined();
+    expect(selected.card.stats.defense).toBe(fighter.stats.defense);
+  });
+
+  it("remembers cleared unit values across an HQ round trip", () => {
+    const fighter = getCardKindReferenceCard("fighter", "zh");
+    let state = applyUserCardUpdate(createCardEditorState(fighter, false), {
+      ...fighter,
+      stats: { ...fighter.stats, attack: undefined },
+    });
+
+    state = selectCardKind(state, "hq", "zh");
+    state = selectCardKind(state, "bomber", "zh");
+
+    expect(state.card.stats.attack).toBeUndefined();
+    expect(state.card.stats.defense).toBe(fighter.stats.defense);
+  });
+
+  it("remembers cleared deployment across a command and HQ round trip", () => {
+    const order = getCardKindReferenceCard("order", "zh");
+    let state = applyUserCardUpdate(createCardEditorState(order, false), {
+      ...order,
+      costs: { deployment: undefined },
+    });
+
+    state = selectCardKind(state, "hq", "zh");
+    state = selectCardKind(state, "order", "zh");
+
+    expect(state.card.costs.deployment).toBeUndefined();
+  });
+
+  it("remembers cleared HQ defense across a unit round trip", () => {
+    const hq = getCardKindReferenceCard("hq", "zh");
+    let state = applyUserCardUpdate(createCardEditorState(hq, false), {
+      ...hq,
+      stats: { hqDefense: undefined },
+    });
+
+    state = selectCardKind(state, "fighter", "zh");
+    state = selectCardKind(state, "hq", "zh");
+
+    expect(state.card.stats.hqDefense).toBeUndefined();
+  });
+
+  it("uses the explicit persisted edit classification instead of guessing from card contents", () => {
+    for (const language of ["en", "zh"] satisfies Language[]) {
+      for (const kind of CARD_KINDS) {
+        const sample = getCardKindReferenceCard(kind.id, language);
+        expect(createCardEditorState(sample, false).hasUserEdits).toBe(false);
+        expect(createCardEditorState(sample, true).hasUserEdits).toBe(true);
+      }
+    }
+
+    expect(
+      createCardEditorState({
+        ...getCardKindReferenceCard("fighter", "zh"),
+        title: "已经修改过的战斗机",
+      }, true).hasUserEdits,
+    ).toBe(true);
+  });
+
+  it("restores reference mode on reset but treats explicit card replacement as authored content", () => {
+    const replacement = replaceCardEditorContent({
+      ...getCardKindReferenceCard("artillery", "zh"),
+      title: "导入的炮兵",
+    });
+    const reset = resetCardEditorState("zh");
+
+    expect(replacement.hasUserEdits).toBe(true);
+    expect(reset.hasUserEdits).toBe(false);
+    expect(reset.card).toEqual(getCardKindReferenceCard("tank", "zh"));
+  });
+
+  it("fills target-only values after replacing the whole card", () => {
+    const unitReplacement = replaceCardEditorContent(getCardKindReferenceCard("fighter", "zh"));
+    const hqSelection = selectCardKind(unitReplacement, "hq", "zh");
+    const hqReplacement = replaceCardEditorContent(getCardKindReferenceCard("hq", "zh"));
+    const unitSelection = selectCardKind(hqReplacement, "fighter", "zh");
+
+    expect(hqSelection.card.stats.hqDefense).toBe(20);
+    expect(unitSelection.card.costs.deployment).toBe(3);
+    expect(unitSelection.card.costs.operation).toBe(1);
+    expect(unitSelection.card.stats.attack).toBe(3);
+    expect(unitSelection.card.stats.defense).toBe(3);
+  });
+
+  it("does not inherit cleared-field provenance when replacing the whole card", () => {
+    const fighter = getCardKindReferenceCard("fighter", "zh");
+    const edited = applyUserCardUpdate(createCardEditorState(fighter, false), {
+      ...fighter,
+      stats: { ...fighter.stats, attack: undefined },
+    });
+    expect(edited.clearedNumericFields).toContain("attack");
+
+    const replacement = replaceCardEditorContent(getCardKindReferenceCard("order", "zh"));
+    const selected = selectCardKind(replacement, "fighter", "zh");
+
+    expect(selected.card.stats.attack).toBe(3);
+    expect(selected.card.stats.defense).toBe(3);
   });
 });

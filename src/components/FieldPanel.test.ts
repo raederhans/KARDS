@@ -33,6 +33,7 @@ describe("FieldPanel value fields", () => {
         language: "zh",
         text: UI_TEXT.zh.fieldPanel,
         onCardChange: vi.fn(),
+        onCardKindChange: vi.fn(),
       }),
     );
 
@@ -54,6 +55,7 @@ describe("FieldPanel value fields", () => {
         language: "zh",
         text: UI_TEXT.zh.fieldPanel,
         onCardChange: vi.fn(),
+        onCardKindChange: vi.fn(),
       }),
     );
 

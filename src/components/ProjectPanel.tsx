@@ -20,7 +20,7 @@ import {
   writeBlobToDirectory,
   type LocalDirectoryHandle,
 } from "../localLibrary";
-import type { CardSpec, CardUpdate } from "../types";
+import type { CardSpec } from "../types";
 import { isAllowedImageFile, MAX_PROJECT_FILE_BYTES } from "../limits";
 import { LOCAL_ASSET_PACK_MANIFEST } from "../assetPack";
 import type { ImageDiffMetrics } from "../visualDiff";
@@ -39,8 +39,8 @@ type ProjectPanelProps = {
   card: CardSpec;
   language: Language;
   text: UiText["projectPanel"];
-  defaultCard: CardSpec;
-  onCardChange: (update: CardUpdate) => void;
+  onCardImport: (card: CardSpec) => void;
+  onCardReset: () => void;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   artworkImage: HTMLImageElement | null;
   renderOptions?: RenderCardOptions;
@@ -133,8 +133,8 @@ export function ProjectPanel({
   card,
   language,
   text,
-  defaultCard,
-  onCardChange,
+  onCardImport,
+  onCardReset,
   canvasRef,
   artworkImage,
   renderOptions,
@@ -243,7 +243,7 @@ export function ProjectPanel({
     reader.addEventListener("load", () => {
       try {
         const parsed = JSON.parse(String(reader.result));
-        onCardChange(normalizeCardSpec(parsed));
+        onCardImport(normalizeCardSpec(parsed));
       } catch {
         window.alert(text.jsonOpenFailed);
       }
@@ -504,7 +504,7 @@ export function ProjectPanel({
       </div>
 
       <div className="export-stack">
-        <button type="button" className="danger-action" onClick={() => onCardChange(defaultCard)}>
+        <button type="button" className="danger-action" onClick={onCardReset}>
           {text.resetCard}
         </button>
       </div>
