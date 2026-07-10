@@ -10,6 +10,7 @@ import {
   hasDraggedFiles,
   isImportableArtworkFile,
   normalizeArtworkCropInput,
+  shouldRestoreCollapsedSectionFocus,
   toggleFieldPanelSection,
 } from "./FieldPanel";
 
@@ -52,6 +53,18 @@ describe("FieldPanel collapsible sections", () => {
     expect(markup).toContain('class="field-section-body"');
     expect(markup).toContain('hidden=""');
     expect(markup).toContain('name="card-title"');
+  });
+
+  it("restores focus only when the collapsed section still owns focus", () => {
+    const activeElement = {} as Element;
+    const sectionBody = {
+      contains: vi.fn((element: Element) => element === activeElement),
+    } as unknown as Element;
+
+    expect(shouldRestoreCollapsedSectionFocus(true, activeElement, sectionBody)).toBe(true);
+    expect(shouldRestoreCollapsedSectionFocus(false, activeElement, sectionBody)).toBe(false);
+    expect(shouldRestoreCollapsedSectionFocus(true, {} as Element, sectionBody)).toBe(false);
+    expect(shouldRestoreCollapsedSectionFocus(true, activeElement, null)).toBe(false);
   });
 });
 

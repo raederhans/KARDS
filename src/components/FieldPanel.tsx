@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CARD_TEXT_APPEARANCE_BOUNDS } from "../cardModel";
 import { CARD_KINDS, NATIONS, RARITIES, SETS, getKind } from "../presets";
 import { translateKeywordLabel, translatePresetLabel, type Language, type UiText } from "../i18n";
@@ -912,12 +912,21 @@ export function FieldPanelSection({
   children: React.ReactNode;
 }) {
   const contentId = `field-section-${id}`;
+  const toggleButtonRef = useRef<HTMLButtonElement | null>(null);
+  const bodyRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (shouldRestoreCollapsedSectionFocus(collapsed, document.activeElement, bodyRef.current)) {
+      toggleButtonRef.current?.focus();
+    }
+  }, [collapsed]);
 
   return (
     <section className={`field-section${collapsed ? " is-collapsed" : ""}`} aria-labelledby={`${contentId}-heading`}>
       <div className="field-section-header">
         <h2 id={`${contentId}-heading`}>{title}</h2>
         <button
+          ref={toggleButtonRef}
           type="button"
           className="section-toggle"
           aria-label={toggleLabel}
@@ -928,11 +937,19 @@ export function FieldPanelSection({
           <span aria-hidden="true" />
         </button>
       </div>
-      <div id={contentId} className="field-section-body" hidden={collapsed}>
+      <div ref={bodyRef} id={contentId} className="field-section-body" hidden={collapsed}>
         {children}
       </div>
     </section>
   );
+}
+
+export function shouldRestoreCollapsedSectionFocus(
+  collapsed: boolean,
+  activeElement: Element | null,
+  sectionBody: Element | null,
+): boolean {
+  return Boolean(collapsed && activeElement && sectionBody?.contains(activeElement));
 }
 
 function NumberField({
