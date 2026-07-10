@@ -29,3 +29,11 @@
 - 有限 browser smoke：4 个 tab；参考搜索跨 tab 保留；ArrowLeft 从参考切到导出；700px 窄屏右栏位于卡面预览下方；导出显示“已触发浏览器下载”；console 0 error / 0 warning。浏览器、下载产物和 4175 端口已清理。
 - 整合检查：只存在 main 与本 feature worktree；main 干净，`main...origin/main = 0/0`，两边 changed-files 无交集。风险评级绿色，推荐 fast-forward。
 - 当前阶段：ready-for-integration；主代理继续负责提交、快进整合、合并后 validate、归档、推送和 worktree 清理。
+
+## 2026-07-09 整合收尾
+
+- Lore 功能提交：`ff2693f59f020348bfbd3543da2ae2689b90a2f3`。
+- `main` 从 `a8f6f2e` 无冲突 fast-forward 到 `ff2693f`，合并后 `npm run validate` 再次通过 16 个文件 / 233 个 Vitest、13 个 Python 契约、TypeScript、build 与 dist verifier。
+- `ff2693f` 已推送到 `origin/main`，本地与远端分叉为 `0/0`。
+- feature worktree 确认干净且已合并/推送后移除；`codex/kards-local-workbench` 分支已删除，`git worktree prune` 后只保留 main。
+- 任务全部完成，本目录移入 `docs/archive/kards-local-workbench/`。

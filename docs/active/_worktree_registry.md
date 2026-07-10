@@ -5,16 +5,16 @@
 - Worktree name/path: `kards-local-workbench-20260709`, `C:\Users\raede\.codex\worktrees\kards-local-workbench-20260709`
 - Thread/task: implement the approved four-tab local workbench, export diagnostics, automatic artwork matching, and reference filtering/sorting
 - Base branch/base commit: `main`, `a8f6f2e447bb3ca09da296bbf154bc709bfad115`
-- Current branch/HEAD: `codex/kards-local-workbench`; base HEAD `a8f6f2e447bb3ca09da296bbf154bc709bfad115`, ready for the feature commit
+- Current branch/HEAD: integrated into `main` as `ff2693f59f020348bfbd3543da2ae2689b90a2f3`; feature branch and worktree removed after push
 - Task goal: extend the existing static React/TypeScript/Canvas editor without changing its technology or publication boundaries
-- Status: ready-for-integration
+- Status: integrated
 - Main changed files: `src/App.tsx`, `src/components/ProjectPanel.tsx`, `src/components/LocalLibraryWorkbench.tsx`, `src/components/ReferenceWorkbench.tsx`, `src/cardEditorState.ts`, `src/devPreviewCatalog.ts`, `src/devPreviewState.ts`, `src/localLibrary.ts`, `src/exportCard.ts`, `src/storage.ts`, `src/i18n.ts`, `src/styles.css`, six existing test files, and task records
 - Shared hotspots: app runtime state, right-panel UI, card artwork readiness, local persistence, export pipeline, reference catalog, and existing test entrypoints
 - Validation: final `npm run validate` passed 16 files / 233 tests, 13 Python contracts, typecheck, production build, and dist verifier; Pages-mode build passed; moderate npm audit found 0 vulnerabilities; limited browser smoke passed tab state, keyboard, narrow layout, export trigger, and clean console; three independent reviewers approved architecture, correctness, and test coverage
-- Tests not run: real native directory-permission prompts and a manual two-tab Web Lock race were not exercised; deterministic API/lock tests cover those contracts. Post-merge validate remains.
-- Potential overlap: only the main checkout and this feature worktree exist; main is clean, `main...origin/main = 0/0`, and direct changed-file overlap is empty. Risk: green.
-- Recommended integration order: commit this complete coupled feature, then fast-forward into the clean updated `main`; no rebase or partial cherry-pick is needed
-- Next action: create the Lore feature commit, fast-forward main, rerun `npm run validate`, archive the task, push, and clean the worktree
+- Tests not run: real native directory-permission prompts and a manual two-tab Web Lock race were not exercised; deterministic API/lock tests cover those contracts. Post-merge `npm run validate` passed the same 233-test gate.
+- Potential overlap: none remaining; only the main checkout exists and `main...origin/main = 0/0`. Risk: green and closed.
+- Recommended integration order: completed by fast-forwarding the complete feature commit into main
+- Next action: none; task records archived under `docs/archive/kards-local-workbench/`
 
 ## KARDS v0.2.0 confirmed-defect repair
 
