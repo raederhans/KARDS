@@ -15,7 +15,7 @@
 - [x] Align release/authorization internal documentation.
 - [x] Run targeted and full verification.
 - [x] Close the final independent code, architecture, and verification reviews.
-- [ ] Commit, integrate into main, revalidate, push, and clean worktree.
+- [x] Commit, integrate into main, revalidate, push, and clean worktree.
 
 ## Delivery Package
 
@@ -39,14 +39,13 @@
      `.vercelignore`, the dist verifier, and its private-tool runner;
    - docs: roadmap, registry, public pack notice/neutral metadata, and archived
      security-scan records; no temporary source files remain.
-3. Diff summary: approximately 1.3k insertions and 450 deletions across product,
+3. Diff summary: 1,610 insertions and 232 deletions across product,
    test, release-contract, and documentation surfaces; security-scan records are
    moved unchanged from active to archive.
 4. Commit state: implementation, regressions, release contracts, and delivery
-   records are committed together at this repair branch HEAD with Lore trailers.
-5. Divergence: the repair branch is one commit ahead of base
-   `8ae036ce641bee80f90f3fbb6a7e318754cadcf9`; `main` remains at that base until
-   the planned fast-forward integration.
+   records are committed as `fd953d9`, fast-forwarded into `main`, and pushed.
+5. Divergence: none after integration; local `main` and `origin/main` contained
+   `fd953d9` before this documentation-only closeout.
 6. Overlap/conflict: no other KARDS worktree was present at task start; direct
    file-overlap risk is green, while release and asset-loading semantics are yellow
    and therefore require full validation and independent review before integration.
@@ -56,8 +55,8 @@
 8. Remaining risk: no browser visual smoke was run because the changed behaviors
    are covered by code-level contracts; the dist negative test exercises verifier
    helpers rather than a full temporary malicious-dist CLI fixture.
-9. Recommended next step: merge with `--ff-only` after final review approval,
-   re-run `npm run validate` on `main`, then push and clean the worktree.
-10. Integration readiness: three independent reviewers returned `APPROVE`; ready
-    for integration, but not safe to clean until the commit is merged, revalidated,
-    and pushed.
+9. Recommended next step: no required implementation work remains; future changes
+   should preserve the verified default-build and resource-budget contracts.
+10. Integration readiness: integrated and pushed. Three independent reviewers
+    approved; post-merge validation passed; the repair branch and worktree were
+    removed only after the commit was recoverable from `main` and `origin/main`.

@@ -5,16 +5,16 @@
 - Worktree name/path: `kards-defect-repair-20260709`, `C:\Users\raede\.codex\worktrees\kards-defect-repair-20260709`
 - Thread/task: repair confirmed correctness, resource-boundary, release-gate, and documentation-contract defects
 - Base branch/base commit: `main`, `8ae036ce641bee80f90f3fbb6a7e318754cadcf9`
-- Current branch/HEAD: `codex/kards-defect-repair`, committed repair branch one commit ahead of `8ae036ce641bee80f90f3fbb6a7e318754cadcf9`
+- Current branch/HEAD: integrated into `main` as `fd953d9eb9216d5d0d2624c74ecd4080b6289f04`; repair branch and worktree removed after push
 - Task goal: close all confirmed audit findings without changing the static React/TypeScript/Canvas architecture
-- Status: ready-for-integration
+- Status: integrated
 - Main changed files: `src/App.tsx`, `src/browserFiles.ts`, `src/limits.ts`, `src/components/ProjectPanel.tsx`, `src/components/FieldPanel.tsx`, `src/assetPack.ts`, `src/localLibrary.ts`, `src/exportCard.ts`, five existing tests, package/workflow configuration, and repository documentation
 - Shared hotspots: app artwork state, project import/export, asset-pack loading, local-library persistence, export encoding, validation entrypoints, and deployment workflows
-- Validation: final targeted Vitest passed 6 files / 61 tests; final `npm run validate` passed 16 files / 195 tests, 13 Python contracts, TypeScript, Vite build, and dist verifier; Pages-mode build passed; moderate npm audit found 0 vulnerabilities; diff check passed
-- Tests not run: post-merge `npm run validate` remains pending; browser visual smoke is intentionally omitted because automated contracts cover the changed behavior
+- Validation: final targeted Vitest passed 6 files / 61 tests; pre-merge and post-merge `npm run validate` each passed 16 files / 195 tests, 13 Python contracts, TypeScript, Vite build, and dist verifier; Pages-mode build passed; moderate npm audit found 0 vulnerabilities; diff check passed
+- Tests not run: browser visual smoke was intentionally omitted because automated contracts cover the changed behavior; the dist negative test covers verifier helpers rather than a full temporary malicious-dist CLI fixture
 - Potential overlap: no other KARDS worktrees were present at task start
-- Recommended integration order: complete and verify this repair branch as one contract-focused change, then merge to clean `main`
-- Next action: three independent reviewers approved; commit with Lore trailers, then fast-forward into clean `main`, revalidate, push, and clean the worktree
+- Recommended integration order: completed as one fast-forward contract-focused change after three independent approvals
+- Next action: none; task records are archived under `docs/archive/kards-defect-repair/`
 
 ## Authorized reference pack v0.2.0 release
 

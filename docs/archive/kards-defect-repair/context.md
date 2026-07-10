@@ -63,3 +63,10 @@
 - 2026-07-09: public pack metadata was reduced to neutral ownership/use wording;
   authorization and release evidence remain an internal repository/build concern,
   with no additional public UI.
+- 2026-07-09: three independent code, architecture, and verification reviewers
+  returned `APPROVE`. Repair commit `fd953d9` was fast-forwarded into clean
+  `main`, pushed to `origin/main`, and revalidated there with the same 195 Vitest,
+  13 Python, TypeScript, build, and dist-verifier result.
+- 2026-07-09: after push and post-merge validation, the temporary worktree and
+  branch were removed. This task record moved from `docs/active/` to
+  `docs/archive/` as the final closeout step.
