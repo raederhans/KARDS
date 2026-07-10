@@ -2,3 +2,5 @@ KARDS Reference Pack Notice
 
 KARDS and the included reference materials remain owned by their respective rights holders.
 Use of this pack is limited to the deployed KARDS Card Forge application and grants no ownership or redistribution rights.
+
+This directory is excluded from the repository software license. Fork maintainers must remove it before redistribution or deployment unless they have independently obtained every required permission.

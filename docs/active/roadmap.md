@@ -1,6 +1,6 @@
 # KARDS Card Forge Roadmap
 
-## Current Baseline — v0.3.0
+## Current Baseline — v1.0.0
 
 KARDS Card Forge is a local, static tool for creating one custom card at a
 time. The current release includes:
@@ -14,6 +14,8 @@ time. The current release includes:
 - Bundled reference assets, generated fallbacks, optional local style packs,
   export preflight, and structured export diagnostics.
 - Verified Vercel and GitHub Pages release paths.
+- A Simplified Chinese README, source-available software license, separate
+  resource-rights boundary, and deployed third-party notices.
 
 The product boundary remains the same: a local single-card design tool, not a
 gameplay, account, deck, or network-content platform.
@@ -63,8 +65,10 @@ user need and a testable acceptance rule exist.
 
 - `npm run validate` remains the repository gate for tests, private-tool
   contracts, typecheck, production build, and final artifact verification.
+- `npm run build:sites` prepares the same verified static application for Sites
+  hosting without changing product behavior.
 - The public reference pack stays inside `public/reference-pack/v1` with an
-  exact allowlist.
+  exact allowlist. Its presence does not grant fork or redistribution rights.
 - Local paths, user-selected style packs, private calibration files, and
   `.runtime` contents stay outside public bundles and publishable documentation.
 - README, roadmap, release notes, and the worktree registry must describe the

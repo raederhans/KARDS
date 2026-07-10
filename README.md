@@ -1,13 +1,17 @@
 # KARDS Card Forge
 
-Create, preview, and export custom KARDS-style cards in your browser. Editing,
-image processing, and file access stay on your device.
+English | [简体中文](README.zh-CN.md)
+
+Create, preview, and export custom KARDS-style cards in your browser. Your card
+content and the local files you choose are processed in the browser. The app
+does not upload them; it only loads its own resources from the deployed site.
 
 [Open the app on Vercel](https://kards-card-forge.vercel.app/) ·
 [Open the GitHub Pages build](https://raederhans.github.io/KARDS/)
 
-KARDS Card Forge is an unofficial, non-commercial fan tool. It is not a game
-client, deck builder, account tool, or official asset downloader.
+KARDS Card Forge is maintained as an unofficial, non-commercial fan tool. It is
+not a game client, deck builder, account tool, or official asset downloader.
+Software use is governed by [LICENSE](LICENSE).
 
 For an in-app overview, select **Help** in the top bar. The guide explains the
 first-card workflow, save options, reference actions, and local-file behavior.
@@ -35,7 +39,7 @@ The right-side workspace has four tabs:
 | **Export** | Choose format, resolution, exposure, contrast, and save location. |
 | **Reference** | Search, filter, compare, and apply bundled reference cards. |
 
-In **Reference**, selecting a row only changes the comparison card. **Use
+In **Reference**, selecting a reference card only changes the comparison card. **Use
 artwork only** changes the artwork. **Load entire card** replaces the current
 card. Automatic artwork matching only applies a unique match and never replaces
 artwork you uploaded or chose yourself.
@@ -44,17 +48,26 @@ artwork you uploaded or chose yourself.
 
 The three save paths have different purposes:
 
-- The automatic draft keeps lightweight card data in browser storage. It does
-  not keep uploaded artwork.
-- A project file (`.card.json`) keeps the full editable card, including uploaded
+- The automatic draft keeps lightweight card data for the current site in the
+  current browser. It does not keep embedded artwork, whether uploaded or
+  applied from a reference card. Vercel and GitHub Pages use different site
+  storage.
+- A project file (`.card.json`) keeps the full editable card, including embedded
   artwork. Use it when you want to continue the same card later.
 - The local card library (`card-forge-library.json`) stores reusable cards in a
   folder you choose. It supports add, load, update, and delete, but does not
-  embed uploaded artwork.
+  embed artwork.
 
-If the browser cannot choose a folder, exports use normal browser downloads.
-If it can open a card library but cannot coordinate safe writes, browsing and
-loading remain available while add, update, and delete actions are disabled.
+## Browser Support
+
+Folder access uses the browser's File System Access API. If that API is not
+available, exports use normal browser downloads and the local card-library
+folder cannot be opened.
+
+If folder access is available but Web Locks are not, the local library is
+read-only: you can browse and load cards, but cannot add, update, or delete
+them. Remembering a folder does not grant permanent access; the browser may ask
+for permission again when you open or write to it.
 
 ## Local Style Packs
 
@@ -66,6 +79,29 @@ not uploaded by the app.
 Start with the
 [manifest example](docs/reference/asset-pack-manifest.example.json). Use only
 files you are allowed to use.
+
+## Software License and Resource Rights
+
+Original project-owned software code is available under the
+[PolyForm Perimeter License 1.0.1](LICENSE). The software code may be used,
+modified, distributed, and used to create derivative software for permitted
+purposes, but it may not be used to provide a product that competes with KARDS
+Card Forge. This is a **source-available** license, not an OSI-approved
+open-source license.
+
+The software license does not grant rights to KARDS names or trademarks,
+project branding, KARDS-derived or reference resources, separately licensed
+third-party files, or user-supplied style packs. Before publicly forking,
+publishing, or deploying the repository, remove resources you do not
+have permission to redistribute or obtain the needed rights yourself. The
+code-only archive attached to this release is the safest starting point for
+derivative software because it omits the restricted reference pack, bundled
+brand image files, and maintainer-specific Sites metadata. It still contains
+the project name in source and documentation, so fork maintainers must rename
+the project and remove remaining brand references unless they have permission
+to retain them. Read [Software and Resource Rights](RESOURCE-RIGHTS.md) and
+[Third-Party Notices](public/THIRD-PARTY-NOTICES.txt) for the exact repository
+boundary.
 
 ## Local Development
 
@@ -116,15 +152,17 @@ docs/archive/              Completed implementation records
 This project is not affiliated with, endorsed by, sponsored by, or approved by
 1939 Games.
 
-KARDS-derived and reference resources in the public build are limited to the
-versioned files under `public/reference-pack/v1`. Declared app support assets
-are tracked separately. Local style packs, private calibration files,
-`.runtime`, environment files, and generated `dist` output must not be
-committed.
+Maintainer-hosted deployments contain versioned reference files under
+`public/reference-pack/v1`, but their presence in the repository or maintainer
+build does not grant permission to reuse or redistribute them. Fork maintainers
+must remove them or obtain their own rights before publishing or deploying a
+fork.
 
-Always use `npm run build` for a publish build. It checks the exact `dist`
-directory for unexpected reference files, private paths, credentials, and other
-release-boundary violations. GitHub Pages publishes the verified workflow
-artifact; do not push a separate `gh-pages` build.
+Local style packs, private calibration files, `.runtime`, environment files,
+and generated `dist` output must not be committed. Always use `npm run build`
+for a publish build. It checks the exact `dist` directory for unexpected
+reference files, private paths, credentials, and other release-boundary
+violations. GitHub Pages publishes the verified workflow artifact; do not push
+a separate `gh-pages` build.
 
 See the current [roadmap](docs/active/roadmap.md) for planned work.
