@@ -139,10 +139,17 @@ function canvasToBlob(canvas: HTMLCanvasElement, mimeType: string, quality?: num
 async function createPdfBlob(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
   const imageBlob = await canvasToBlob(canvas, "image/jpeg", quality);
   const imageBytes = new Uint8Array(await imageBlob.arrayBuffer());
-  const pageWidth = canvas.width;
-  const pageHeight = canvas.height;
+  const pageWidth = CARD_WIDTH;
+  const pageHeight = CARD_HEIGHT;
   const content = `q\n${pageWidth} 0 0 ${pageHeight} 0 0 cm\n/Im0 Do\nQ\n`;
-  const pdfBytes = buildSingleImagePdf(imageBytes, pageWidth, pageHeight, content);
+  const pdfBytes = buildSingleImagePdf(
+    imageBytes,
+    pageWidth,
+    pageHeight,
+    canvas.width,
+    canvas.height,
+    content,
+  );
   const pdfBuffer = new ArrayBuffer(pdfBytes.byteLength);
   new Uint8Array(pdfBuffer).set(pdfBytes);
   return new Blob([pdfBuffer], { type: "application/pdf" });
@@ -152,6 +159,8 @@ function buildSingleImagePdf(
   imageBytes: Uint8Array,
   pageWidth: number,
   pageHeight: number,
+  imageWidth: number,
+  imageHeight: number,
   content: string,
 ): Uint8Array {
   const encoder = new TextEncoder();
@@ -188,7 +197,7 @@ function buildSingleImagePdf(
 
   beginObject(4);
   pushText(
-    `<< /Type /XObject /Subtype /Image /Width ${pageWidth} /Height ${pageHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBytes.length} >>\nstream\n`,
+    `<< /Type /XObject /Subtype /Image /Width ${imageWidth} /Height ${imageHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBytes.length} >>\nstream\n`,
   );
   pushBytes(imageBytes);
   pushText("\nendstream\nendobj\n");

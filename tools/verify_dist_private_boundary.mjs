@@ -1,4 +1,5 @@
 import { readFile, readdir, stat } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const DIST_DIR = path.resolve("dist");
@@ -35,23 +36,28 @@ const SENSITIVE_PATTERNS = [
 const lowerCaseMarkers = FORBIDDEN_MARKERS.map((marker) => marker.toLowerCase());
 const findings = [];
 
-try {
+export async function verifyDistBoundary() {
+  findings.length = 0;
   await scanPath(DIST_DIR);
   await verifyPublicReferencePack();
-} catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-}
-
-if (findings.length > 0) {
-  console.error("Private or intermediate asset markers were found in dist:");
-  for (const finding of findings) {
-    console.error(`- ${finding}`);
+  if (findings.length > 0) {
+    throw new Error([
+      "Private or intermediate asset markers were found in dist:",
+      ...findings.map((finding) => `- ${finding}`),
+    ].join("\n"));
   }
-  process.exit(1);
 }
 
-console.log("dist private boundary and authorized reference pack verified.");
+const isCommandLineEntry = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isCommandLineEntry) {
+  try {
+    await verifyDistBoundary();
+    console.log("dist private boundary and authorized reference pack verified.");
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  }
+}
 
 async function scanPath(targetPath) {
   const targetStat = await stat(targetPath);
@@ -103,8 +109,8 @@ async function verifyPublicReferencePack() {
   if (manifest.fonts !== undefined && (!Array.isArray(manifest.fonts) || manifest.fonts.length > 0)) {
     throw new Error("The bundled authorized pack must not contain undeclared font files.");
   }
-  if (!/separate authorization/i.test(rightsNotice) || !/rights holders/i.test(rightsNotice)) {
-    throw new Error("The public rights notice must state the authorization and retained ownership.");
+  if (!/rights holders/i.test(rightsNotice) || !/no ownership or redistribution rights/i.test(rightsNotice)) {
+    throw new Error("The public rights notice must state retained ownership and use limits.");
   }
   if (sampleIds.length === 0 || new Set(sampleIds).size !== sampleIds.length) {
     throw new Error("The reference catalog must contain a unique card sample list.");
@@ -189,6 +195,12 @@ async function assertExactFiles(directory, expectedFiles, label, recursive = fal
       });
   const expected = [...expectedFiles].sort();
   const actual = actualFiles.sort();
+  assertExactFileNames(actual, expected, label);
+}
+
+export function assertExactFileNames(actualFiles, expectedFiles, label) {
+  const actual = [...actualFiles].sort();
+  const expected = [...expectedFiles].sort();
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
     throw new Error(`${label} do not match the reference catalog.`);
   }
@@ -236,7 +248,7 @@ function addSensitiveFindings(relativePath, content) {
   }
 }
 
-function findMarker(value) {
+export function findMarker(value) {
   const normalizedValue = value.toLowerCase();
   const markerIndex = lowerCaseMarkers.findIndex((marker) => normalizedValue.includes(marker));
   return markerIndex >= 0 ? FORBIDDEN_MARKERS[markerIndex] : null;

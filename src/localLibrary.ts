@@ -7,6 +7,7 @@ export const LOCAL_LIBRARY_FILE_NAME = "card-forge-library.json";
 const LOCAL_LIBRARY_DB = "card-forge-local-library";
 const LOCAL_LIBRARY_STORE = "handles";
 const LOCAL_LIBRARY_HANDLE_KEY = "library-directory";
+const LOCAL_LIBRARY_WRITE_LOCK = "card-forge-local-library-write";
 
 export type CardLibraryEntry = {
   id: string;
@@ -74,14 +75,23 @@ export async function saveCardToLocalLibrary(
   directory: LocalDirectoryHandle,
   card: CardSpec,
 ): Promise<CardLibraryFile> {
-  const library = await readLocalLibrary(directory);
-  const nextLibrary: CardLibraryFile = {
-    version: 1,
-    updatedAt: new Date().toISOString(),
-    cards: [...library.cards, createCardLibraryEntry(card)].slice(-MAX_LOCAL_LIBRARY_CARDS),
-  };
-  await writeLocalLibrary(directory, nextLibrary);
-  return nextLibrary;
+  return withLocalLibraryWriteLock(async () => {
+    const library = await readLocalLibrary(directory);
+    const nextLibrary: CardLibraryFile = {
+      version: 1,
+      updatedAt: new Date().toISOString(),
+      cards: [...library.cards, createCardLibraryEntry(card)].slice(-MAX_LOCAL_LIBRARY_CARDS),
+    };
+    await writeLocalLibrary(directory, nextLibrary);
+    return nextLibrary;
+  });
+}
+
+function withLocalLibraryWriteLock<T>(operation: () => Promise<T>): Promise<T> {
+  if (typeof navigator === "undefined" || !navigator.locks) {
+    throw new Error("Local library saves require browser Web Locks support.");
+  }
+  return navigator.locks.request(LOCAL_LIBRARY_WRITE_LOCK, operation).then((result) => result);
 }
 
 export async function writeBlobToDirectory(

@@ -21,9 +21,14 @@ import {
   type LocalDirectoryHandle,
 } from "../localLibrary";
 import type { CardSpec } from "../types";
-import { isAllowedImageFile, MAX_PROJECT_FILE_BYTES } from "../limits";
+import {
+  isAllowedEmbeddedImageDataUrl,
+  isAllowedImageFile,
+  MAX_PROJECT_FILE_BYTES,
+} from "../limits";
 import { LOCAL_ASSET_PACK_MANIFEST } from "../assetPack";
 import type { ImageDiffMetrics } from "../visualDiff";
+import { consumeSelectedFile, readBrowserFile } from "../browserFiles";
 
 export const TEXTURE_CONTROL_LIMITS = CARD_TEXTURE_BOUNDS;
 
@@ -43,6 +48,7 @@ type ProjectPanelProps = {
   onCardReset: () => void;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   artworkImage: HTMLImageElement | null;
+  artworkImageSource: string | null;
   renderOptions?: RenderCardOptions;
   assetPackStatus: AssetPackStatus | null;
   assetPackError: string | null;
@@ -137,6 +143,7 @@ export function ProjectPanel({
   onCardReset,
   canvasRef,
   artworkImage,
+  artworkImageSource,
   renderOptions,
   assetPackStatus,
   assetPackError,
@@ -165,8 +172,10 @@ export function ProjectPanel({
   const [libraryDirectory, setLibraryDirectory] = useState<LocalDirectoryHandle | null>(null);
   const [libraryStatus, setLibraryStatus] = useState<string | null>(null);
   const [libraryError, setLibraryError] = useState<string | null>(null);
+  const [librarySavePending, setLibrarySavePending] = useState(false);
   const exportDimensions = getExportDimensions(exportScale);
   const directoryPickerAvailable = isDirectoryPickerAvailable();
+  const artworkReady = isArtworkReadyForExport(card.artwork.dataUrl, artworkImage, artworkImageSource);
 
   useEffect(() => {
     if (!directoryPickerAvailable) {
@@ -193,7 +202,7 @@ export function ProjectPanel({
     if (!canvas) {
       return;
     }
-    if (!canStartCardExport(assetPackStatus, () => window.confirm(text.privateCardConfirm))) {
+    if (!canStartCardExport(assetPackStatus, () => window.confirm(text.privateCardConfirm), artworkReady)) {
       return;
     }
 
@@ -228,27 +237,15 @@ export function ProjectPanel({
   }
 
   function importJson(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-
-    if (file.size > MAX_PROJECT_FILE_BYTES) {
-      window.alert(text.projectTooLarge);
-      event.target.value = "";
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.addEventListener("load", () => {
-      try {
-        const parsed = JSON.parse(String(reader.result));
-        onCardImport(normalizeCardSpec(parsed));
-      } catch {
-        window.alert(text.jsonOpenFailed);
+    const input = event.target;
+    void consumeSelectedFile(input, async (file) => {
+      if (file.size > MAX_PROJECT_FILE_BYTES) {
+        window.alert(text.projectTooLarge);
+        return;
       }
-    });
-    reader.readAsText(file);
+      const serialized = await readBrowserFile(file, "text");
+      onCardImport(await parseImportedCardProject(serialized));
+    }).catch(() => window.alert(text.jsonOpenFailed));
   }
 
   function importAssetPack(event: React.ChangeEvent<HTMLInputElement>) {
@@ -299,6 +296,7 @@ export function ProjectPanel({
     let savedLibraryCount: number | null = null;
     let savedDirectoryName = "";
     try {
+      setLibrarySavePending(true);
       setLibraryError(null);
       const directory = libraryDirectory ?? await pickWritableDirectory();
       const library = await saveCardToLocalLibrary(directory, card);
@@ -314,6 +312,8 @@ export function ProjectPanel({
         return;
       }
       setLibraryError(error instanceof Error ? error.message : text.libraryUnavailable);
+    } finally {
+      setLibrarySavePending(false);
     }
   }
 
@@ -410,7 +410,7 @@ export function ProjectPanel({
           <button type="button" disabled={!directoryPickerAvailable} onClick={chooseExportDirectory}>
             {text.chooseExportDirectory}
           </button>
-          <button type="button" className="primary-action" onClick={exportCard}>
+          <button type="button" className="primary-action" disabled={!artworkReady} onClick={exportCard}>
             {assetPackStatus?.requiresPrivateExportConfirm ? text.exportPrivateCard : text.exportCard}
           </button>
         </div>
@@ -443,7 +443,7 @@ export function ProjectPanel({
           <button type="button" disabled={!directoryPickerAvailable} onClick={chooseLibraryDirectory}>
             {text.chooseLibraryDirectory}
           </button>
-          <button type="button" disabled={!directoryPickerAvailable} onClick={saveToLibrary}>
+          <button type="button" disabled={!directoryPickerAvailable || librarySavePending} onClick={saveToLibrary}>
             {text.saveToLibrary}
           </button>
         </div>
@@ -589,8 +589,44 @@ export function downloadBlob(blob: Blob, fileName: string): void {
 export function canStartCardExport(
   assetPackStatus: Pick<AssetPackStatus, "requiresPrivateExportConfirm"> | null,
   confirmPrivateExport: () => boolean,
+  artworkReady = true,
 ): boolean {
+  if (!artworkReady) {
+    return false;
+  }
   return !assetPackStatus?.requiresPrivateExportConfirm || confirmPrivateExport();
+}
+
+export function isArtworkReadyForExport(
+  currentSource: string | undefined,
+  image: HTMLImageElement | null,
+  loadedSource: string | null,
+): boolean {
+  return !currentSource || (image !== null && loadedSource === currentSource);
+}
+
+export async function parseImportedCardProject(
+  serialized: string,
+  validateEmbeddedArtwork: (dataUrl: string) => Promise<boolean> = isAllowedEmbeddedImageDataUrl,
+): Promise<CardSpec> {
+  const parsed: unknown = JSON.parse(serialized);
+  const rawArtwork = parsed && typeof parsed === "object" && !Array.isArray(parsed)
+    ? (parsed as Record<string, unknown>).artwork
+    : undefined;
+  if (rawArtwork && typeof rawArtwork === "object" && !Array.isArray(rawArtwork)) {
+    const artwork = rawArtwork as Record<string, unknown>;
+    if (
+      artwork.source === "upload" &&
+      (typeof artwork.dataUrl !== "string" || !(await validateEmbeddedArtwork(artwork.dataUrl)))
+    ) {
+      throw new Error("Embedded artwork is invalid or too large.");
+    }
+  }
+  const card = normalizeCardSpec(parsed);
+  if (card.artwork.source === "upload" && !card.artwork.dataUrl) {
+    throw new Error("Embedded artwork is invalid or too large.");
+  }
+  return card;
 }
 
 export function safeFileName(value: string): string {

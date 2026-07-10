@@ -12,6 +12,7 @@ import { CardCanvas } from "./components/CardCanvas";
 import { FieldPanel } from "./components/FieldPanel";
 import { ProjectPanel } from "./components/ProjectPanel";
 import { loadAssetPackFromFiles, loadAssetPackFromUrl, type LoadedAssetPack } from "./assetPack";
+import { loadAllowedImageSource } from "./limits";
 import {
   resolveDevPreviewReferenceSelection,
   resolveDevPreviewTemplateSelection,
@@ -45,7 +46,13 @@ function App() {
     return createCardEditorState(draft.card, draft.hasUserEdits, draft.clearedNumericFields);
   });
   const card = editorState.card;
-  const [artworkImage, setArtworkImage] = useState<HTMLImageElement | null>(null);
+  const [loadedArtwork, setLoadedArtwork] = useState<{
+    source: string;
+    image: HTMLImageElement;
+  } | null>(null);
+  const artworkImage = loadedArtwork && loadedArtwork.source === card.artwork.dataUrl
+    ? loadedArtwork.image
+    : null;
   const [assetPack, setAssetPack] = useState<LoadedAssetPack | null>(null);
   const [devPreviewCatalog, setDevPreviewCatalog] = useState<DevPreviewCatalogModule | null>(null);
   const [assetPackError, setAssetPackError] = useState<string | null>(null);
@@ -120,28 +127,28 @@ function App() {
 
   useEffect(() => {
     if (!card.artwork.dataUrl) {
-      setArtworkImage(null);
+      setLoadedArtwork(null);
       return;
     }
 
     let cancelled = false;
-    const image = new Image();
-    image.onload = () => {
-      if (!cancelled) {
-        setArtworkImage(image);
-      }
-    };
-    image.onerror = () => {
-      if (!cancelled) {
-        setArtworkImage(null);
-      }
-    };
-    image.src = card.artwork.dataUrl;
+    const controller = new AbortController();
+    const source = card.artwork.dataUrl;
+    void loadAllowedImageSource(source, controller.signal)
+      .then((image) => {
+        if (!cancelled) {
+          setLoadedArtwork({ source, image });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLoadedArtwork(null);
+        }
+      });
 
     return () => {
       cancelled = true;
-      image.onload = null;
-      image.onerror = null;
+      controller.abort();
     };
   }, [card.artwork.dataUrl]);
 
@@ -487,6 +494,7 @@ function App() {
           onCardReset={handleCardReset}
           canvasRef={canvasRef}
           artworkImage={artworkImage}
+          artworkImageSource={loadedArtwork?.source ?? null}
           renderOptions={renderOptions}
           assetPackStatus={
             assetPack

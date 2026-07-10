@@ -120,4 +120,31 @@ describe("card export options", () => {
     expect(blob.type).toBe("image/png");
     expect(await blob.text()).toBe("1000x1404");
   });
+
+  it("keeps the PDF page size fixed while increasing only the embedded image resolution", async () => {
+    vi.stubGlobal("document", {
+      createElement: vi.fn(() => ({
+        width: 0,
+        height: 0,
+        toBlob(callback: BlobCallback, mimeType: string) {
+          callback(new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: mimeType }));
+        },
+      } as HTMLCanvasElement)),
+    });
+
+    const exportPdf = (scale: number) => createCardExportBlob(
+      {} as HTMLCanvasElement,
+      { format: "pdf", scale, exposure: 0, contrast: 0, jpegQuality: 0.92 },
+      { card: DEFAULT_CARD },
+    );
+
+    const oneXText = await (await exportPdf(1)).text();
+    const threeXText = await (await exportPdf(3)).text();
+
+    expect(oneXText).toContain("/MediaBox [0 0 500 702]");
+    expect(threeXText).toContain("/MediaBox [0 0 500 702]");
+    expect(oneXText).toContain("500 0 0 702 0 0 cm");
+    expect(threeXText).toContain("500 0 0 702 0 0 cm");
+    expect(threeXText).toContain("/Width 1500 /Height 2106");
+  });
 });

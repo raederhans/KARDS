@@ -25,6 +25,7 @@ import {
   reorderKeywordIds,
   resolveCardKeywordIds,
 } from "../keywords";
+import { readBrowserFile } from "../browserFiles";
 
 type FieldPanelProps = {
   card: CardSpec;
@@ -302,24 +303,17 @@ export function FieldPanel({
   }
 
   function updateCrop(key: keyof CardSpec["artwork"]["crop"], value: string) {
-    if (value === "") {
+    const normalizedValue = normalizeArtworkCropInput(key, value);
+    if (normalizedValue === undefined) {
       return;
     }
-
-    const numericValue = Number(value);
-    if (!Number.isFinite(numericValue)) {
-      return;
-    }
-
-    const bounds = key === "scale" ? { min: 0.6, max: 3 } : { min: -300, max: 300 };
-    const adjustedValue = key !== "scale" && Math.abs(numericValue) <= 4 ? 0 : numericValue;
     onCardChange((currentCard) => ({
       ...currentCard,
       artwork: {
         ...currentCard.artwork,
         crop: {
           ...currentCard.artwork.crop,
-          [key]: clamp(adjustedValue, bounds.min, bounds.max),
+          [key]: normalizedValue,
         },
       },
     }));
@@ -330,17 +324,12 @@ export function FieldPanel({
       return false;
     }
 
-    if (!(await isImportableArtworkFile(file)) || !(await hasAllowedArtworkDimensions(file))) {
-      window.alert(text.invalidArtwork);
-      return false;
-    }
-
-    const reader = new FileReader();
-    reader.addEventListener("load", () => {
-      const dataUrl = reader.result;
-      if (typeof dataUrl !== "string") {
-        return;
+    try {
+      if (!(await isImportableArtworkFile(file)) || !(await hasAllowedArtworkDimensions(file))) {
+        window.alert(text.invalidArtwork);
+        return false;
       }
+      const dataUrl = await readBrowserFile(file, "data-url");
       onCardChange((currentCard) => ({
         ...currentCard,
         artwork: {
@@ -349,17 +338,17 @@ export function FieldPanel({
           crop: { x: 0, y: 0, scale: 1 },
         },
       }));
-    });
-    reader.readAsDataURL(file);
-    return true;
+      return true;
+    } catch {
+      window.alert(text.invalidArtwork);
+      return false;
+    }
   }
 
   function handleArtworkUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const input = event.target;
-    void importArtworkFile(input.files?.[0]).then((imported) => {
-      if (!imported) {
-        input.value = "";
-      }
+    void importArtworkFile(input.files?.[0]).finally(() => {
+      input.value = "";
     });
   }
 
@@ -866,6 +855,21 @@ export function toggleFieldPanelSection(
 
 export function isImportableArtworkFile(file: Pick<File, "name" | "type" | "size" | "slice">): Promise<boolean> {
   return isAllowedImageFile(file);
+}
+
+export function normalizeArtworkCropInput(
+  key: keyof CardSpec["artwork"]["crop"],
+  value: string,
+): number | undefined {
+  if (value === "") {
+    return undefined;
+  }
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return undefined;
+  }
+  const bounds = key === "scale" ? { min: 0.6, max: 3 } : { min: -300, max: 300 };
+  return clamp(numericValue, bounds.min, bounds.max);
 }
 
 export function hasDraggedFiles(dataTransfer: Pick<DataTransfer, "items" | "files">): boolean {

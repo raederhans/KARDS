@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "npm run typecheck && vite build",
+    "build": "npm run typecheck && npm run build:verified",
+    "build:verified": "vite build && npm run verify:dist-private-boundary",
     "test": "vitest run",
     "smoke:visual:kards": "node tools/kards_browser_visual_smoke.mjs",
     "verify:dist-private-boundary": "node tools/verify_dist_private_boundary.mjs",
+    "verify:private-tools": "node tools/run_private_tool_contracts.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json --pretty false && tsc --noEmit -p tsconfig.node.json --pretty false",
-    "validate": "npm run typecheck && npm test -- --run && npm run build && npm run verify:dist-private-boundary"
+    "validate": "npm test -- --run && npm run verify:private-tools && npm run build"
   },
   "dependencies": {
     "@fontsource/libre-franklin": "^5.2.8",

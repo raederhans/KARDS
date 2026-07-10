@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "name": "KARDS authorized reference pack",
-  "rightsNotice": "Distributed by the project operator under separate authorization. KARDS and the referenced artwork remain owned by their respective rights holders.",
+  "name": "KARDS reference pack",
+  "rightsNotice": "KARDS and the referenced artwork remain owned by their respective rights holders. This pack grants no ownership or redistribution rights.",
   "requiresPrivateExportConfirm": false,
   "images": [
     {

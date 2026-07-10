@@ -1,5 +1,21 @@
 # Worktree Registry
 
+## KARDS v0.2.0 confirmed-defect repair
+
+- Worktree name/path: `kards-defect-repair-20260709`, `C:\Users\raede\.codex\worktrees\kards-defect-repair-20260709`
+- Thread/task: repair confirmed correctness, resource-boundary, release-gate, and documentation-contract defects
+- Base branch/base commit: `main`, `8ae036ce641bee80f90f3fbb6a7e318754cadcf9`
+- Current branch/HEAD: `codex/kards-defect-repair`, committed repair branch one commit ahead of `8ae036ce641bee80f90f3fbb6a7e318754cadcf9`
+- Task goal: close all confirmed audit findings without changing the static React/TypeScript/Canvas architecture
+- Status: ready-for-integration
+- Main changed files: `src/App.tsx`, `src/browserFiles.ts`, `src/limits.ts`, `src/components/ProjectPanel.tsx`, `src/components/FieldPanel.tsx`, `src/assetPack.ts`, `src/localLibrary.ts`, `src/exportCard.ts`, five existing tests, package/workflow configuration, and repository documentation
+- Shared hotspots: app artwork state, project import/export, asset-pack loading, local-library persistence, export encoding, validation entrypoints, and deployment workflows
+- Validation: final targeted Vitest passed 6 files / 61 tests; final `npm run validate` passed 16 files / 195 tests, 13 Python contracts, TypeScript, Vite build, and dist verifier; Pages-mode build passed; moderate npm audit found 0 vulnerabilities; diff check passed
+- Tests not run: post-merge `npm run validate` remains pending; browser visual smoke is intentionally omitted because automated contracts cover the changed behavior
+- Potential overlap: no other KARDS worktrees were present at task start
+- Recommended integration order: complete and verify this repair branch as one contract-focused change, then merge to clean `main`
+- Next action: three independent reviewers approved; commit with Lore trailers, then fast-forward into clean `main`, revalidate, push, and clean the worktree
+
 ## Authorized reference pack v0.2.0 release
 
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
@@ -67,7 +83,7 @@
   - Core files: `src/limits.ts`, `src/assetPack.ts`, `src/components/FieldPanel.tsx`, `src/components/ProjectPanel.tsx`, `src/visualDiff.ts`, `src/localLibrary.ts`, `src/i18n.ts`, `tools/kards_private_calibration.py`
   - Test files: `src/assetPack.test.ts`, `src/components/FieldPanel.test.ts`, `src/components/ProjectPanel.test.ts`, `src/visualDiff.test.ts`, `src/localLibrary.test.ts`, `tools/kards_private_calibration_contract_test.py`
   - Config/tool files: `package.json`, `tools/verify_dist_private_boundary.mjs`
-  - Docs/lessons files: `docs/active/security-scan/plan.md`, `docs/active/security-scan/context.md`, `docs/active/security-scan/task.md`, `docs/active/_worktree_registry.md`, `lessons learned.md`
+  - Docs/lessons files: `docs/archive/security-scan/plan.md`, `docs/archive/security-scan/context.md`, `docs/archive/security-scan/task.md`, `docs/active/_worktree_registry.md`, `lessons learned.md`
   - Temporary/security artifacts: `C:\Users\raede\AppData\Local\Temp\codex-security-scans\KARDS\3be519432c11_20260709T110919\**`
 - Shared hotspot files touched: asset-pack loader, ProjectPanel file import UI, i18n text, private calibration cleanup tooling, active worktree registry
 - Current diff summary:

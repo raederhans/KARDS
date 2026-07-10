@@ -1,9 +1,21 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CARD } from "../cardModel";
 import { UI_TEXT } from "../i18n";
-import { FieldPanel, hasDraggedFiles, isImportableArtworkFile, toggleFieldPanelSection } from "./FieldPanel";
+import { readBrowserFile } from "../browserFiles";
+import {
+  FieldPanel,
+  hasDraggedFiles,
+  isImportableArtworkFile,
+  normalizeArtworkCropInput,
+  toggleFieldPanelSection,
+} from "./FieldPanel";
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
 
 describe("FieldPanel collapsible sections", () => {
   it("toggles one section without changing the other collapsed sections", () => {
@@ -81,6 +93,12 @@ describe("FieldPanel artwork drop import", () => {
       isImportableArtworkFile(createImageFile("art.png", new Uint8Array(5 * 1024 * 1024 + 1), "image/png")),
     ).resolves.toBe(false);
     await expect(isImportableArtworkFile(createImageFile("fake.png", new Uint8Array([1, 2, 3]), "image/png"))).resolves.toBe(false);
+    await expect(isImportableArtworkFile({
+      name: "unreadable.png",
+      type: "image/png",
+      size: 8,
+      slice: () => ({ arrayBuffer: async () => { throw new Error("read failed"); } }) as unknown as Blob,
+    })).resolves.toBe(false);
   });
 
   it("recognizes file drags without treating text drags as artwork drops", () => {
@@ -90,6 +108,28 @@ describe("FieldPanel artwork drop import", () => {
     expect(hasDraggedFiles({ items: [fileItem], files: [] } as unknown as DataTransfer)).toBe(true);
     expect(hasDraggedFiles({ items: [textItem], files: [] } as unknown as DataTransfer)).toBe(false);
     expect(hasDraggedFiles({ items: [], files: [{}] } as unknown as DataTransfer)).toBe(true);
+  });
+
+  it("reports FileReader error and abort outcomes for artwork data URLs", async () => {
+    const file = createImageFile("art.png", pngHeader(), "image/png");
+
+    stubFileReaderFailure("error");
+    await expect(readBrowserFile(file, "data-url")).rejects.toThrow();
+
+    stubFileReaderFailure("abort");
+    await expect(readBrowserFile(file, "data-url")).rejects.toThrow();
+  });
+});
+
+describe("FieldPanel artwork crop values", () => {
+  it("preserves small intentional artwork offsets while still clamping the supported range", () => {
+    expect(normalizeArtworkCropInput("x", "1")).toBe(1);
+    expect(normalizeArtworkCropInput("x", "-4")).toBe(-4);
+    expect(normalizeArtworkCropInput("y", "3")).toBe(3);
+    expect(normalizeArtworkCropInput("x", "301")).toBe(300);
+    expect(normalizeArtworkCropInput("y", "-301")).toBe(-300);
+    expect(normalizeArtworkCropInput("scale", "0.5")).toBe(0.6);
+    expect(normalizeArtworkCropInput("scale", "4")).toBe(3);
   });
 });
 
@@ -109,4 +149,19 @@ function pngHeader(): Uint8Array {
 
 function webpHeader(): Uint8Array {
   return new Uint8Array([0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50]);
+}
+
+function stubFileReaderFailure(outcome: "error" | "abort"): void {
+  vi.stubGlobal("FileReader", class {
+    result: string | ArrayBuffer | null = null;
+    private readonly listeners = new Map<string, () => void>();
+
+    addEventListener(type: string, listener: () => void): void {
+      this.listeners.set(type, listener);
+    }
+
+    readAsDataURL(): void {
+      queueMicrotask(() => this.listeners.get(outcome)?.());
+    }
+  });
 }

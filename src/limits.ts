@@ -22,11 +22,15 @@ export async function hasAllowedImageSignature(file: Pick<File, "slice">): Promi
 }
 
 export async function isAllowedImageFile(file: Pick<File, "name" | "type" | "size" | "slice">): Promise<boolean> {
-  return (
-    file.size <= MAX_IMAGE_FILE_BYTES &&
-    hasAllowedImageTypeOrExtension(file) &&
-    await hasAllowedImageSignature(file)
-  );
+  try {
+    return (
+      file.size <= MAX_IMAGE_FILE_BYTES &&
+      hasAllowedImageTypeOrExtension(file) &&
+      await hasAllowedImageSignature(file)
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function isAllowedImageDimensions(
@@ -44,6 +48,60 @@ export function isAllowedImageDataUrl(value: string): boolean {
       value.startsWith("data:image/jpeg;") ||
       value.startsWith("data:image/webp;"))
   );
+}
+
+export function loadAllowedImageSource(source: string, signal?: AbortSignal): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const cleanup = () => {
+      image.onload = null;
+      image.onerror = null;
+      signal?.removeEventListener("abort", abort);
+    };
+    const abort = () => {
+      cleanup();
+      image.src = "";
+      reject(new Error("Image loading was cancelled."));
+    };
+    image.onload = () => {
+      cleanup();
+      if (isAllowedImageDimensions(image)) {
+        resolve(image);
+      } else {
+        reject(new Error("Image dimensions are too large."));
+      }
+    };
+    image.onerror = () => {
+      cleanup();
+      reject(new Error("Could not decode image."));
+    };
+    if (signal?.aborted) {
+      abort();
+      return;
+    }
+    signal?.addEventListener("abort", abort, { once: true });
+    image.src = source;
+  });
+}
+
+export async function isAllowedEmbeddedImageDataUrl(value: string): Promise<boolean> {
+  if (!isAllowedImageDataUrl(value)) {
+    return false;
+  }
+
+  try {
+    const response = await fetch(value);
+    const blob = await response.blob();
+    const extension = blob.type === "image/jpeg" ? ".jpg" : blob.type === "image/webp" ? ".webp" : ".png";
+    const file = new File([blob], `embedded-artwork${extension}`, { type: blob.type });
+    if (!(await isAllowedImageFile(file))) {
+      return false;
+    }
+    await loadAllowedImageSource(value);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function isPngHeader(header: Uint8Array): boolean {

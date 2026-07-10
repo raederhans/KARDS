@@ -2,11 +2,12 @@
 
 ## Current State
 
-KARDS Card Forge is already usable as a v0.1-level single-card card-face
+KARDS Card Forge is a v0.2-level single-card card-face
 generator. The current app has working core editing, Canvas rendering, PNG/JPG/PDF
 export, high-resolution rerendered export, lightweight local drafts, a local
-card library path, private style-pack loading, reference comparison, and public
-deployment paths for Vercel and GitHub Pages.
+card library path, bundled and local style-pack loading, a versioned reference
+catalog, reference comparison, and public deployment paths for Vercel and
+GitHub Pages.
 
 The next stage should focus on stabilization, regression baselines, and small
 careful improvements. The project should stay a local static fan card-face tool,
@@ -14,22 +15,26 @@ not grow into a gameplay or account platform.
 
 ## Priority Roadmap
 
-### Phase 1: Repository Trust And Documentation Sync
+### Completed Foundation: Repository And Release Trust
 
-- Keep README, roadmap, worktree registry, and release notes aligned with the
-  code that is actually present.
-- Keep the non-official fan-project and private-asset boundaries visible.
-- Avoid describing planned work as shipped functionality.
+- `npm run validate` is the named repository gate for typecheck, Vitest, Python
+  private-tool contracts, production build, and final artifact verification.
+- The default `npm run build` verifies the exact `dist` directory it creates,
+  so GitHub Pages and Vercel cannot publish an unchecked rebuild.
+- `public/reference-pack/v1` is the versioned release allowlist for bundled
+  KARDS-derived/reference resources. Declared app support assets are tracked
+  separately; extracted, intermediate, local, and `.runtime` resources remain
+  private.
+- README, roadmap, worktree registry, and release notes must continue to match
+  the code and release state that actually exist.
 
-### Phase 2: CI And Unified Verification Entry
+### Phase 1: Local Library Workbench
 
-- Add a single named verification entry only after deciding the exact command
-  contract.
-- Preserve the existing useful checks: typecheck, Vitest, build, and targeted
-  browser or visual smoke only when the changed area requires it.
-- Keep docs-only changes from pretending they need runtime validation.
+- Turn the current local library from a save log into a small workbench.
+- Add browsing, loading, updating, and deleting saved cards.
+- Keep File System Access permission behavior explicit and browser-local.
 
-### Phase 3: Presentation-Aware Visual Smoke Baseline After Stage 8
+### Phase 2: Presentation-Aware Visual Smoke Baseline After Stage 8
 
 - Treat Stage 8 as the current presentation-calibration line for type icons,
   rarity pips, typography, set/reference switching, and related card-face
@@ -41,13 +46,7 @@ not grow into a gameplay or account platform.
 - Treat baseline drift as a review signal, not as automatic proof of a product
   bug.
 
-### Phase 4: Local Library Workbench
-
-- Turn the current local library from a save log into a small workbench.
-- Add browsing, loading, updating, and deleting saved cards.
-- Keep File System Access permission behavior explicit and browser-local.
-
-### Phase 5: Small UX Audit
+### Phase 3: Small UX Audit
 
 - Review artwork crop inputs and pointer behavior.
 - Improve keyword editing accessibility.
@@ -55,7 +54,7 @@ not grow into a gameplay or account platform.
 - Continue localizing user-facing errors instead of storing translated error
   strings in state.
 
-### Phase 6: Renderer Detail Tuning And Split
+### Phase 4: Renderer Detail Tuning And Split
 
 - Tune card rendering details only after the visual baseline is stable.
 - Split renderer code by real responsibility when it reduces maintenance risk.
@@ -74,8 +73,9 @@ not grow into a gameplay or account platform.
 
 ## Risk Register
 
-- Official asset and font distribution risk: official or official-derived
-  materials must stay out of the default public build.
+- Release allowlist drift: the bundled reference pack must stay within
+  `public/reference-pack/v1`, and every publish build must verify its exact
+  file closure before deployment.
 - Private path leakage risk: `.runtime` paths and user-local asset paths must not
   appear in public bundles or publishable documentation.
 - Visual smoke baseline staleness: old baselines can hide real regressions or
@@ -90,6 +90,8 @@ not grow into a gameplay or account platform.
 
 - README and roadmap match the current code and do not conflict with each other.
 - Future agents can use the phase order above without guessing what to do next.
-- Publishable docs do not include private official assets, real local absolute
-  paths, `.runtime` file contents, or official resources.
+- Publishable docs do not include private assets, real local absolute paths, or
+  `.runtime` file contents.
+- Vercel and GitHub Pages use the same default verified-build contract and
+  publish the `dist` directory checked by that command.
 - Planned features are described as planned, not as already implemented.

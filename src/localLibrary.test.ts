@@ -1,15 +1,20 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CARD } from "./cardModel";
 import {
   createCardLibraryEntry,
   normalizeCardLibrary,
   readLocalLibrary,
+  saveCardToLocalLibrary,
   saveLibraryDirectoryHandle,
   type LocalDirectoryHandle,
 } from "./localLibrary";
 import type { CardSpec } from "./types";
 
 describe("local card library records", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("stores card fields without embedding uploaded artwork data", () => {
     const card: CardSpec = {
       ...DEFAULT_CARD,
@@ -115,6 +120,54 @@ describe("local card library records", () => {
     } as unknown as LocalDirectoryHandle;
 
     await expect(readLocalLibrary(directory)).rejects.toThrow("Local library file is too large");
+  });
+
+  it("serializes overlapping saves to the same directory without losing either card", async () => {
+    let libraryJson = JSON.stringify({
+      version: 1,
+      updatedAt: "2026-07-09T00:00:00.000Z",
+      cards: [],
+    });
+    const fileHandle = {
+      getFile: vi.fn(async () => {
+        const snapshot = libraryJson;
+        return new File([snapshot], "card-forge-library.json", { type: "application/json" });
+      }),
+      createWritable: vi.fn(async () => ({
+        write: vi.fn(async (data: Blob | string) => {
+          libraryJson = typeof data === "string" ? data : await data.text();
+        }),
+        close: vi.fn(async () => undefined),
+      })),
+    };
+    const directory = {
+      name: "Cards",
+      getFileHandle: vi.fn(async () => fileHandle),
+    } as unknown as LocalDirectoryHandle;
+
+    let lockTail = Promise.resolve();
+    const requestLock = vi.fn(<T>(_name: string, operation: () => Promise<T>): Promise<T> => {
+      const result = lockTail.then(operation);
+      lockTail = result.then(() => undefined, () => undefined);
+      return result;
+    });
+    vi.stubGlobal("navigator", { locks: { request: requestLock } });
+
+    await Promise.all([
+      saveCardToLocalLibrary(directory, { ...DEFAULT_CARD, title: "First Save" }),
+      saveCardToLocalLibrary(directory, { ...DEFAULT_CARD, title: "Second Save" }),
+    ]);
+
+    const savedLibrary = normalizeCardLibrary(JSON.parse(libraryJson));
+    expect(savedLibrary.cards.map((entry) => entry.title)).toEqual(["First Save", "Second Save"]);
+    expect(requestLock).toHaveBeenCalledTimes(2);
+  });
+
+  it("fails explicitly when the browser cannot provide cross-tab write locking", async () => {
+    vi.stubGlobal("navigator", {});
+    const directory = { name: "Cards" } as LocalDirectoryHandle;
+
+    await expect(saveCardToLocalLibrary(directory, DEFAULT_CARD)).rejects.toThrow(/Web Locks/i);
   });
 
   it("waits for IndexedDB transaction completion before resolving saved handles", async () => {
