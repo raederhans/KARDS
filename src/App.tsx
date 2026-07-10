@@ -14,6 +14,7 @@ import {
 } from "./cardEditorState";
 import { CardCanvas } from "./components/CardCanvas";
 import { FieldPanel } from "./components/FieldPanel";
+import { HelpPage } from "./components/HelpPage";
 import { ProjectPanel } from "./components/ProjectPanel";
 import { loadAssetPackFromFiles, loadAssetPackFromUrl, type LoadedAssetPack } from "./assetPack";
 import { loadAllowedImageSource } from "./limits";
@@ -55,6 +56,7 @@ const BRAND_MARK_URL = `${import.meta.env.BASE_URL}brand/card-forge-mark.png`;
 function App() {
   const [language, setLanguage] = useState<Language>(() => getInitialLanguage(window.localStorage));
   const text = UI_TEXT[language];
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [editorState, setEditorState] = useState(() => {
     const draft = loadDraftCardState(window.localStorage, getCardKindReferenceCard("tank", language));
     return createCardEditorState(draft.card, draft.hasUserEdits, draft.clearedNumericFields);
@@ -84,6 +86,7 @@ function App() {
   const [referenceDiff, setReferenceDiff] = useState<ImageDiffMetrics | null>(null);
   const [referenceDiffError, setReferenceDiffError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const helpButtonRef = useRef<HTMLButtonElement | null>(null);
   const assetPackRequestRef = useRef(0);
   const sampleLoadRequestRef = useRef(0);
   const autoArtworkRequestRef = useRef(0);
@@ -622,6 +625,11 @@ function App() {
     });
   }
 
+  const closeHelp = useCallback(() => {
+    setIsHelpOpen(false);
+    window.requestAnimationFrame(() => helpButtonRef.current?.focus());
+  }, []);
+
   return (
     <main className="app-shell">
       <header className="top-bar">
@@ -633,13 +641,26 @@ function App() {
           </div>
         </div>
         <div className="top-actions">
+          <button
+            ref={helpButtonRef}
+            type="button"
+            className="help-toggle"
+            aria-label={isHelpOpen ? text.help.closeAria : text.help.openAria}
+            aria-controls="help-page"
+            aria-expanded={isHelpOpen}
+            aria-current={isHelpOpen ? "page" : undefined}
+            onClick={() => (isHelpOpen ? closeHelp() : setIsHelpOpen(true))}
+          >
+            <span className="help-toggle-mark" aria-hidden="true">?</span>
+            {text.help.open}
+          </button>
           <button type="button" className="language-toggle" aria-label={text.languageToggleAria} onClick={toggleLanguage}>
             {text.languageToggle}
           </button>
         </div>
       </header>
 
-      <div className="workspace">
+      <div className="workspace" hidden={isHelpOpen}>
         <FieldPanel
           card={previewCard}
           language={language}
@@ -719,6 +740,7 @@ function App() {
           onTextureSettingChange={updateTextureSetting}
         />
       </div>
+      <HelpPage open={isHelpOpen} text={text.help} onClose={closeHelp} />
     </main>
   );
 }

@@ -9,6 +9,9 @@ image processing, and file access stay on your device.
 KARDS Card Forge is an unofficial, non-commercial fan tool. It is not a game
 client, deck builder, account tool, or official asset downloader.
 
+For an in-app overview, select **Help** in the top bar. The guide explains the
+first-card workflow, save options, reference actions, and local-file behavior.
+
 ## Make Your First Card
 
 1. Edit the card fields on the left.

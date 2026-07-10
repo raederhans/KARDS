@@ -131,6 +131,7 @@ button:disabled {
   background: linear-gradient(180deg, #302b1d, #171712);
 }
 
+
 .workspace {
   display: grid;
   grid-template-columns: minmax(280px, 340px) minmax(440px, 1fr) minmax(250px, 320px);
@@ -1077,8 +1078,13 @@ input[type="range"] {
 
   .top-actions {
     width: 100%;
-    justify-content: space-between;
+    justify-content: flex-start;
   }
+
+  .language-toggle {
+    margin-left: auto;
+  }
+
 
   .workspace {
     grid-template-columns: 1fr;
