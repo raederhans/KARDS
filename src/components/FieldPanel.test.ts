@@ -6,6 +6,7 @@ import { UI_TEXT } from "../i18n";
 import { readBrowserFile } from "../browserFiles";
 import {
   FieldPanel,
+  FieldPanelSection,
   hasDraggedFiles,
   isImportableArtworkFile,
   normalizeArtworkCropInput,
@@ -29,6 +30,28 @@ describe("FieldPanel collapsible sections", () => {
       title: true,
       artwork: false,
     });
+  });
+
+  it("keeps collapsed section controls mounted while hiding the section body", () => {
+    const markup = renderToStaticMarkup(
+      createElement(
+        FieldPanelSection,
+        {
+          id: "title",
+          title: "Title",
+          collapsed: true,
+          toggleLabel: "Toggle title",
+          onToggle: vi.fn(),
+          children: createElement("input", { name: "card-title", defaultValue: "Persistent title" }),
+        },
+      ),
+    );
+
+    expect(markup).toContain('aria-expanded="false"');
+    expect(markup).toContain('id="field-section-title"');
+    expect(markup).toContain('class="field-section-body"');
+    expect(markup).toContain('hidden=""');
+    expect(markup).toContain('name="card-title"');
   });
 });
 

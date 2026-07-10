@@ -158,6 +158,7 @@ button:disabled {
 
 .field-panel {
   border-right: 1px solid var(--line);
+  contain: layout paint;
   direction: rtl;
 }
 
@@ -206,6 +207,10 @@ button:disabled {
 .field-section-body {
   display: grid;
   gap: 10px;
+}
+
+.field-section-body[hidden] {
+  display: none;
 }
 
 .field-section-body > :last-child,

@@ -896,7 +896,7 @@ function hasAllowedArtworkDimensions(file: File): Promise<boolean> {
   });
 }
 
-function FieldPanelSection({
+export function FieldPanelSection({
   id,
   title,
   collapsed,
@@ -928,11 +928,9 @@ function FieldPanelSection({
           <span aria-hidden="true" />
         </button>
       </div>
-      {!collapsed ? (
-        <div id={contentId} className="field-section-body">
-          {children}
-        </div>
-      ) : null}
+      <div id={contentId} className="field-section-body" hidden={collapsed}>
+        {children}
+      </div>
     </section>
   );
 }
