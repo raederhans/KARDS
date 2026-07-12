@@ -402,8 +402,8 @@ function drawRarity(
 
   ctx.save();
   const pipCount = getRarityPipCount(rarityId);
-  const pipWidth = 8;
-  const pipHeight = 13;
+  const pipWidth = 9;
+  const pipHeight = 12;
   const gap = 4;
   const totalWidth = pipCount * pipWidth + (pipCount - 1) * gap;
   const startX = Math.round(layout.rarity.x + (layout.rarity.width - totalWidth) / 2);
@@ -411,7 +411,7 @@ function drawRarity(
   for (let i = 0; i < pipCount; i += 1) {
     const centerOffset = i - (pipCount - 1) / 2;
     const centerX = startX + i * (pipWidth + gap) + pipWidth / 2;
-    const centerY = layout.rarity.y + 9 + Math.abs(centerOffset) * 1.1;
+    const centerY = layout.rarity.y + 10 + Math.abs(centerOffset) * 1.1;
     const rotation = centerOffset * 0.08;
     const pipRect = { x: -pipWidth / 2, y: -pipHeight / 2, width: pipWidth, height: pipHeight };
     ctx.save();

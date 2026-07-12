@@ -1,5 +1,21 @@
 # Worktree Registry
 
+## Elite and Special rarity visual fidelity
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: audit and correct Elite/Special rarity footmark fidelity
+- Base branch/base commit: `main`, `b73e86f73c8f33817ba7eaab74f2bab72b087e00`
+- Current branch/HEAD: `main`, same commit at task start
+- Task goal: make all four visible rarity footmarks match original KARDS references, including complete Elite/Special groups and a consistency pass for Standard/Limited
+- Status: integrated; sole main checkout, included in the closeout commit and pushed at task completion
+- Main changed files: `src/canvas/cardRenderer.ts`, `src/canvas/cardRenderer.test.ts`, `public/reference-pack/v1/images/rarity-pip/elite-pip.png`, `public/reference-pack/v1/images/rarity-pip/special-pip.png`, `tools/kards_private_calibration_contract_test.py`, task records, and registry
+- Shared hotspots: `src/canvas/cardRenderer.ts`, its existing tests, private calibration extraction, and authorized `public/reference-pack/v1` assets
+- Validation: both TDD RED paths reproduced; final `npm run validate` passed 17 Vitest files / 242 tests, 14 Python contracts, TypeScript, Vite build, and dist/private-boundary; stable Canvas checks passed for all four rarities
+- Tests not run: no blocking gate omitted; no full perceptual sweep was run across every official card. The primary agent exclusively owns the running Vite server on port 5173.
+- Potential overlap: green; only one worktree exists. Semantic risk is yellow because extraction, runtime assets, and renderer geometry must agree.
+- Recommended integration order: evidence, TDD regression, minimal repair, focused verification, independent review, full validation, commit/push
+- Next action: keep the task record archived and use the running local server for any user-directed subjective follow-up
+
 ## KARDS Card Forge v1.0.0 final release
 
 - Worktree name/path: former `kards-v1-final-release-20260710` worktree at `C:\Users\raede\.codex\worktrees\kards-v1-final-release-20260710`; removed after integration

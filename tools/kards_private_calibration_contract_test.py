@@ -24,6 +24,46 @@ from kards_private_calibration import (
 
 
 class PrivateCalibrationContractTest(unittest.TestCase):
+    def test_authorized_high_rarity_assets_are_complete_marks(self) -> None:
+        rarity_dir = TOOLS_DIR.parent / "public" / "reference-pack" / "v1" / "images" / "rarity-pip"
+        with Image.open(rarity_dir / "standard-pip.png") as standard_source:
+            standard = standard_source.convert("RGBA")
+        with Image.open(rarity_dir / "elite-pip.png") as elite_source:
+            elite = elite_source.convert("RGBA")
+        with Image.open(rarity_dir / "special-pip.png") as special_source:
+            special = special_source.convert("RGBA")
+
+        self.assertGreater(elite.width, standard.width * 3)
+        self.assertGreater(elite.height, standard.height)
+        self.assertLessEqual(elite.width, 48)
+        self.assertLessEqual(elite.height, 20)
+        elite_alpha = elite.getchannel("A")
+        elite_thirds = (
+            elite_alpha.crop((0, 0, elite.width // 3, elite.height)),
+            elite_alpha.crop((elite.width // 3, 0, 2 * elite.width // 3, elite.height)),
+            elite_alpha.crop((2 * elite.width // 3, 0, elite.width, elite.height)),
+        )
+        elite_counts = [sum(alpha >= 64 for alpha in third.get_flattened_data()) for third in elite_thirds]
+        wing_minimum = standard.width * standard.height // 2
+        self.assertGreater(elite_counts[0], wing_minimum)
+        self.assertGreater(elite_counts[2], wing_minimum)
+        self.assertGreater(elite_counts[1], max(elite_counts[0], elite_counts[2]))
+
+        self.assertGreater(special.width, standard.width * 2)
+        self.assertGreater(special.height, standard.height)
+        self.assertLessEqual(special.width, 34)
+        self.assertLessEqual(special.height, 20)
+        special_alpha = special.getchannel("A")
+        special_left = special_alpha.crop((0, 0, special.width // 2, special.height))
+        special_right = special_alpha.crop((special.width // 2, 0, special.width, special.height))
+        self.assertGreater(sum(alpha >= 64 for alpha in special_left.get_flattened_data()), standard.width * standard.height)
+        self.assertGreater(sum(alpha >= 64 for alpha in special_right.get_flattened_data()), standard.width * standard.height)
+        middle_columns = range(special.width // 3, 2 * special.width // 3)
+        self.assertTrue(any(
+            sum(special_alpha.getpixel((x, y)) >= 64 for y in range(special.height)) <= 2
+            for x in middle_columns
+        ))
+
     def test_private_generator_rejects_source_and_public_output_paths(self) -> None:
         workspace = TOOLS_DIR.parent
         for segment in ("src", "public", "dist"):

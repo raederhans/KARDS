@@ -937,25 +937,41 @@ describe("card renderer output", () => {
     expect(pipRotations).toEqual([-0.08, 0, 0.08]);
   });
 
-  it("repeats standard and limited rarity pip assets without stretching them into the whole slot", () => {
-    const { canvas, calls } = createFakeCanvas();
-    const localImage = { width: 9, height: 12 } as CanvasImageSource;
-    const assets = createStaticAssetResolver([{ slot: "rarity-pip", rarityId: "limited", image: localImage }]);
+  it("draws standard and limited rarity pip assets at natural size in centered fans", () => {
+    for (const [rarity, count] of [["standard", 4], ["limited", 3]] as const) {
+      const { canvas, calls } = createFakeCanvas();
+      const localImage = { width: 9, height: 12 } as CanvasImageSource;
+      const assets = createStaticAssetResolver([{ slot: "rarity-pip", rarityId: rarity, image: localImage }]);
 
-    renderCard(canvas, { ...DEFAULT_CARD, rarity: "limited" }, null, { assets, disablePrintWear: true });
+      renderCard(canvas, { ...DEFAULT_CARD, rarity }, null, { assets, disablePrintWear: true });
 
-    const pipDraws = calls.drawImageStyles.filter((call) => call.image === localImage);
-    expect(pipDraws).toHaveLength(3);
-    expect(pipDraws.map((call) => call.width)).toEqual([8, 8, 8]);
-    expect(pipDraws.map((call) => call.height)).toEqual([13, 13, 13]);
-    expect(pipDraws.map((call) => call.rotation)).toEqual([-0.08, 0, 0.08]);
+      const pipDraws = calls.drawImageStyles.filter((call) => call.image === localImage);
+      const centerXs = pipDraws.map((call) => call.centerX);
+      const gaps = centerXs.slice(1).map((centerX, index) => centerX - centerXs[index] - 9);
+      const expectedRotations = rarity === "standard"
+        ? [-0.12, -0.04, 0.04, 0.12]
+        : [-0.08, 0, 0.08];
+      const fanBaseYs = pipDraws.map((call, index) => (
+        call.centerY - Math.abs(index - (count - 1) / 2) * 1.1
+      ));
+
+      expect(pipDraws).toHaveLength(count);
+      expect(pipDraws.map((call) => call.width)).toEqual(Array(count).fill(9));
+      expect(pipDraws.map((call) => call.height)).toEqual(Array(count).fill(12));
+      expect(gaps).toEqual(Array(count - 1).fill(4));
+      expect(pipDraws.map((call) => call.rotation)).toEqual(expectedRotations);
+      expect(Math.abs((centerXs[0] + centerXs.at(-1)!) / 2 - 250)).toBeLessThanOrEqual(0.5);
+      fanBaseYs.forEach((centerY) => expect(centerY).toBeCloseTo(685));
+    }
   });
 
   it("draws elite and special rarity mark assets at their natural centered size", () => {
     const eliteCanvas = createFakeCanvas();
     const specialCanvas = createFakeCanvas();
-    const eliteImage = { width: 47, height: 19 } as CanvasImageSource;
-    const specialImage = { width: 31, height: 19 } as CanvasImageSource;
+    const eliteSize = { width: 47, height: 20 };
+    const specialSize = { width: 33, height: 20 };
+    const eliteImage = eliteSize as CanvasImageSource;
+    const specialImage = specialSize as CanvasImageSource;
 
     renderCard(eliteCanvas.canvas, { ...DEFAULT_CARD, rarity: "elite" }, null, {
       assets: createStaticAssetResolver([{ slot: "rarity-pip", rarityId: "elite", image: eliteImage }]),
@@ -969,9 +985,14 @@ describe("card renderer output", () => {
     const eliteDraw = eliteCanvas.calls.drawImageStyles.find((call) => call.image === eliteImage);
     const specialDraws = specialCanvas.calls.drawImageStyles.filter((call) => call.image === specialImage);
 
-    expect(eliteDraw).toMatchObject({ centerX: 250, centerY: 685, width: 47, height: 19, rotation: 0 });
+    expect(eliteDraw).toMatchObject({ centerX: 250, centerY: 685, ...eliteSize, rotation: 0 });
     expect(specialDraws).toHaveLength(1);
-    expect(specialDraws[0]).toMatchObject({ centerX: 250, centerY: 685, width: 31, height: 19, rotation: 0 });
+    expect(specialDraws[0]).toMatchObject({
+      centerX: 250,
+      centerY: 685,
+      ...specialSize,
+      rotation: 0,
+    });
   });
 
   it("does not draw rarity marks when rarity is none", () => {
