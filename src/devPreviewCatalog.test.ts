@@ -45,6 +45,20 @@ describe("dev preview sample catalog", () => {
     expect(DEV_PREVIEW_HQ_SAMPLES.every((sample) => sample.nation && sample.rarity === "none")).toBe(true);
   });
 
+  it("keeps bundled reference text in the language shown by its reference image", async () => {
+    const t70 = getDevPreviewSampleById("t70");
+
+    expect(t70).toBeDefined();
+    await expect(resolveDevPreviewSampleCard(t70!, async () => JSON.parse(readFileSync(
+      new URL("../public/reference-pack/v1/samples/t70.card.json", import.meta.url),
+      "utf8",
+    )))).resolves.toMatchObject({
+      title: "T-70",
+      keywordLanguage: "en",
+      keywordLine: "GUARD",
+    });
+  });
+
   it("applies text and metadata filters with AND semantics", () => {
     const filtered = filterDevPreviewSamples(
       [...DEV_PREVIEW_REFERENCE_SAMPLES, ...DEV_PREVIEW_HQ_SAMPLES],

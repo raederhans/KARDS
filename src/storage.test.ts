@@ -39,6 +39,7 @@ describe("card draft storage", () => {
   it("keeps uploaded images out of automatic localStorage drafts", () => {
     const card: CardSpec = {
       ...DEFAULT_CARD,
+      keywordLanguage: "en",
       appearance: {
         ...DEFAULT_CARD.appearance,
         texture: {
@@ -70,6 +71,7 @@ describe("card draft storage", () => {
     expect(draft.artwork.crop).toEqual({ x: 5, y: 6, scale: 1.2 });
     expect(draft.appearance.texture).toEqual(card.appearance.texture);
     expect(draft.appearance.text.body).toEqual(card.appearance.text.body);
+    expect(draft.keywordLanguage).toBe("en");
   });
 
   it("reports autosave failure instead of throwing when storage quota is exceeded", () => {
@@ -97,6 +99,20 @@ describe("card draft storage", () => {
 
     expect(loadDraftCard(savedStorage, DEFAULT_CARD).title).toBe("SAVED");
     expect(loadDraftCard(invalidStorage, DEFAULT_CARD).title).toBe(DEFAULT_CARD.title);
+  });
+
+  it("restores the reference keyword language from an atomic draft", () => {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        values.set(key, value);
+      },
+    };
+
+    saveDraftCard(storage, { ...DEFAULT_CARD, keywordLanguage: "en" }, true);
+
+    expect(loadDraftCardState(storage, DEFAULT_CARD).card.keywordLanguage).toBe("en");
   });
 
   it("cleans uploaded artwork from legacy drafts when loading", () => {

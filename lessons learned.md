@@ -60,3 +60,5 @@
 - Release-candidate registry rows should use commit-neutral wording before publication; after integration, compare them with tag and worktree truth, and update only records that still describe pending work.
 - Nation-mark extraction must fail closed and end at a reference-derived silhouette; returning an opaque source crop or deleting generic small components can publish card artwork or erase legitimate emblem details.
 - When a clean standalone set mark already exists, publish its pinned transparent source at the original right-bottom anchor instead of re-extracting it from card paper; missing mapped sources must fail closed, and legacy custom dimensions must remain unstretched.
+- Reference-derived editable cards must serialize any text language that affects exported pixels separately from the UI locale; otherwise changing the interface language silently changes the loaded reference card.
+- Before correcting localized HQ text, inspect which labels are already baked into the artwork crop and which remain dynamic; the same reference can intentionally contain both languages in different layers.

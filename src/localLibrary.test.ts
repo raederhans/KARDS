@@ -25,6 +25,7 @@ describe("local card library records", () => {
     const card: CardSpec = {
       ...DEFAULT_CARD,
       title: "Library Tank",
+      keywordLanguage: "en",
       appearance: {
         ...DEFAULT_CARD.appearance,
         texture: {
@@ -58,6 +59,7 @@ describe("local card library records", () => {
     expect(entry.card.artwork.crop).toEqual({ x: 4, y: 5, scale: 1.1 });
     expect(entry.card.appearance.texture).toEqual(card.appearance.texture);
     expect(entry.card.appearance.text.title).toEqual(card.appearance.text.title);
+    expect(entry.card.keywordLanguage).toBe("en");
   });
 
   it("normalizes old or damaged library files instead of trusting raw JSON", () => {

@@ -191,6 +191,11 @@ describe("normalizeCardSpec", () => {
     expect(card.keywordLine).toBe("BLITZ, GUARD");
   });
 
+  it("preserves a valid keyword rendering language and drops unsupported values", () => {
+    expect(normalizeCardSpec({ ...DEFAULT_CARD, keywordLanguage: "en" }).keywordLanguage).toBe("en");
+    expect(normalizeCardSpec({ ...DEFAULT_CARD, keywordLanguage: "de" }).keywordLanguage).toBeUndefined();
+  });
+
   it("keeps first-version imports inside implemented artwork boundaries", () => {
     const oversizedImage = `data:image/png;base64,${"a".repeat(MAX_DATA_URL_LENGTH)}`;
     const card = normalizeCardSpec({
@@ -372,7 +377,7 @@ describe("card editor reference samples", () => {
     }
   });
 
-  it("changes only the kind after the player has edited card content", () => {
+  it("keeps player content while releasing the reference language after a kind change", () => {
     const pristine = createCardEditorState(getLocalizedDefaultCard("zh"), false);
     const edited = applyUserCardUpdate(pristine, (currentCard) => ({
       ...currentCard,
@@ -383,6 +388,7 @@ describe("card editor reference samples", () => {
       set: "winter-war",
       keywords: ["ambush"],
       keywordLine: "AMBUSH",
+      keywordLanguage: "en",
       costs: { deployment: 9, operation: 8 },
       stats: { attack: 7, defense: 6, hqDefense: 25 },
       artwork: {
@@ -408,6 +414,7 @@ describe("card editor reference samples", () => {
     expect(selected.card).toEqual({
       ...edited.card,
       kind: "bomber",
+      keywordLanguage: undefined,
     });
   });
 

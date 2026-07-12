@@ -1,5 +1,5 @@
 import type { DevPreviewArtworkReferenceCrop } from "./devPreviewState";
-import type { CardKind, CardSpec } from "./types";
+import type { CardKeywordLanguage, CardKind, CardSpec } from "./types";
 import { DEFAULT_CARD_APPEARANCE } from "./cardModel";
 import { CARD_KINDS, SETS } from "./presets";
 import type { Language } from "./i18n";
@@ -20,6 +20,7 @@ export type DevPreviewSample = {
   nation: string;
   rarity: string;
   set: string;
+  keywordLanguage?: CardKeywordLanguage;
   referenceUrl: string;
   artworkReferenceCrop?: DevPreviewArtworkReferenceCrop;
 } & ({ cardUrl: string } | { card: CardSpec });
@@ -230,6 +231,7 @@ function cardSample(id: string, set: string, kind: CardKind, label: string, labe
     nation: metadata.nation,
     rarity: metadata.rarity,
     set,
+    keywordLanguage: "en",
     cardUrl: `${SAMPLE_ROOT}/${id}.card.json`,
     referenceUrl: `${REFERENCE_ROOT}/${id}.png`,
   };

@@ -7,6 +7,7 @@ import { readBrowserFile } from "../browserFiles";
 import {
   FieldPanel,
   FieldPanelSection,
+  applyKeywordSelection,
   createBodyBoldFeedback,
   getCurrentBodyBoldFeedback,
   hasDraggedFiles,
@@ -92,6 +93,19 @@ describe("FieldPanel body bold feedback", () => {
 });
 
 describe("FieldPanel value fields", () => {
+  it("releases the reference language when the player edits keywords", () => {
+    const edited = applyKeywordSelection({
+      ...DEFAULT_CARD,
+      keywords: ["guard"],
+      keywordLine: "GUARD",
+      keywordLanguage: "en",
+    }, ["ambush"]);
+
+    expect(edited.keywords).toEqual(["ambush"]);
+    expect(edited.keywordLine).toBe("AMBUSH");
+    expect(edited.keywordLanguage).toBeUndefined();
+  });
+
   it("uses direct and consistent labels in both languages", () => {
     const chinese = renderToStaticMarkup(createElement(FieldPanel, {
       card: DEFAULT_CARD,

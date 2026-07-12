@@ -9,6 +9,7 @@ export type CardKind =
   | "countermeasure";
 
 export type ArtworkSource = "upload" | "none";
+export type CardKeywordLanguage = "zh" | "en";
 
 export type CardTextAppearance = {
   fontScale: number;
@@ -36,6 +37,7 @@ export type CardAppearance = {
 
 export type CardSpec = {
   version: 1;
+  keywordLanguage?: CardKeywordLanguage;
   kind: CardKind;
   nation: string;
   rarity: string;

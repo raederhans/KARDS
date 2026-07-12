@@ -90,6 +90,15 @@ export function getCurrentBodyBoldFeedback(
   return feedback?.body === currentBody ? feedback.kind : null;
 }
 
+export function applyKeywordSelection(card: CardSpec, keywordIds: string[]): CardSpec {
+  return {
+    ...card,
+    keywords: keywordIds,
+    keywordLine: formatKeywordLineFromIds(keywordIds),
+    keywordLanguage: undefined,
+  };
+}
+
 export function FieldPanel({
   card,
   language,
@@ -143,11 +152,7 @@ export function FieldPanel({
   }
 
   function updateKeywords(keywordIds: string[]) {
-    onCardChange((currentCard) => ({
-      ...currentCard,
-      keywords: keywordIds,
-      keywordLine: formatKeywordLineFromIds(keywordIds),
-    }));
+    onCardChange((currentCard) => applyKeywordSelection(currentCard, keywordIds));
   }
 
   function updateTextAppearance(

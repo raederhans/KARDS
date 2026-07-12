@@ -235,7 +235,7 @@ describe("ProjectPanel four-tab workbench", () => {
     expect(markup).toContain('name="reference-sort"');
     expect(markup).toContain("唯一匹配时自动填充卡图");
     expect(markup).toContain("仅应用卡图");
-    expect(markup).toContain("载入整张卡牌（覆盖当前）");
+    expect(markup).toContain("载入可编辑模板（覆盖当前）");
     expect(markup).toContain("T-70");
   });
 
@@ -315,6 +315,20 @@ describe("ProjectPanel private export gate", () => {
 });
 
 describe("ProjectPanel project import", () => {
+  it("keeps a supported reference keyword language and rejects unsupported values", async () => {
+    const english = await parseImportedCardProject(JSON.stringify({
+      ...DEFAULT_CARD,
+      keywordLanguage: "en",
+    }));
+    const unsupported = await parseImportedCardProject(JSON.stringify({
+      ...DEFAULT_CARD,
+      keywordLanguage: "de",
+    }));
+
+    expect(english.keywordLanguage).toBe("en");
+    expect(unsupported.keywordLanguage).toBeUndefined();
+  });
+
   it("rejects a project when its embedded artwork fails decoded-dimension validation", async () => {
     const dataUrl = "data:image/png;base64,valid-looking-project-artwork";
     const validateEmbeddedArtwork = vi.fn(async () => false);

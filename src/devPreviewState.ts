@@ -1,5 +1,5 @@
 import { normalizeCardSpec } from "./cardModel";
-import type { CardSpec, CardUpdate } from "./types";
+import type { CardKeywordLanguage, CardSpec, CardUpdate } from "./types";
 
 export type DevPreviewReferenceSample = {
   id: string;
@@ -11,9 +11,9 @@ export type DevPreviewReferenceSelection = {
   referenceImageUrl: string;
 };
 
-export type DevPreviewSampleCardSource =
-  | { card: CardSpec }
-  | { cardUrl: string };
+export type DevPreviewSampleCardSource = ({ card: CardSpec } | { cardUrl: string }) & {
+  keywordLanguage?: CardKeywordLanguage;
+};
 
 export type DevPreviewArtworkReferenceCrop = {
   sourceUrl: string;
@@ -66,7 +66,10 @@ export async function resolveDevPreviewSampleCard(
   readCardUrl: (cardUrl: string) => Promise<unknown>,
   readArtworkCrop?: (crop: DevPreviewArtworkReferenceCrop) => Promise<string>,
 ): Promise<CardSpec> {
-  const card = normalizeCardSpec("card" in sample ? sample.card : await readCardUrl(sample.cardUrl));
+  const loadedCard = normalizeCardSpec("card" in sample ? sample.card : await readCardUrl(sample.cardUrl));
+  const card = sample.keywordLanguage
+    ? normalizeCardSpec({ ...loadedCard, keywordLanguage: sample.keywordLanguage })
+    : loadedCard;
   if (!sample.artworkReferenceCrop || !readArtworkCrop) {
     return card;
   }

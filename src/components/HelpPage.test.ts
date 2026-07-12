@@ -14,7 +14,7 @@ describe("HelpPage", () => {
 
     expect(markup).toContain("从第一张卡开始");
     expect(markup).toContain("先做这三步");
-    expect(markup).toContain("载入整张卡牌");
+    expect(markup).toContain("载入可编辑模板");
     expect(markup).toContain("项目文件");
     expect(markup).toContain("不保存嵌入卡图");
     expect(markup).toContain("本地卡库文件夹将无法打开");
@@ -35,7 +35,7 @@ describe("HelpPage", () => {
 
     expect(markup).toContain("Make your first card");
     expect(markup).toContain("Selecting a reference card changes only the comparison card");
-    expect(markup).toContain("Load entire card replaces the current card");
+    expect(markup).toContain("Load editable template replaces the current card");
     expect(markup).toContain("sends page-performance metrics to Vercel Speed Insights");
     expect(markup).toContain("do not include card content or local files");
     expect(markup).toContain('hidden=""');

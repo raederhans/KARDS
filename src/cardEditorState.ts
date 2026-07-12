@@ -350,6 +350,7 @@ export function selectCardKind(
       kind,
       costs,
       stats,
+      keywordLanguage: undefined,
     }),
     hasUserEdits: true,
     clearedNumericFields: state.clearedNumericFields,

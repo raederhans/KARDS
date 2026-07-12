@@ -461,6 +461,19 @@ describe("card renderer output", () => {
     expect(calls.fillText.some(([text]) => text === "Fury, Heavy Armor 3, Bond, Salvage")).toBe(false);
   });
 
+  it("keeps a reference card's keyword language independent from the UI language", () => {
+    const { canvas, calls } = createFakeCanvas();
+
+    renderCard(canvas, {
+      ...DEFAULT_CARD,
+      keywords: ["guard"],
+      keywordLanguage: "en",
+    }, null, { language: "zh" });
+
+    expect(calls.fillText.some(([text]) => text === "Guard")).toBe(true);
+    expect(calls.fillText.some(([text]) => text === "守护")).toBe(false);
+  });
+
   it("shrinks dense four-keyword rows with comma separators to stay inside the official text band", () => {
     const { canvas, calls } = createFakeCanvas();
 

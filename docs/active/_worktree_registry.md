@@ -1,5 +1,21 @@
 # Worktree Registry
 
+## Full-card reference fidelity
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: repair visual mismatch after Workbench → Reference → Load entire card
+- Base branch/base commit: `main`, `fb0db78f99b2c03b70cf4dc2a36953d77aa0f3b0`
+- Current branch/HEAD: `main`; closure will use the current Lore commit as the recovery reference
+- Task goal: make explicit full-card reference loading reproduce the selected reference as faithfully as the existing public reference-pack contract permits
+- Status: integrated; sole main checkout, included in the Lore closure commit and pushed at task completion
+- Main changed files: `src/types.ts`, `src/cardModel.ts`, `src/devPreviewState.ts`, `src/devPreviewCatalog.ts`, `src/canvas/cardRenderer.ts`, `src/cardEditorState.ts`, `src/components/FieldPanel.tsx`, `src/i18n.ts`, eight existing test files, archived task records, lessons, and registry
+- Shared hotspots: card schema normalization, reference sample loading, Canvas keyword rendering, explicit keyword/type edits, persistence boundaries, localized reference action copy, and existing test entrypoints
+- Validation: two TDD RED cycles observed; focused suites passed; real-browser T-70 load under Chinese UI rendered the reference's English `Guard`; full `npm run validate` passed 17 Vitest files / 252 tests, 25 private-tool contracts, TypeScript, Vite build, and dist/private boundary; three independent reviews found no blocker
+- Tests not run: no blocking gate omitted; exact official-font/frame pixel identity is outside the authorized public asset pack
+- Potential overlap: green; one worktree only. Semantic risk is red because reference selection, editable state, and rendered output cross shared application state.
+- Recommended integration order: already integrated directly on the sole `main` checkout; no merge, rebase, or cherry-pick is required
+- Next action: retain the archived evidence and use the running local server for subjective follow-up only
+
 ## Set-mark extraction cleanup
 
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`

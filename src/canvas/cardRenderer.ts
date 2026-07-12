@@ -563,10 +563,11 @@ function drawText(
   const titleAppearance = textAppearance.title ?? DEFAULT_CARD_APPEARANCE.text.title;
   const keywordAppearance = textAppearance.keywords ?? DEFAULT_CARD_APPEARANCE.text.keywords;
   const bodyAppearance = textAppearance.body ?? DEFAULT_CARD_APPEARANCE.text.body;
+  const keywordLanguage = card.keywordLanguage ?? options.language ?? "en";
   const keywordLabels = resolveCardKeywordIds(card)
     .map((keywordId) => {
       const preset = getKeywordPreset(keywordId);
-      return preset ? translateKeywordLabel(options.language ?? "en", keywordId, preset.label) : undefined;
+      return preset ? translateKeywordLabel(keywordLanguage, keywordId, preset.label) : undefined;
     })
     .filter(Boolean) as string[];
   const visibleKeywordLabels = layout.template === "hq" ? [] : keywordLabels;

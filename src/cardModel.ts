@@ -114,6 +114,9 @@ export function normalizeCardSpec(input: unknown): CardSpec {
 
   return {
     version: 1,
+    keywordLanguage: raw.keywordLanguage === "zh" || raw.keywordLanguage === "en"
+      ? raw.keywordLanguage
+      : undefined,
     kind,
     nation: choosePreset(raw.nation, VALID_NATIONS, DEFAULT_CARD.nation),
     rarity: choosePreset(raw.rarity, VALID_RARITIES, DEFAULT_CARD.rarity),
