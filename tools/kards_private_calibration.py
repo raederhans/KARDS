@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import math
 import re
 from collections import Counter, deque
 from dataclasses import dataclass
@@ -35,6 +36,7 @@ NATION_BACKGROUND_SAMPLE_MARGIN = 6
 NATION_BACKGROUND_DISTANCE_THRESHOLD = 30
 NATION_BACKGROUND_RETRY_DISTANCE_THRESHOLD = 18
 NATION_MIN_SUBJECT_OPAQUE_RATIO = 0.14
+US_NATION_MARK_REFERENCE_COLOR = (224, 230, 220)
 SET_MARK_BACKGROUND_DISTANCE_THRESHOLD = 42
 SET_MARK_SUBJECT_DISTANCE_THRESHOLD = 32
 SET_MARK_MIN_SUBJECT_PIXEL_COUNT = 24
@@ -1395,23 +1397,26 @@ def extract_nation_mark_subject(
     kind: str,
 ) -> Image.Image:
     mark = crop(image, rect).convert("RGBA")
+    silhouette = nation_mark_silhouette_pixels(mark.size, nation_id, kind)
     palette = sample_nation_mark_background_palette(image.convert("RGBA"), rect)
     if not palette:
-        return mark
+        if silhouette is None and mark.getchannel("A").getextrema()[0] >= 200:
+            raise ValueError(f"Nation mark extraction failed for {nation_id}/{kind}: missing background palette")
+        return finalize_nation_mark(mark, silhouette, nation_id, kind)
 
     protected = protected_nation_mark_pixels(mark.size, nation_id, kind)
     transparent = collect_connected_background_pixels(mark, palette, NATION_BACKGROUND_DISTANCE_THRESHOLD, protected)
     if subject_opaque_ratio(mark, transparent) < NATION_MIN_SUBJECT_OPAQUE_RATIO:
         transparent = collect_connected_background_pixels(mark, palette, NATION_BACKGROUND_RETRY_DISTANCE_THRESHOLD, protected)
     if subject_opaque_ratio(mark, transparent) < NATION_MIN_SUBJECT_OPAQUE_RATIO:
-        return mark
+        raise ValueError(f"Nation mark extraction failed for {nation_id}/{kind}: insufficient subject pixels")
 
     output = mark.copy()
     output_pixels = output.load()
     for x, y in transparent:
         red, green, blue, _alpha = output_pixels[x, y]
         output_pixels[x, y] = (red, green, blue, 0)
-    return output
+    return finalize_nation_mark(output, silhouette, nation_id, kind)
 
 
 def extract_set_mark_subject(
@@ -1578,7 +1583,152 @@ def subject_opaque_ratio(mark: Image.Image, transparent: set[tuple[int, int]]) -
     return (width * height - len(transparent)) / (width * height) if width and height else 0
 
 
+def apply_nation_mark_silhouette(
+    mark: Image.Image,
+    silhouette: set[tuple[int, int]] | None,
+) -> Image.Image:
+    output = mark.copy().convert("RGBA")
+    if silhouette is None:
+        return output
+
+    pixels = output.load()
+    for y in range(output.height):
+        for x in range(output.width):
+            if (x, y) in silhouette:
+                continue
+            red, green, blue, _alpha = pixels[x, y]
+            pixels[x, y] = (red, green, blue, 0)
+    return output
+
+
+def finalize_nation_mark(
+    mark: Image.Image,
+    silhouette: set[tuple[int, int]] | None,
+    nation_id: str,
+    kind: str,
+) -> Image.Image:
+    output = apply_nation_mark_silhouette(mark, silhouette)
+    if nation_id != "us" or kind != "countermeasure":
+        return output
+
+    pixels = output.load()
+    for y in range(output.height):
+        for x in range(output.width):
+            red, green, blue, alpha = pixels[x, y]
+            if alpha >= 8:
+                pixels[x, y] = (*US_NATION_MARK_REFERENCE_COLOR, alpha)
+    return output
+
+
+def nation_mark_silhouette_pixels(
+    size: tuple[int, int],
+    nation_id: str,
+    kind: str,
+) -> set[tuple[int, int]] | None:
+    width, height = size
+    center_x = (width - 1) / 2
+    center_y = (height - 1) / 2
+
+    def circle(radius: float) -> set[tuple[int, int]]:
+        radius_sq = radius * radius
+        return {
+            (x, y)
+            for y in range(height)
+            for x in range(width)
+            if ((x - center_x) ** 2) + ((y - center_y) ** 2) <= radius_sq
+        }
+
+    def rect(left: int, top: int, right: int, bottom: int) -> set[tuple[int, int]]:
+        return {
+            (x, y)
+            for y in range(max(0, top), min(height, bottom))
+            for x in range(max(0, left), min(width, right))
+        }
+
+    if nation_id == "neutral":
+        return {
+            (x, y)
+            for y in range(height)
+            for x in range(width)
+            if abs(x - center_x) + abs(y - center_y) <= 25.5
+        }
+    if nation_id == "germany" and kind == "countermeasure":
+        return {
+            (x, y)
+            for y in range(height)
+            for x in range(width)
+            if abs(x - center_x) <= 12.5 or abs(y - center_y) <= 12.5
+        }
+    if nation_id == "japan" and kind == "order":
+        return rect(4, 2, width - 4, height - 2)
+    if nation_id == "us" and kind == "countermeasure":
+        star = regular_star_polygon(center_x, center_y, outer_radius=27.0, inner_radius=10.5)
+        return {
+            (x, y)
+            for y in range(height)
+            for x in range(width)
+            if point_in_polygon(x + 0.5, y + 0.5, star)
+            or (
+                22.0 ** 2 <= ((x - center_x) ** 2) + ((y - center_y) ** 2) <= 27.5 ** 2
+                and min(abs(x - center_x), abs(y - center_y)) >= 4.0
+            )
+        }
+    if nation_id == "soviet" and kind == "order":
+        star = regular_star_polygon(center_x, center_y, outer_radius=25.5, inner_radius=12.0)
+        return {
+            (x, y)
+            for y in range(height)
+            for x in range(width)
+            if point_in_polygon(x + 0.5, y + 0.5, star)
+        }
+    if nation_id == "france" and kind in {"fighter", "bomber"}:
+        return circle(25.5)
+    if nation_id == "britain" and kind == "countermeasure":
+        return circle(25.5)
+    if nation_id == "anzac" and kind in {"fighter", "infantry"}:
+        return circle(23.5)
+    if nation_id == "anzac" and kind == "tank":
+        return circle(20.5)
+    return None
+
+
+def regular_star_polygon(
+    center_x: float,
+    center_y: float,
+    outer_radius: float,
+    inner_radius: float,
+) -> tuple[tuple[float, float], ...]:
+    points: list[tuple[float, float]] = []
+    for index in range(10):
+        radius = outer_radius if index % 2 == 0 else inner_radius
+        angle = math.radians(-90 + (index * 36))
+        points.append((center_x + math.cos(angle) * radius, center_y + math.sin(angle) * radius))
+    return tuple(points)
+
+
+def point_in_polygon(x: float, y: float, polygon: tuple[tuple[float, float], ...]) -> bool:
+    inside = False
+    previous_x, previous_y = polygon[-1]
+    for current_x, current_y in polygon:
+        crosses = (current_y > y) != (previous_y > y)
+        if crosses:
+            boundary_x = ((previous_x - current_x) * (y - current_y) / (previous_y - current_y)) + current_x
+            if x < boundary_x:
+                inside = not inside
+        previous_x, previous_y = current_x, current_y
+    return inside
+
+
 def protected_nation_mark_pixels(size: tuple[int, int], nation_id: str, kind: str) -> set[tuple[int, int]]:
+    silhouette = nation_mark_silhouette_pixels(size, nation_id, kind)
+    protects_full_shape = (
+        nation_id == "neutral"
+        or (nation_id == "japan" and kind == "order")
+        or (nation_id == "soviet" and kind == "order")
+    )
+    if silhouette is not None and protects_full_shape:
+        return silhouette
+
     width, height = size
     protected: set[tuple[int, int]] = set()
     center_x = (width - 1) / 2

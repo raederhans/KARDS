@@ -1,5 +1,21 @@
 # Worktree Registry
 
+## Faction icon extraction cleanup
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: audit and clean contaminated faction/nation icon cutouts
+- Base branch/base commit: `main`, `516db9e33e1b30f95791cfd3b8249cfc88eb4d11`
+- Current branch/HEAD: `main`, task closure commit; use current `git HEAD` as the recovery reference
+- Task goal: remove verified background and neighboring-print contamination from published nation marks without erasing thin emblem details
+- Status: integrated; sole main checkout, included in the Lore closure commit and pushed at task completion
+- Main changed files: `tools/kards_private_calibration.py`, `tools/kards_private_calibration_contract_test.py`, 12 authorized `public/reference-pack/v1/images/nation-mark` PNGs, archived task records, lessons, and registry
+- Shared hotspots: `tools/kards_private_calibration.py`, its existing contract tests, authorized `public/reference-pack/v1/images/nation-mark` assets, and the asset manifest
+- Validation: final 65/65 public-to-Stage6 SHA-256 match; 20 private-tool contracts; `npm run validate` passed 17 Vitest files / 242 tests, TypeScript, Vite build, and strict dist/private boundary; three independent reviews reported no blocker
+- Tests not run: no blocking gate omitted; no full perceptual sweep was run against every possible live-client card variant. The primary agent exclusively owns the running Vite server on port 5173.
+- Potential overlap: green; one worktree only. Extraction, public closure, and renderer-facing selectors were validated together.
+- Recommended integration order: already integrated directly on the sole `main` checkout; no merge, rebase, or cherry-pick is required
+- Next action: keep the archived evidence and use the running local server only for user-directed subjective follow-up
+
 ## Elite and Special rarity visual fidelity
 
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`

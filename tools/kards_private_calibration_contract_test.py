@@ -4,6 +4,7 @@ import json
 import sys
 import tempfile
 import unittest
+from collections import deque
 from pathlib import Path
 from unittest.mock import patch
 
@@ -188,6 +189,169 @@ class PrivateCalibrationContractTest(unittest.TestCase):
 
         assert_outer_ring_and_clear_corners(self, output)
 
+    def test_nation_mark_extraction_clips_mismatched_command_background(self) -> None:
+        image, rect = make_mark_fixture()
+        x, y, width, height = rect
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((x, y, x + width - 1, y + height - 1), fill=(151, 84, 38, 255))
+        draw.rectangle((x + 20, y, x + 33, y + height - 1), fill=(210, 214, 205, 255))
+        draw.rectangle((x, y + 20, x + width - 1, y + 33), fill=(210, 214, 205, 255))
+
+        output = extract_nation_mark_subject(image, rect, "germany", "countermeasure")
+
+        output_pixels = output.load()
+        for point in ((27, 0), (27, 53), (0, 27), (53, 27)):
+            with self.subTest(point=point):
+                self.assertGreaterEqual(output_pixels[point][3], 200)
+        for point in ((0, 0), (53, 0), (0, 53), (53, 53)):
+            with self.subTest(point=point):
+                self.assertEqual(output_pixels[point][3], 0)
+
+    def test_nation_mark_extraction_preserves_low_contrast_neutral_diamond(self) -> None:
+        image, rect = make_mark_fixture()
+        x, y, width, height = rect
+        draw = ImageDraw.Draw(image)
+        diamond = ((x + 27, y + 2), (x + 51, y + 27), (x + 27, y + 51), (x + 2, y + 27))
+        draw.polygon(diamond, fill=(68, 62, 56, 255))
+        draw.rectangle((x, y + 48, x + width - 1, y + height - 1), fill=(151, 84, 38, 255))
+
+        output = extract_nation_mark_subject(image, rect, "neutral", "infantry")
+        pixels = output.load()
+
+        for point in ((27, 2), (51, 27), (27, 51), (2, 27)):
+            with self.subTest(point=point):
+                self.assertGreaterEqual(pixels[point][3], 200)
+        self.assertGreaterEqual(pixels[27, 27][3], 200)
+        for point in ((0, 0), (53, 53)):
+            with self.subTest(point=point):
+                self.assertEqual(pixels[point][3], 0)
+
+    def test_nation_mark_extraction_preserves_japan_flag_field(self) -> None:
+        image, rect = make_mark_fixture()
+        x, y, width, height = rect
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((x + 5, y + 2, x + width - 6, y + height - 3), fill=(67, 61, 55, 255))
+        draw.ellipse((x + 17, y + 17, x + 36, y + 36), fill=(188, 34, 42, 255))
+
+        output = extract_nation_mark_subject(image, rect, "japan", "order")
+        pixels = output.load()
+
+        self.assertGreaterEqual(pixels[6, 6][3], 200)
+        self.assertGreaterEqual(pixels[27, 27][3], 200)
+        self.assertEqual(pixels[0, 0][3], 0)
+
+    def test_nation_mark_extraction_clips_soviet_order_artwork(self) -> None:
+        image, rect = make_mark_fixture()
+        x, y, width, height = rect
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((x, y, x + width - 1, y + height - 1), fill=(172, 64, 40, 255))
+        draw.line((x, y + 53, x + 53, y), fill=(230, 156, 64, 255), width=3)
+        draw.polygon(
+            ((x + 27, y), (x + 33, y + 18), (x + 53, y + 20), (x + 36, y + 32),
+             (x + 43, y + 53), (x + 27, y + 40), (x + 11, y + 53), (x + 18, y + 32),
+             (x, y + 20), (x + 21, y + 18)),
+            fill=(198, 35, 41, 255),
+        )
+
+        output = extract_nation_mark_subject(image, rect, "soviet", "order")
+        alpha = output.getchannel("A")
+
+        self.assertTrue(all(alpha.getpixel(point) >= 200 for point in ((27, 5), (47, 21), (38, 42), (17, 42), (7, 21))))
+        self.assertTrue(all(alpha.getpixel(point) == 0 for point in ((0, 0), (53, 0), (0, 53), (53, 53))))
+
+    def test_nation_mark_extraction_rejects_opaque_crop_without_palette(self) -> None:
+        image = Image.new("RGBA", (54, 54), (88, 74, 63, 255))
+
+        with self.assertRaisesRegex(ValueError, "missing background palette"):
+            extract_nation_mark_subject(image, (0, 0, 54, 54), "poland", "infantry")
+
+    def test_authorized_nation_marks_follow_family_alpha_contracts(self) -> None:
+        pack_root = TOOLS_DIR.parent / "public" / "reference-pack" / "v1"
+        nation_root = pack_root / "images" / "nation-mark"
+        affected_assets = {
+            "command/countermeasure/britain.png": ("britain", "command", "countermeasure"),
+            "command/countermeasure/germany.png": ("germany", "command", "countermeasure"),
+            "command/countermeasure/us.png": ("us", "command", "countermeasure"),
+            "command/order/japan.png": ("japan", "command", "order"),
+            "command/order/neutral.png": ("neutral", "command", "order"),
+            "command/order/soviet.png": ("soviet", "command", "order"),
+            "unit/bomber/france.png": ("france", "unit", "bomber"),
+            "unit/fighter/anzac.png": ("anzac", "unit", "fighter"),
+            "unit/fighter/france.png": ("france", "unit", "fighter"),
+            "unit/infantry/anzac.png": ("anzac", "unit", "infantry"),
+            "unit/infantry/neutral.png": ("neutral", "unit", "infantry"),
+            "unit/tank/anzac.png": ("anzac", "unit", "tank"),
+        }
+        manifest = json.loads((pack_root / "kards-asset-pack.json").read_text(encoding="utf-8"))
+        published = {
+            entry["file"].removeprefix("images/nation-mark/"): (
+                entry["nationId"], entry["template"], entry["kind"]
+            )
+            for entry in manifest["images"]
+            if entry["slot"] == "nation-mark"
+            and entry["file"].removeprefix("images/nation-mark/") in affected_assets
+        }
+        self.assertEqual(published, affected_assets)
+        self.assertEqual(len(published), len(affected_assets))
+
+        circle_assets = (
+            "command/countermeasure/britain.png",
+            "unit/fighter/france.png",
+            "unit/bomber/france.png",
+            "unit/fighter/anzac.png",
+            "unit/infantry/anzac.png",
+            "unit/tank/anzac.png",
+        )
+        for relative_path in circle_assets:
+            with self.subTest(relative_path=relative_path), Image.open(nation_root / relative_path) as source:
+                alpha = source.convert("RGBA").getchannel("A")
+                self.assertEqual(opaque_pixels_outside_circle(alpha, radius=26.0), 0)
+                self.assertGreaterEqual(strong_alpha_pixel_count(alpha), 1000)
+
+        with Image.open(nation_root / "command/countermeasure/germany.png") as source:
+            alpha = source.convert("RGBA").getchannel("A")
+            self.assertEqual(opaque_pixels_outside_plus(alpha, half_width=13.0), 0)
+            self.assertGreaterEqual(strong_alpha_pixel_count(alpha), 1000)
+
+        with Image.open(nation_root / "command/countermeasure/us.png") as source:
+            mark = source.convert("RGBA")
+            alpha = mark.getchannel("A")
+            self.assertLessEqual(opaque_pixels_outside_us_reference_mask(alpha), 100)
+            self.assertGreaterEqual(strong_alpha_pixel_count(alpha), 1000)
+            self.assertLessEqual(strong_alpha_pixel_count(alpha), 1700)
+            self.assertEqual(off_reference_color_pixels(mark, (224, 230, 220), tolerance=0), 0)
+
+        for relative_path in ("command/order/neutral.png", "unit/infantry/neutral.png"):
+            with self.subTest(relative_path=relative_path), Image.open(nation_root / relative_path) as source:
+                alpha = source.convert("RGBA").getchannel("A")
+                self.assertGreaterEqual(alpha.getpixel((27, 27)), 200)
+                self.assertEqual(opaque_pixels_outside_diamond(alpha, radius=26.0), 0)
+                self.assertGreaterEqual(strong_alpha_pixel_count(alpha), 1000)
+                self.assertTrue(all(alpha.getpixel(point) >= 200 for point in ((27, 2), (51, 27), (27, 51), (2, 27))))
+
+        with Image.open(nation_root / "command/order/japan.png") as source:
+            alpha = source.convert("RGBA").getchannel("A")
+            self.assertGreaterEqual(alpha.getpixel((6, 6)), 200)
+            self.assertEqual(opaque_pixels_outside_rect(alpha, 4, 2, 50, 52), 0)
+            self.assertGreaterEqual(strong_alpha_pixel_count(alpha), 1500)
+
+        with Image.open(nation_root / "command/order/soviet.png") as source:
+            alpha = source.convert("RGBA").getchannel("A")
+            star = ((27, 0), (33, 18), (53, 20), (36, 32), (43, 53), (27, 40), (11, 53), (18, 32), (0, 20), (21, 18))
+            self.assertLessEqual(opaque_pixels_outside_polygon(alpha, star), 150)
+            self.assertGreaterEqual(strong_alpha_pixel_count(alpha), 500)
+            self.assertLessEqual(strong_alpha_pixel_count(alpha), 1100)
+
+        for relative_path in (
+            "command/order/soviet.png",
+            "unit/fighter/anzac.png",
+            "unit/infantry/anzac.png",
+            "unit/tank/anzac.png",
+        ):
+            with self.subTest(relative_path=relative_path), Image.open(nation_root / relative_path) as source:
+                alpha = source.convert("RGBA").getchannel("A")
+                self.assertEqual(len(alpha_components(alpha)), 1)
+
     def test_set_mark_extraction_clears_paper_background(self) -> None:
         rect = (8, 8, 28, 28)
         image = Image.new("RGBA", (44, 44), (210, 202, 176, 255))
@@ -335,6 +499,117 @@ def assert_outer_ring_and_clear_corners(test: unittest.TestCase, output: Image.I
     for point in ((0, 0), (53, 0), (0, 53), (53, 53)):
         with test.subTest(point=point):
             test.assertEqual(pixels[point][3], 0)
+
+
+def opaque_pixels_outside_circle(alpha: Image.Image, radius: float) -> int:
+    center_x = (alpha.width - 1) / 2
+    center_y = (alpha.height - 1) / 2
+    radius_sq = radius * radius
+    return sum(
+        alpha.getpixel((x, y)) >= 8
+        for y in range(alpha.height)
+        for x in range(alpha.width)
+        if ((x - center_x) ** 2) + ((y - center_y) ** 2) > radius_sq
+    )
+
+
+def strong_alpha_pixel_count(alpha: Image.Image) -> int:
+    return sum(pixel >= 200 for pixel in alpha.get_flattened_data())
+
+
+def opaque_pixels_outside_plus(alpha: Image.Image, half_width: float) -> int:
+    center_x = (alpha.width - 1) / 2
+    center_y = (alpha.height - 1) / 2
+    return sum(
+        alpha.getpixel((x, y)) >= 8
+        for y in range(alpha.height)
+        for x in range(alpha.width)
+        if abs(x - center_x) > half_width and abs(y - center_y) > half_width
+    )
+
+
+def opaque_pixels_outside_diamond(alpha: Image.Image, radius: float) -> int:
+    center_x = (alpha.width - 1) / 2
+    center_y = (alpha.height - 1) / 2
+    return sum(
+        alpha.getpixel((x, y)) >= 8
+        for y in range(alpha.height)
+        for x in range(alpha.width)
+        if abs(x - center_x) + abs(y - center_y) > radius
+    )
+
+
+def opaque_pixels_outside_rect(alpha: Image.Image, left: int, top: int, right: int, bottom: int) -> int:
+    return sum(
+        alpha.getpixel((x, y)) >= 8
+        for y in range(alpha.height)
+        for x in range(alpha.width)
+        if not (left <= x < right and top <= y < bottom)
+    )
+
+
+def opaque_pixels_outside_polygon(alpha: Image.Image, polygon: tuple[tuple[int, int], ...]) -> int:
+    mask = Image.new("1", alpha.size, 0)
+    ImageDraw.Draw(mask).polygon(polygon, fill=1)
+    return sum(
+        alpha.getpixel((x, y)) >= 8 and not mask.getpixel((x, y))
+        for y in range(alpha.height)
+        for x in range(alpha.width)
+    )
+
+
+def opaque_pixels_outside_us_reference_mask(alpha: Image.Image) -> int:
+    mask = Image.new("1", alpha.size, 0)
+    draw = ImageDraw.Draw(mask)
+    draw.ellipse((-1, -1, 54, 54), fill=1)
+    draw.ellipse((4, 4, 49, 49), fill=0)
+    draw.rectangle((22, 0, 31, 53), fill=0)
+    draw.rectangle((0, 22, 53, 31), fill=0)
+    draw.polygon(
+        ((27, 0), (33, 18), (52, 18), (36, 30), (42, 48),
+         (27, 37), (11, 48), (17, 30), (1, 18), (20, 18)),
+        fill=1,
+    )
+    return sum(
+        alpha.getpixel((x, y)) >= 8 and not mask.getpixel((x, y))
+        for y in range(alpha.height)
+        for x in range(alpha.width)
+    )
+
+
+def off_reference_color_pixels(
+    mark: Image.Image,
+    reference: tuple[int, int, int],
+    tolerance: int,
+) -> int:
+    return sum(
+        alpha >= 200 and max(abs(red - reference[0]), abs(green - reference[1]), abs(blue - reference[2])) > tolerance
+        for red, green, blue, alpha in mark.get_flattened_data()
+    )
+
+
+def alpha_components(alpha: Image.Image) -> list[set[tuple[int, int]]]:
+    seen: set[tuple[int, int]] = set()
+    components: list[set[tuple[int, int]]] = []
+    for y in range(alpha.height):
+        for x in range(alpha.width):
+            if (x, y) in seen or alpha.getpixel((x, y)) < 8:
+                continue
+            component: set[tuple[int, int]] = set()
+            queue = deque([(x, y)])
+            seen.add((x, y))
+            while queue:
+                current_x, current_y = queue.popleft()
+                component.add((current_x, current_y))
+                for next_y in range(max(0, current_y - 1), min(alpha.height, current_y + 2)):
+                    for next_x in range(max(0, current_x - 1), min(alpha.width, current_x + 2)):
+                        point = (next_x, next_y)
+                        if point in seen or alpha.getpixel(point) < 8:
+                            continue
+                        seen.add(point)
+                        queue.append(point)
+            components.append(component)
+    return components
 
 
 class FakePath:
