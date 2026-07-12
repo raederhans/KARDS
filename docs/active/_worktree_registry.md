@@ -1,5 +1,21 @@
 # Worktree Registry
 
+## KARDS v1.1.0 release
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: audit `v1.0.0..HEAD`, explain automatic draft persistence, publish GitHub Release `v1.1.0`, and update Vercel Production
+- Base branch/base commit: `main`, `ace5b8accc8543a4305327020348c947528015e8`
+- Current branch/HEAD: `main`; the next Lore commit is the immutable v1.1.0 candidate and recovery reference
+- Task goal: produce one reviewed, versioned, exact-SHA release across GitHub and Vercel without changing the established storage or resource-rights contracts
+- Status: frozen for publication; local gates and three independent audits are complete, external exact-SHA publication remains owned by the primary agent
+- Main changed files: `package.json`, `package-lock.json`, `RESOURCE-RIGHTS.md`, `public/THIRD-PARTY-NOTICES.txt`, the existing dist-boundary test, registry, and archived v1.1.0 release evidence
+- Shared hotspots: package version, automatic draft contract, release artifact exclusions, GitHub tag/Release, Pages workflow, Vercel Production alias
+- Validation: focused 19/19; `npm run validate` passed 17 Vitest files / 257 tests, 26 Python contracts, TypeScript, standard build, and strict dist boundary; Pages build passed; npm audit found zero vulnerabilities; code-reviewer approved and architect cleared
+- Tests not run: external candidate CI/Pages, Vercel preview/promotion, cache/hash probes, code-only expansion, tag, and Release asset re-download remain pending until the candidate SHA is pushed
+- Potential overlap: green; only one worktree exists. External publication risk remains red until exact-SHA verification and rollback evidence are complete.
+- Recommended integration order: audit, version/notes, local gates, one Lore candidate commit, GitHub checks, Vercel deployment, tag/Release, final alignment
+- Next action: commit and push the frozen candidate once, then complete external publication without a post-tag repository commit
+
 ## Attack reticle fidelity
 
 - Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
