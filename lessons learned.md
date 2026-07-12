@@ -62,3 +62,4 @@
 - When a clean standalone set mark already exists, publish its pinned transparent source at the original right-bottom anchor instead of re-extracting it from card paper; missing mapped sources must fail closed, and legacy custom dimensions must remain unstretched.
 - Reference-derived editable cards must serialize any text language that affects exported pixels separately from the UI locale; otherwise changing the interface language silently changes the loaded reference card.
 - Before correcting localized HQ text, inspect which labels are already baked into the artwork crop and which remain dynamic; the same reference can intentionally contain both languages in different layers.
+- Default artwork placeholders should stay outside `CardSpec`, render with a neutral crop, and flow through shared render options; otherwise autosaved user crop state can distort the placeholder or preview/export can disagree.

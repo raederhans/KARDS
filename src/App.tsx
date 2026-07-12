@@ -52,6 +52,7 @@ type TextureImageStatus = "loading" | "ready" | "error";
 
 const PAPER_TEXTURE_URL = `${import.meta.env.BASE_URL}textures/ambientcg-paper001-960.png`;
 const BRAND_MARK_URL = `${import.meta.env.BASE_URL}brand/card-forge-mark.png`;
+const DEFAULT_ARTWORK_URL = `${import.meta.env.BASE_URL}artwork/capybara-placeholder.png`;
 
 function App() {
   const [language, setLanguage] = useState<Language>(() => getInitialLanguage(window.localStorage));
@@ -83,6 +84,7 @@ function App() {
   const [showReferenceComparison, setShowReferenceComparison] = useState(true);
   const [textureImage, setTextureImage] = useState<HTMLImageElement | null>(null);
   const [textureImageStatus, setTextureImageStatus] = useState<TextureImageStatus>("loading");
+  const [defaultArtworkImage, setDefaultArtworkImage] = useState<HTMLImageElement | null>(null);
   const [referenceDiff, setReferenceDiff] = useState<ImageDiffMetrics | null>(null);
   const [referenceDiffError, setReferenceDiffError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -139,6 +141,26 @@ function App() {
       cancelled = true;
       image.onload = null;
       image.onerror = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+    void loadAllowedImageSource(DEFAULT_ARTWORK_URL, controller.signal)
+      .then((image) => {
+        if (!cancelled) {
+          setDefaultArtworkImage(image);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDefaultArtworkImage(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+      controller.abort();
     };
   }, []);
 
@@ -218,6 +240,7 @@ function App() {
     () => ({
       assets: assetPack,
       fonts: assetPack?.fonts,
+      fallbackArtworkImage: defaultArtworkImage,
       language,
       textureSeed: textureSettings.seed,
       textureImage,
@@ -225,7 +248,7 @@ function App() {
       textureRandomness: textureSettings.randomness,
       textureMottle: textureSettings.mottle,
     }),
-    [assetPack, language, textureImage, textureSettings],
+    [assetPack, defaultArtworkImage, language, textureImage, textureSettings],
   );
   const referenceSample = useMemo(
     () =>

@@ -104,6 +104,7 @@ describe("card export options", () => {
 
   it("rerenders source cards at the requested backing resolution", async () => {
     let exportCanvas: HTMLCanvasElement | null = null;
+    const fallbackArtworkImage = { naturalWidth: 716, naturalHeight: 872 } as HTMLImageElement;
     const getExportCanvas = () => {
       if (!exportCanvas) {
         throw new Error("Expected export canvas to be created.");
@@ -130,6 +131,7 @@ describe("card export options", () => {
       {
         card: DEFAULT_CARD,
         renderOptions: {
+          fallbackArtworkImage,
           textureSeed: 123,
           textureIntensity: 2.1,
           textureRandomness: 1.8,
@@ -139,6 +141,7 @@ describe("card export options", () => {
     );
 
     expect(renderCardMock).toHaveBeenCalledWith(getExportCanvas(), DEFAULT_CARD, undefined, {
+      fallbackArtworkImage,
       textureSeed: 123,
       textureIntensity: 2.1,
       textureRandomness: 1.8,

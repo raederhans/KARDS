@@ -273,6 +273,29 @@ describe("card renderer output", () => {
     expect(calls.drawImage[0][4]).toBeCloseTo(426);
   });
 
+  it("uses fallback artwork only when no card artwork image is available", () => {
+    const fallbackArtwork = { naturalWidth: 716, naturalHeight: 872 } as HTMLImageElement;
+    const explicitArtwork = { naturalWidth: 1000, naturalHeight: 500 } as HTMLImageElement;
+    const cardWithCustomCrop: CardSpec = {
+      ...DEFAULT_CARD,
+      artwork: {
+        ...DEFAULT_CARD.artwork,
+        crop: { x: 120, y: -80, scale: 1.8 },
+      },
+    };
+    const fallbackRender = createFakeCanvas();
+    const neutralRender = createFakeCanvas();
+    const explicitRender = createFakeCanvas();
+
+    renderCard(fallbackRender.canvas, cardWithCustomCrop, null, { fallbackArtworkImage: fallbackArtwork });
+    renderCard(neutralRender.canvas, DEFAULT_CARD, fallbackArtwork);
+    renderCard(explicitRender.canvas, cardWithCustomCrop, explicitArtwork, { fallbackArtworkImage: fallbackArtwork });
+
+    expect(fallbackRender.calls.drawImage[0]).toEqual(neutralRender.calls.drawImage[0]);
+    expect(explicitRender.calls.drawImage[0][0]).toBe(explicitArtwork);
+    expect(explicitRender.calls.drawImage[0]).not.toEqual(neutralRender.calls.drawImage[0]);
+  });
+
   it("uses the command artwork rectangle for orders", () => {
     const { canvas, calls } = createFakeCanvas();
     const artworkImage = { naturalWidth: 600, naturalHeight: 900 } as HTMLImageElement;

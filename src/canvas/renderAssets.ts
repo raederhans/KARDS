@@ -66,6 +66,7 @@ export type CardRenderFontSet = {
 export type RenderCardOptions = {
   assets?: CardRenderAssets | null;
   fonts?: CardRenderFontSet;
+  fallbackArtworkImage?: HTMLImageElement | null;
   disablePrintWear?: boolean;
   textureSeed?: number;
   textureImage?: CanvasImageSource | null;

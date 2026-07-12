@@ -43,6 +43,7 @@ const TYPE_ICON_PAPER = PAPER;
 const TYPE_ICON_PAPER_RGB = { r: 216, g: 210, b: 189 };
 const TYPE_ICON_BOARD_DARK = "#41433d";
 const COST_BOARD_DARK = "#3f423b";
+const NEUTRAL_ARTWORK_CROP: CardSpec["artwork"]["crop"] = { x: 0, y: 0, scale: 1 };
 const ACTIVATED = "#ce8a31";
 const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/;
 const TYPE_ICON_GLYPH_CACHE = new WeakMap<object, CanvasImageSource>();
@@ -113,7 +114,13 @@ export function renderCard(
   const fonts = resolveRenderFonts(options.fonts);
 
   drawCardMat(ctx, options, assetContext);
-  drawArtwork(ctx, layout, card, artworkImage, nation.deep);
+  drawArtwork(
+    ctx,
+    layout,
+    artworkImage ?? options.fallbackArtworkImage,
+    artworkImage ? card.artwork.crop : NEUTRAL_ARTWORK_CROP,
+    nation.deep,
+  );
   if (layout.template === "unit") {
     drawNameBar(ctx, layout, nation.accent, options, assetContext);
   } else {
@@ -165,8 +172,8 @@ function drawCardMat(
 function drawArtwork(
   ctx: CanvasRenderingContext2D,
   layout: CardFaceLayout,
-  card: CardSpec,
   artworkImage: HTMLImageElement | null | undefined,
+  crop: CardSpec["artwork"]["crop"],
   deepColor: string,
 ): void {
   const rect = layout.artwork;
@@ -177,11 +184,11 @@ function drawArtwork(
 
   if (artworkImage) {
     const baseScale = Math.max(rect.width / artworkImage.naturalWidth, rect.height / artworkImage.naturalHeight);
-    const scale = baseScale * card.artwork.crop.scale;
+    const scale = baseScale * crop.scale;
     const width = artworkImage.naturalWidth * scale;
     const height = artworkImage.naturalHeight * scale;
-    const x = rect.x + (rect.width - width) / 2 + card.artwork.crop.x;
-    const y = rect.y + (rect.height - height) / 2 + card.artwork.crop.y;
+    const x = rect.x + (rect.width - width) / 2 + crop.x;
+    const y = rect.y + (rect.height - height) / 2 + crop.y;
     ctx.drawImage(artworkImage, x, y, width, height);
   } else if (layout.template === "hq") {
     drawHqArtworkPlaceholder(ctx, rect, deepColor);
