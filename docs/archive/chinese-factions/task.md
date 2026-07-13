@@ -13,7 +13,7 @@
 - [x] Run three independent final reviews and fix verified findings.
 - [x] Run full `npm run validate`.
 - [x] Prepare delivery package and update the registry; archive after integration truth is recorded.
-- [ ] Commit with Lore protocol, integrate to `main`, push, and clean branch state.
+- [x] Commit with Lore protocol, integrate to `main`, push, and clean branch state.
 
 ## Ready-for-integration delivery package
 
@@ -36,3 +36,12 @@
 8. Remaining risks: no exhaustive perceptual sweep of all 14 marks on every card template; official-insignia or trademark restrictions can vary by jurisdiction independently of public-domain copyright status.
 9. Recommendation: commit on `codex/chinese-factions`, fast-forward `main`, run the focused post-merge gate, push `main`, record the integrated commit, then delete the task branch.
 10. Integration readiness: ready for integration; no blocker remains.
+
+## Integration result
+
+- Feature commit: `bee36ac`.
+- Post-merge Windows newline verification fix: `bcff217`.
+- Integration: fast-forwarded into `main` with no conflict.
+- Push: `origin/main` updated successfully through `bcff217` before this commit-neutral archive record.
+- Cleanup: `codex/chinese-factions` deleted after its commit became reachable from pushed `main`.
+- Final status: integrated, verified, pushed, and ready to archive.

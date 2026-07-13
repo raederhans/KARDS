@@ -53,3 +53,5 @@
 - The first post-merge focused run exposed a Windows-only false failure in the existing Apache-license closure assertion: Git checked the edited notice out with CRLF while the installed upstream license remained LF, and the test compared the entire text byte-for-byte.
 - The comparison now normalizes line endings on both inputs before checking the exact upstream license text. No notice content or product behavior changed.
 - Post-fix verification passed: the notice test passed 6/6 and the full focused faction suite passed 6 files / 144 tests.
+- Verification fix commit `bcff217` and feature commit `bee36ac` were pushed to `origin/main`; the fully merged task branch was deleted.
+- The Vite server remains owned by the primary task and is still available at `http://127.0.0.1:5173/` for user review.
