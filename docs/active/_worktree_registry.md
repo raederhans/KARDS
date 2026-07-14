@@ -1,5 +1,21 @@
 # Worktree Registry
 
+## KARDS v1.2.0 release
+
+- Worktree name/path: sole main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: audit `v1.1.0..HEAD` and publish GitHub Release `v1.2.0`
+- Base branch/base commit: `main`, `496f83eaca361ee4363c537a8edebbca83a9a476`
+- Current branch/HEAD: `main`; version `1.2.0` and release-record edits are in progress before the immutable candidate commit
+- Task goal: review and publish the two Chinese factions and their non-HQ unit-kind marks as one exact-SHA release without weakening resource-rights or distribution boundaries
+- Status: ready-for-integration
+- Main changed files: `package.json`, `package-lock.json`, records under `docs/active/kards-v1.2.0-release/`, and final registry closeout; product changes are already integrated in `v1.1.0..496f83e`
+- Shared hotspots: package version, release notes, registry, code-only archive exclusions, GitHub tag/Release, Pages, and Vercel Production
+- Validation: baseline alignment, diff check, static code/manifest review, visual contact-sheet review, 144 focused tests, code reviewer `APPROVE`, architect `WATCH` with no blocker, source-license verification, full `npm run validate` (263 Vitest tests, 26 private-tool contracts, TypeScript, build, dist verification), Pages-mode plus final standard build, and dependency audit with zero vulnerabilities passed
+- Tests not run: post-push CI/Pages/Vercel, code-only archive expansion, annotated tag/Release, and Release asset re-download
+- Potential overlap: green; `git worktree list` shows only this checkout, and independent reviewers are read-only
+- Recommended integration order: review, version/notes, local gates, one Lore candidate commit, push, exact-SHA remote checks, code-only archive, annotated tag/Release, final registry archive
+- Next action: commit and push one immutable candidate, then execute exact-SHA remote publication and artifact checks
+
 ## Chinese factions and unit marks
 
 - Worktree name/path: sole main checkout, `C:\Users\raede\Documents\KARDS`
