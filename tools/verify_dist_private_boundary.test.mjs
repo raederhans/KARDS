@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadConfigFromFile } from "vite";
 import { assertExactFileNames, findMarker } from "./verify_dist_private_boundary.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -36,6 +37,27 @@ function normalizeLineEndings(text) {
 }
 
 describe("dist private boundary contracts", () => {
+  it("builds GitHub Pages assets under the current repository path", async () => {
+    const previousPagesFlag = process.env.KARDS_GITHUB_PAGES;
+    const previousRepository = process.env.GITHUB_REPOSITORY;
+    process.env.KARDS_GITHUB_PAGES = "true";
+    process.env.GITHUB_REPOSITORY = "raederhans/KARDS-DIY-GENERATOR";
+
+    try {
+      const loadedConfig = await loadConfigFromFile(
+        { command: "build", mode: "production" },
+        path.join(REPO_ROOT, "vite.config.ts"),
+      );
+
+      expect(loadedConfig?.config.base).toBe("/KARDS-DIY-GENERATOR/");
+    } finally {
+      if (previousPagesFlag === undefined) delete process.env.KARDS_GITHUB_PAGES;
+      else process.env.KARDS_GITHUB_PAGES = previousPagesFlag;
+      if (previousRepository === undefined) delete process.env.GITHUB_REPOSITORY;
+      else process.env.GITHUB_REPOSITORY = previousRepository;
+    }
+  });
+
   it("recognizes forbidden private markers", () => {
     expect(findMarker("assets/.runtime/private.json")).toBe(".runtime");
     expect(findMarker("assets/public.json")).toBeNull();
