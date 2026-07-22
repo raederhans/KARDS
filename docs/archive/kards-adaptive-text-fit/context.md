@@ -2,9 +2,9 @@
 
 ## Current truth
 
-- 2026-07-22: one worktree; local `main`, `HEAD`, and `origin/main` all resolve
-  to `67d0c66a5fead87e54e5301690964506b697ec6c`; the worktree was clean before
-  this task record was created.
+- 2026-07-22: one worktree; the task began from
+  `67d0c66a5fead87e54e5301690964506b697ec6c`, and feature delivery commit
+  `e894bed7e860947282f01eb4a08cfa4f08c85815` was pushed to `origin/main`.
 - Title rendering currently starts from `45 * fontScale`, shrinks toward 18 px,
   then truncates a single line with `...`.
 - Body rendering currently starts from `24 * fontScale`, wraps Latin/CJK and
@@ -73,4 +73,6 @@ Focused RED reproduced missing-report/UI and grapheme-splitting failures. Final
 local headed checks, 144 expanded targeted tests, the 316-test repository gate,
 26 private-tool contracts, TypeScript, production build, and dist verification
 pass. Follow-up review closed report freshness, Unicode, and offset-scope
-concerns. Record archival and commit/push closeout remain.
+concerns. Feature commit `e894bed7e860947282f01eb4a08cfa4f08c85815`
+was pushed to `origin/main`, and this completed record is archived. No task
+work remains.

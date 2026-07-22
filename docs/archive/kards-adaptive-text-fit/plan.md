@@ -31,8 +31,8 @@ horizontal/vertical scale, offset, and title-weight controls.
   feedback changes.
 - [x] Stage 5: Inspect representative long Chinese and English cards in a
   headed browser and refine only reproduced defects.
-- [ ] Stage 6: Targeted/full verification, independent review, and roadmap/help
-  updates are complete; archive the record, then commit and push.
+- [x] Stage 6: Targeted/full verification, independent review, roadmap/help
+  updates, Lore commit/push, and record archival are complete.
 
 ## Acceptance criteria
 

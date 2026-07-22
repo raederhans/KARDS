@@ -3,8 +3,9 @@
 ## Current status
 
 Implementation, focused TDD, headed browser verification, help/roadmap updates,
-the repository validation gate, and independent review are complete. The
-delivery is ready for Lore-format commit and push closeout.
+the repository validation gate, and independent review are complete. Feature
+delivery commit `e894bed7e860947282f01eb4a08cfa4f08c85815` was pushed to
+`origin/main`; this record is archived and no feature work remains.
 
 ## Checklist
 
@@ -19,13 +20,13 @@ delivery is ready for Lore-format commit and push closeout.
 - [x] Verify long Chinese and English cases in the local headed browser.
 - [x] Run targeted tests, typecheck, build, full validation, and independent
   review.
-- [ ] Synchronize roadmap/help/task records, commit with Lore format, and push.
+- [x] Synchronize roadmap/help/task records, commit with Lore format, and push.
 
 ## Current validation evidence
 
 | Check | Result |
 | --- | --- |
-| `git rev-parse HEAD` / `git rev-parse origin/main` | Both `67d0c66a5fead87e54e5301690964506b697ec6c` |
+| `git rev-parse HEAD` / `git rev-parse origin/main` | Both `e894bed7e860947282f01eb4a08cfa4f08c85815` after feature delivery |
 | `git worktree list --porcelain` | One worktree at the repository root |
 | `git status --short` before records | Clean |
 | Renderer map | Title: shrink to 18 px then single-line ellipsis; body: wrap/shrink to 16 px then final-line ellipsis |
@@ -45,6 +46,7 @@ delivery is ready for Lore-format commit and push closeout.
 | Fresh production build | `npm run build:verified`: passed; 65 modules transformed and the dist boundary verified |
 | Final headed browser | Chinese default text reached `fits`; long title/body reached `truncated`; Export showed two warnings after the fresh-report pending gate cleared; console had 0 errors and 0 warnings |
 | Independent review | Follow-up review found no production-code blocker after freshness, authoritative export comparison, Unicode segmentation requirement, and offset scope were made explicit |
+| Feature delivery | Lore commit `e894bed7e860947282f01eb4a08cfa4f08c85815` pushed to `origin/main` |
 
 ## Open risks
 
