@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_CARD } from "../cardModel";
 import type { CardSpec } from "../types";
 import { CARD_HEIGHT, CARD_WIDTH, createWrappedTextLines, getFittedFontSize, renderCard, truncateToWidth } from "./cardRenderer";
+import { drawMarkedBodyText } from "./bodyTextRenderer";
 import { createStaticAssetResolver } from "./renderAssets";
 
 function createMeasureContext() {
@@ -54,9 +55,105 @@ describe("card renderer text fitting", () => {
 
     expect(createWrappedTextLines(ctx, "   ", 120, 4)).toEqual([]);
   });
+
+  it("does not split an emoji grapheme when ellipsizing a title", () => {
+    const ctx = {
+      font: "400 16px Arial, sans-serif",
+      measureText(text: string) {
+        return { width: text.length * 10 } as TextMetrics;
+      },
+    };
+
+    expect(truncateToWidth(ctx, "A👨‍👩‍👧‍👦B", 70)).toBe("A...");
+  });
+
+  it("does not draw a partial emoji grapheme on the last visible body line", () => {
+    const { canvas, calls } = createFakeCanvas();
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Expected a fake 2D context.");
+
+    drawMarkedBodyText(ctx, "A👨‍👩‍👧‍👦B EXTRA", 250, 0, 65, 0, 1, 28, "Arial", 1, 1, undefined, 16);
+
+    const visibleText = calls.fillTextStyles.map((call) => String(call.text)).join("");
+    expect(visibleText).toBe("A...");
+  });
+
 });
 
 describe("card renderer output", () => {
+  it("reports automatic title and body fitting without mutating manual appearance", () => {
+    const { canvas } = createFakeCanvas();
+    const card: CardSpec = {
+      ...DEFAULT_CARD,
+      title: "UNYIELDING ARMORED REINFORCEMENTS ACROSS THE ENT",
+      body: "Deployment: Choose a friendly unit. It gains Guard and +2 attack this turn. If you already control another tank, draw a card and gain one additional operation credit instead. Whene",
+      appearance: {
+        ...DEFAULT_CARD.appearance,
+        text: {
+          ...DEFAULT_CARD.appearance.text,
+          title: {
+            ...DEFAULT_CARD.appearance.text.title,
+            fontScale: 1.45,
+            offsetX: 8,
+            offsetY: -4,
+          },
+          body: {
+            ...DEFAULT_CARD.appearance.text.body,
+            fontScale: 1.45,
+            offsetX: -6,
+            offsetY: 5,
+          },
+        },
+      },
+    };
+    const authoredAppearance = JSON.stringify(card.appearance.text);
+
+    const report = renderCard(canvas, card, null, { disablePrintWear: true });
+
+    expect(report).toEqual({
+      text: {
+        title: {
+          state: "truncated",
+          requestedFontSize: 65,
+          resolvedFontSize: 18,
+          lineCount: 1,
+          maxLines: 1,
+        },
+        body: {
+          state: "truncated",
+          requestedFontSize: 35,
+          resolvedFontSize: 16,
+          lineCount: 3,
+          maxLines: 3,
+        },
+      },
+    });
+    expect(JSON.stringify(card.appearance.text)).toBe(authoredAppearance);
+  });
+
+  it("distinguishes text that fits from text that only fits after automatic reduction", () => {
+    const shortCard = createFakeCanvas();
+    const adjustedCard = createFakeCanvas();
+
+    const shortReport = renderCard(shortCard.canvas, {
+      ...DEFAULT_CARD,
+      title: "ACE",
+      body: "Move.",
+    }, null, { disablePrintWear: true });
+    const adjustedReport = renderCard(adjustedCard.canvas, {
+      ...DEFAULT_CARD,
+      title: "ARMORED REINFORCEMENTS",
+      body: "Move.",
+    }, null, { disablePrintWear: true });
+
+    expect(shortReport?.text.title.state).toBe("fits");
+    expect(shortReport?.text.body.state).toBe("fits");
+    expect(adjustedReport?.text.title.state).toBe("adjusted");
+    expect(adjustedReport?.text.title.resolvedFontSize).toBeLessThan(
+      adjustedReport?.text.title.requestedFontSize ?? 0,
+    );
+  });
+
   it("sets the fixed card canvas dimensions and clears the full surface", () => {
     const { canvas, calls } = createFakeCanvas();
 
@@ -68,14 +165,17 @@ describe("card renderer output", () => {
   });
 
   it("rerenders the card at a higher backing resolution for export scale", () => {
+    const preview = createFakeCanvas();
     const { canvas, calls } = createFakeCanvas();
 
-    renderCard(canvas, DEFAULT_CARD, null, { pixelScale: 2 });
+    const previewReport = renderCard(preview.canvas, DEFAULT_CARD, null, { pixelScale: 1 });
+    const exportReport = renderCard(canvas, DEFAULT_CARD, null, { pixelScale: 2 });
 
     expect(canvas.width).toBe(CARD_WIDTH * 2);
     expect(canvas.height).toBe(CARD_HEIGHT * 2);
     expect(calls.clearRect[0]).toEqual([0, 0, CARD_WIDTH * 2, CARD_HEIGHT * 2]);
     expect(calls.scales).toContainEqual([2, 2]);
+    expect(exportReport).toEqual(previewReport);
   });
 
   it("does not add a generated dark edge frame around placeholder cards", () => {

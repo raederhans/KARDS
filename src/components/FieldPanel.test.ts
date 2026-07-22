@@ -116,6 +116,10 @@ describe("FieldPanel value fields", () => {
       artworkRevision: 0,
       language: "zh",
       text: UI_TEXT.zh.fieldPanel,
+      textFitReport: {
+        title: { state: "adjusted", requestedFontSize: 65, resolvedFontSize: 18, lineCount: 1, maxLines: 1 },
+        body: { state: "truncated", requestedFontSize: 35, resolvedFontSize: 16, lineCount: 3, maxLines: 3 },
+      },
       onCardChange: vi.fn(),
       onArtworkImportStart: () => 1,
       isArtworkImportCurrent: () => true,
@@ -127,6 +131,10 @@ describe("FieldPanel value fields", () => {
       artworkRevision: 0,
       language: "en",
       text: UI_TEXT.en.fieldPanel,
+      textFitReport: {
+        title: { state: "adjusted", requestedFontSize: 65, resolvedFontSize: 18, lineCount: 1, maxLines: 1 },
+        body: { state: "truncated", requestedFontSize: 35, resolvedFontSize: 16, lineCount: 3, maxLines: 3 },
+      },
       onCardChange: vi.fn(),
       onArtworkImportStart: () => 1,
       isArtworkImportCurrent: () => true,
@@ -144,6 +152,11 @@ describe("FieldPanel value fields", () => {
     expect(chinese).toContain('aria-describedby="body-bold-feedback"');
     expect(chinese).toContain('id="body-bold-feedback"');
     expect(chinese).toContain('role="status"');
+    expect(chinese).toContain('aria-describedby="title-text-fit-status"');
+    expect(chinese).toContain('aria-describedby="body-bold-feedback body-text-fit-status"');
+    expect(chinese).toContain("自动适配已从 65 px 缩小到 18 px");
+    expect(chinese).toContain("自动适配已从 35 px 缩小到 16 px 最小字号");
+    expect(chinese).toContain("导出时仍会省略部分正文");
     expect(chinese).toContain("星标是格式标记；局部加粗效果显示在卡牌预览中。");
     for (const sectionTitle of ["卡图", "标题", "词条", "正文"]) {
       expect(chinese.match(new RegExp(`>${sectionTitle}<`, "g"))).toHaveLength(1);
@@ -155,6 +168,9 @@ describe("FieldPanel value fields", () => {
     expect(english).toContain("Bold selected text");
     expect(english).toContain('<option value="roc">Republic of China</option>');
     expect(english).toContain('<option value="ccp">Chinese Communist Forces</option>');
+    expect(english).toContain("Automatic fit reduced 65 px to 18 px");
+    expect(english).toContain("Automatic fit reduced 35 px to the 16 px minimum");
+    expect(english).toContain("some body text will still be omitted on export");
     expect(english).toContain("Stars are formatting markers; local bold appears in the card preview.");
     for (const sectionTitle of ["Artwork", "Title", "Keywords", "Body"]) {
       expect(english.match(new RegExp(`>${sectionTitle}<`, "g"))).toHaveLength(1);

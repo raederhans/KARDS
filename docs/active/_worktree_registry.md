@@ -1432,3 +1432,16 @@
 - Recommended integration order: this follow-up is self-contained and should stay after the card-pack set mark cleanup commit
 - Delivery package: `docs/active/kards-style-replication/task.md`
 - Next action: continue visual tuning from the separated official-reference selector and per-set detail-preservation list, without reusing the card-pack selector for reference loading
+# KARDS adaptive title/body text fitting
+
+- Worktree name/path: main checkout, `C:\Users\raede\Documents\KARDS`
+- Thread/task: title/body overflow control and adaptive fitting layered with manual appearance controls
+- Base branch/base commit: `main`, `67d0c66a5fead87e54e5301690964506b697ec6c`
+- Current branch/HEAD: `main`, validated delivery pending final commit/push
+- Task goal: make title/body adaptive reduction and final truncation predictable and visible before export while preserving serialized manual text appearance
+- Status: ready-for-integration
+- Planned shared hotspots: `src/canvas/cardRenderer.ts`, `src/canvas/bodyTextRenderer.ts`, `src/components/FieldPanel.tsx`, `src/i18n.ts`, focused tests, Help/roadmap, and active task records
+- Live-process owner: primary agent; all named Playwright sessions are closed and local port 5185 is free
+- Delivery package: `docs/active/kards-adaptive-text-fit/`
+- Validation: 8 focused files / 144 tests; full gate 24 files / 316 tests; 26 private-tool contracts; TypeScript/build/dist verification; final Chinese/English browser checks with clean console; independent review found no production blocker
+- Next action: primary owner performs Lore-format commit/push closeout; no additional feature work remains

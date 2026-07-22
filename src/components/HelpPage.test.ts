@@ -16,6 +16,8 @@ describe("HelpPage", () => {
     expect(markup).toContain("推荐流程");
     expect(markup).toContain("载入可编辑模板");
     expect(markup).toContain("Ctrl/Cmd+Z");
+    expect(markup).toContain("标题和正文会从人工字号与缩放设置开始自动适配");
+    expect(markup).toContain("达到最小字号后仍会省略文字");
     expect(markup).toContain("可读卡牌摘要");
     expect(markup).toContain("检查信号，不代表通过或失败");
     expect(markup).toContain("项目文件");
@@ -41,6 +43,8 @@ describe("HelpPage", () => {
     expect(markup).toContain("Selecting a reference card changes only the comparison card");
     expect(markup).toContain("Load editable template replaces the current card");
     expect(markup).toContain("Ctrl/Cmd+Z");
+    expect(markup).toContain("Title and body fitting starts from your manual size and scale settings");
+    expect(markup).toContain("warns when text will still be omitted at the minimum size");
     expect(markup).toContain("readable card summary");
     expect(markup).toContain("review signals, not pass/fail results");
     expect(markup).toContain("sends page-performance metrics to Vercel Speed Insights");

@@ -70,3 +70,4 @@
 - Undo history must separate authored snapshots from derived runtime state: exclude automatic reference artwork, never restore an old asynchronous revision token, and invalidate pending requests before history navigation.
 - Overlapping explicit artwork loaders need one shared user-intent generation in addition to loader-local request and revision guards; separate request IDs cannot enforce cross-loader last-started-wins behavior.
 - Browser smoke readiness should use an observable page contract such as a visible editor control; Playwright `networkidle` is not a reliable test-readiness signal for a Vite application.
+- Canvas text-health diagnostics should come from the same font-ready renderer used by preview and export; keep manual appearance in history, keep resolved layout derived, and truncate complete graphemes so diagnostics cannot drift from visible pixels.

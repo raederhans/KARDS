@@ -296,6 +296,7 @@ describe("ProjectPanel four-tab workbench", () => {
   it("renders preflight and latest export result without claiming a download was saved", () => {
     const preflight = getCardExportPreflight({
       canvasAvailable: true,
+      textFitReady: false,
       artworkReady: true,
       assetPackWarnings: ["Missing font: fonts/body.ttf"],
       usesProgramTexture: true,
@@ -315,14 +316,16 @@ describe("ProjectPanel four-tab workbench", () => {
         byteLength: 4,
         durationMs: 12,
         normalizedOptions: { format: "png", scale: 1, exposure: 0, contrast: 0, jpegQuality: 0.92 },
+        renderReport: null,
         target: { kind: "download", status: "triggered" },
       },
       error: null,
     }));
 
-    expect(markup).toContain("请先检查");
+    expect(markup).toContain("暂不可导出");
     expect(markup).toContain("card.png");
     expect(markup).toContain("浏览器已开始下载");
+    expect(markup).toContain("文字测量仍在更新");
     expect(markup).toContain("缺少字体：fonts/body.ttf");
     expect(markup).not.toContain("Missing font");
     expect(markup).not.toContain("已保存到下载目录");

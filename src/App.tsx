@@ -14,6 +14,8 @@ import {
   type CardEditorState,
 } from "./cardEditorState";
 import { CardCanvas } from "./components/CardCanvas";
+import type { CardRenderReport } from "./canvas/cardRenderer";
+import type { RenderCardOptions } from "./canvas/renderAssets";
 import { FieldPanel } from "./components/FieldPanel";
 import { HelpPage } from "./components/HelpPage";
 import { ProjectPanel } from "./components/ProjectPanel";
@@ -175,6 +177,13 @@ function App() {
   const [defaultArtworkImage, setDefaultArtworkImage] = useState<HTMLImageElement | null>(null);
   const [referenceDiff, setReferenceDiff] = useState<ImageDiffMetrics | null>(null);
   const [referenceDiffError, setReferenceDiffError] = useState<string | null>(null);
+  const [fontsReady, setFontsReady] = useState(() => document.fonts?.status !== "loading");
+  const [cardRenderSnapshot, setCardRenderSnapshot] = useState<{
+    card: CardSpec;
+    renderOptions: RenderCardOptions | undefined;
+    fontsReady: boolean;
+    report: CardRenderReport | null;
+  } | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const helpButtonRef = useRef<HTMLButtonElement | null>(null);
   const assetPackRequestRef = useRef(0);
@@ -187,6 +196,19 @@ function App() {
   const pendingTemplateSampleIdRef = useRef<string | null>(null);
   const isMountedRef = useRef(true);
   const didLoadDevPreviewRef = useRef(false);
+  const handleCardRenderReport = useCallback((
+    renderedCard: CardSpec,
+    renderedOptions: RenderCardOptions | undefined,
+    renderedFontsReady: boolean,
+    report: CardRenderReport | null,
+  ) => {
+    setCardRenderSnapshot({
+      card: renderedCard,
+      renderOptions: renderedOptions,
+      fontsReady: renderedFontsReady,
+      report,
+    });
+  }, []);
   const replaceDerivedEditorState = useCallback((update: EditorStateUpdate) => {
     setEditorHistory((history) => {
       const next = typeof update === "function" ? update(history.present) : update;
@@ -223,6 +245,34 @@ function App() {
   useEffect(() => {
     saveAutoArtworkPreference(window.localStorage, autoArtworkEnabled);
   }, [autoArtworkEnabled]);
+
+  useEffect(() => {
+    const fonts = document.fonts;
+    if (!fonts) {
+      setFontsReady(true);
+      return;
+    }
+
+    let cancelled = false;
+    const markLoading = () => setFontsReady(false);
+    const markSettled = () => setFontsReady(true);
+    fonts.addEventListener("loading", markLoading);
+    fonts.addEventListener("loadingdone", markSettled);
+    fonts.addEventListener("loadingerror", markSettled);
+    setFontsReady(fonts.status !== "loading");
+    void fonts.ready.then(() => {
+      if (!cancelled) {
+        setFontsReady(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      fonts.removeEventListener("loading", markLoading);
+      fonts.removeEventListener("loadingdone", markSettled);
+      fonts.removeEventListener("loadingerror", markSettled);
+    };
+  }, []);
 
   useEffect(() => () => assetPack?.dispose(), [assetPack]);
 
@@ -356,6 +406,12 @@ function App() {
     }),
     [assetPack, defaultArtworkImage, language, textureImage, textureSettings],
   );
+  const textFitReady = fontsReady
+    && cardRenderSnapshot?.fontsReady === true
+    && cardRenderSnapshot.card === previewCard
+    && cardRenderSnapshot.renderOptions === renderOptions
+    && cardRenderSnapshot.report !== null;
+  const textFitReport = textFitReady ? cardRenderSnapshot.report?.text ?? null : null;
 
   const invalidateReferenceDiff = useCallback(() => {
     invalidateLatestRequest(referenceDiffRequestRef.current);
@@ -969,6 +1025,7 @@ function App() {
           artworkRevision={editorState.artworkRevision}
           language={language}
           text={text.fieldPanel}
+          textFitReport={textFitReport}
           onCardChange={updateCard}
           onArtworkImportStart={beginArtworkUpload}
           isArtworkImportCurrent={isExplicitArtworkWorkCurrent}
@@ -982,6 +1039,8 @@ function App() {
           artworkImage={artworkImage}
           canvasRef={canvasRef}
           renderOptions={renderOptions}
+          fontsReady={fontsReady}
+          onRenderReport={handleCardRenderReport}
           referenceImageUrl={showReferenceComparison ? referenceImageUrl : null}
           referenceLabel={
             showReferenceComparison && referenceSample ? localizedReferenceSampleTitle(referenceSample, language) : undefined
@@ -1006,6 +1065,9 @@ function App() {
           artworkImage={artworkImage}
           artworkImageSource={loadedArtwork?.source ?? null}
           renderOptions={renderOptions}
+          textFitReport={textFitReport}
+          textFitReady={textFitReady}
+          fontsReady={fontsReady}
           assetPackStatus={
             assetPack
               ? {

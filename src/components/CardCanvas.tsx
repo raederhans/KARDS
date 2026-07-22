@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { CARD_HEIGHT, CARD_WIDTH, isPointInsideArtwork, renderCard } from "../canvas/cardRenderer";
+import {
+  CARD_HEIGHT,
+  CARD_WIDTH,
+  isPointInsideArtwork,
+  renderCard,
+  type CardRenderReport,
+} from "../canvas/cardRenderer";
 import type { RenderCardOptions } from "../canvas/renderAssets";
 import {
   translateKeywordLabel,
@@ -21,6 +27,13 @@ type CardCanvasProps = {
   renderOptions?: RenderCardOptions;
   referenceImageUrl?: string | null;
   referenceLabel?: string | null;
+  fontsReady?: boolean;
+  onRenderReport?: (
+    card: CardSpec,
+    renderOptions: RenderCardOptions | undefined,
+    fontsReady: boolean,
+    report: CardRenderReport | null,
+  ) => void;
 };
 
 type DragState = {
@@ -41,6 +54,8 @@ export function CardCanvas({
   renderOptions,
   referenceImageUrl,
   referenceLabel,
+  fontsReady = true,
+  onRenderReport,
 }: CardCanvasProps) {
   const [dragState, setDragState] = useState<DragState | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
@@ -58,9 +73,10 @@ export function CardCanvas({
 
   useEffect(() => {
     if (canvasRef.current) {
-      renderCard(canvasRef.current, card, artworkImage, renderOptions);
+      const report = renderCard(canvasRef.current, card, artworkImage, renderOptions);
+      onRenderReport?.(card, renderOptions, fontsReady, fontsReady ? report : null);
     }
-  }, [artworkImage, canvasRef, card, renderOptions]);
+  }, [artworkImage, canvasRef, card, fontsReady, onRenderReport, renderOptions]);
 
   function getCanvasPoint(event: React.PointerEvent<HTMLCanvasElement> | React.WheelEvent<HTMLCanvasElement>) {
     const canvas = canvasRef.current;

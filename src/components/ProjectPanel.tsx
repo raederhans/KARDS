@@ -9,12 +9,14 @@ import {
   getCardExportPreflight,
   getExportDimensions,
   getExportExtension,
+  isCardTextFitReportCurrent,
   type CardExportPreflight,
   type CardExportResult,
   type CardExportFormat,
   type ExportDiagnosticCode,
 } from "../exportCard";
 import type { RenderCardOptions } from "../canvas/renderAssets";
+import type { CardRenderReport } from "../canvas/cardRenderer";
 import { localizeAssetPackName, localizeRuntimeMessage, type Language, type UiText } from "../i18n";
 import {
   LOCAL_LIBRARY_FILE_NAME,
@@ -63,6 +65,9 @@ type ProjectPanelProps = {
   artworkImage: HTMLImageElement | null;
   artworkImageSource: string | null;
   renderOptions?: RenderCardOptions;
+  textFitReport?: CardRenderReport["text"] | null;
+  textFitReady?: boolean;
+  fontsReady?: boolean;
   assetPackStatus: AssetPackStatus | null;
   assetPackError: string | null;
   referenceDiff: ImageDiffMetrics | null;
@@ -252,6 +257,9 @@ export function ProjectPanel({
   artworkImage,
   artworkImageSource,
   renderOptions,
+  textFitReport = null,
+  textFitReady = true,
+  fontsReady = true,
   assetPackStatus,
   assetPackError,
   referenceDiff,
@@ -301,10 +309,13 @@ export function ProjectPanel({
     && isArtworkReadyForExport(card.artwork.dataUrl, artworkImage, artworkImageSource);
   const exportPreflight = getCardExportPreflight({
     canvasAvailable,
+    fontsReady,
+    textFitReady,
     artworkReady,
     assetPackWarnings: assetPackStatus?.warnings ?? [],
     usesProgramTexture,
     requiresPrivateConfirmation: assetPackStatus?.requiresPrivateExportConfirm ?? false,
+    textFitReport,
   });
 
   useEffect(() => {
@@ -327,6 +338,9 @@ export function ProjectPanel({
     const canvas = canvasRef.current;
     if (!canvas) {
       setCanvasAvailable(false);
+      return;
+    }
+    if (exportPreflight.status === "blocking") {
       return;
     }
     if (!canStartCardExport(assetPackStatus, () => window.confirm(text.privateCardConfirm), artworkReady)) {
@@ -354,6 +368,9 @@ export function ProjectPanel({
       }, fileName));
       if (attemptId !== exportAttemptRef.current) {
         return;
+      }
+      if (!isCardTextFitReportCurrent(textFitReport, result.renderReport)) {
+        throw new CardExportError("render", "text-layout-changed");
       }
       setExportResult(result);
       const deliveredResult = await completeCardExportDelivery(result, exportDirectory
@@ -652,10 +669,15 @@ function exportTargetText(result: CardExportResult, text: UiText["projectPanel"]
 function diagnosticText(code: ExportDiagnosticCode, text: UiText["projectPanel"]): string {
   const messages: Record<ExportDiagnosticCode, string> = {
     "canvas-unavailable": text.diagnosticCanvasUnavailable,
+    "fonts-not-ready": text.diagnosticFontsNotReady,
+    "text-measurement-pending": text.diagnosticTextMeasurementPending,
     "artwork-not-ready": text.diagnosticArtworkNotReady,
+    "title-truncated": text.diagnosticTitleTruncated,
+    "body-truncated": text.diagnosticBodyTruncated,
     "asset-pack-warning": text.diagnosticAssetPackWarning,
     "program-texture": text.diagnosticProgramTexture,
     "private-confirmation-required": text.diagnosticPrivateConfirmation,
+    "text-layout-changed": text.diagnosticTextLayoutChanged,
     "render-failed": text.diagnosticRenderFailed,
     "encode-failed": text.diagnosticEncodeFailed,
     "write-failed": text.diagnosticWriteFailed,

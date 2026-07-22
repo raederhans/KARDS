@@ -1,4 +1,4 @@
-import { CARD_HEIGHT, CARD_WIDTH, renderCard } from "./canvas/cardRenderer";
+import { CARD_HEIGHT, CARD_WIDTH, renderCard, type CardRenderReport } from "./canvas/cardRenderer";
 import type { RenderCardOptions } from "./canvas/renderAssets";
 import type { CardSpec } from "./types";
 
@@ -22,10 +22,15 @@ export type ExportDiagnosticPhase = "preflight" | "render" | "encode" | "write" 
 
 export type ExportDiagnosticCode =
   | "canvas-unavailable"
+  | "fonts-not-ready"
+  | "text-measurement-pending"
   | "artwork-not-ready"
+  | "title-truncated"
+  | "body-truncated"
   | "asset-pack-warning"
   | "program-texture"
   | "private-confirmation-required"
+  | "text-layout-changed"
   | "render-failed"
   | "encode-failed"
   | "write-failed"
@@ -58,6 +63,7 @@ export type CardExportResult = {
   byteLength: number;
   durationMs: number;
   normalizedOptions: CardExportOptions;
+  renderReport: CardRenderReport | null;
   target: CardExportTarget;
 };
 
@@ -122,17 +128,32 @@ export function getCardAdjustmentFilter(exposure: number, contrast: number): str
 
 export function getCardExportPreflight(input: {
   canvasAvailable: boolean;
+  fontsReady?: boolean;
+  textFitReady?: boolean;
   artworkReady: boolean;
   assetPackWarnings: readonly string[];
   usesProgramTexture: boolean;
   requiresPrivateConfirmation: boolean;
+  textFitReport?: CardRenderReport["text"] | null;
 }): CardExportPreflight {
   const items: ExportDiagnosticItem[] = [];
   if (!input.canvasAvailable) {
     items.push({ phase: "preflight", severity: "blocking", code: "canvas-unavailable" });
   }
+  if (input.fontsReady === false) {
+    items.push({ phase: "preflight", severity: "blocking", code: "fonts-not-ready" });
+  }
+  if (input.textFitReady === false) {
+    items.push({ phase: "preflight", severity: "blocking", code: "text-measurement-pending" });
+  }
   if (!input.artworkReady) {
     items.push({ phase: "preflight", severity: "blocking", code: "artwork-not-ready" });
+  }
+  if (input.textFitReport?.title.state === "truncated") {
+    items.push({ phase: "preflight", severity: "warning", code: "title-truncated" });
+  }
+  if (input.textFitReport?.body.state === "truncated") {
+    items.push({ phase: "preflight", severity: "warning", code: "body-truncated" });
   }
   for (const warning of input.assetPackWarnings) {
     items.push({ phase: "preflight", severity: "warning", code: "asset-pack-warning", detail: warning });
@@ -149,6 +170,28 @@ export function getCardExportPreflight(input: {
       : items.some((item) => item.severity === "warning") ? "warning" : "ready",
     items,
   };
+}
+
+export function isCardTextFitReportCurrent(
+  previewReport: CardRenderReport["text"] | null | undefined,
+  exportReport: CardRenderReport | null,
+): boolean {
+  if (!previewReport || !exportReport) {
+    return false;
+  }
+  return areTextFitReportsEqual(previewReport.title, exportReport.text.title)
+    && areTextFitReportsEqual(previewReport.body, exportReport.text.body);
+}
+
+function areTextFitReportsEqual(
+  left: CardRenderReport["text"]["title"],
+  right: CardRenderReport["text"]["title"],
+): boolean {
+  return left.state === right.state
+    && left.requestedFontSize === right.requestedFontSize
+    && left.resolvedFontSize === right.resolvedFontSize
+    && left.lineCount === right.lineCount
+    && left.maxLines === right.maxLines;
 }
 
 export async function createCardExportBlob(
@@ -168,10 +211,15 @@ export async function createCardExportResult(
   const startedAt = performance.now();
   const normalizedOptions = normalizeExportOptions(options);
   let exportCanvas: HTMLCanvasElement;
+  let renderReport: CardRenderReport | null = null;
   try {
-    exportCanvas = source
-      ? renderCardExportCanvas(source, normalizedOptions)
-      : renderAdjustedCanvas(sourceCanvas, normalizedOptions);
+    if (source) {
+      const rendered = renderCardExportCanvas(source, normalizedOptions);
+      exportCanvas = rendered.canvas;
+      renderReport = rendered.renderReport;
+    } else {
+      exportCanvas = renderAdjustedCanvas(sourceCanvas, normalizedOptions);
+    }
   } catch (error) {
     throw new CardExportError("render", "render-failed", error);
   }
@@ -199,6 +247,7 @@ export async function createCardExportResult(
     byteLength: blob.size,
     durationMs: Math.max(0, performance.now() - startedAt),
     normalizedOptions,
+    renderReport,
     target: { kind: "generated" },
   };
 }
@@ -227,9 +276,12 @@ export async function completeCardExportDelivery(
   return { ...result, target: { kind: "download", status: "triggered" } };
 }
 
-function renderCardExportCanvas(source: CardExportSource, options: CardExportOptions): HTMLCanvasElement {
+function renderCardExportCanvas(
+  source: CardExportSource,
+  options: CardExportOptions,
+): { canvas: HTMLCanvasElement; renderReport: CardRenderReport | null } {
   const exportCanvas = document.createElement("canvas");
-  renderCard(exportCanvas, source.card, source.artworkImage, {
+  const renderReport = renderCard(exportCanvas, source.card, source.artworkImage, {
     ...source.renderOptions,
     pixelScale: options.scale,
   });
@@ -240,7 +292,7 @@ function renderCardExportCanvas(source: CardExportSource, options: CardExportOpt
   ) {
     throw new Error("Card renderer did not produce the requested export dimensions.");
   }
-  return applyCanvasAdjustments(exportCanvas, options);
+  return { canvas: applyCanvasAdjustments(exportCanvas, options), renderReport };
 }
 
 function renderAdjustedCanvas(sourceCanvas: HTMLCanvasElement, options: CardExportOptions): HTMLCanvasElement {

@@ -10,6 +10,7 @@ import {
   getExportDimensions,
   getExportExtension,
   getExportMimeType,
+  isCardTextFitReportCurrent,
   normalizeExportOptions,
 } from "./exportCard";
 
@@ -67,6 +68,86 @@ describe("card export options", () => {
       usesProgramTexture: false,
       requiresPrivateConfirmation: false,
     }).status).toBe("ready");
+  });
+
+  it("warns before export when the renderer reports omitted title or body text", () => {
+    expect(getCardExportPreflight({
+      canvasAvailable: true,
+      artworkReady: true,
+      assetPackWarnings: [],
+      usesProgramTexture: false,
+      requiresPrivateConfirmation: false,
+      textFitReport: {
+        title: {
+          state: "truncated",
+          requestedFontSize: 45,
+          resolvedFontSize: 18,
+          lineCount: 1,
+          maxLines: 1,
+        },
+        body: {
+          state: "truncated",
+          requestedFontSize: 24,
+          resolvedFontSize: 16,
+          lineCount: 3,
+          maxLines: 3,
+        },
+      },
+    })).toEqual({
+      status: "warning",
+      items: [
+        { phase: "preflight", severity: "warning", code: "title-truncated" },
+        { phase: "preflight", severity: "warning", code: "body-truncated" },
+      ],
+    });
+  });
+
+  it("blocks export until browser fonts are ready for deterministic measurement", () => {
+    expect(getCardExportPreflight({
+      canvasAvailable: true,
+      artworkReady: true,
+      assetPackWarnings: [],
+      usesProgramTexture: false,
+      requiresPrivateConfirmation: false,
+      fontsReady: false,
+    })).toEqual({
+      status: "blocking",
+      items: [
+        { phase: "preflight", severity: "blocking", code: "fonts-not-ready" },
+      ],
+    });
+  });
+
+  it("blocks export while the current card text measurement is pending", () => {
+    expect(getCardExportPreflight({
+      canvasAvailable: true,
+      artworkReady: true,
+      assetPackWarnings: [],
+      usesProgramTexture: false,
+      requiresPrivateConfirmation: false,
+      textFitReady: false,
+    })).toEqual({
+      status: "blocking",
+      items: [
+        { phase: "preflight", severity: "blocking", code: "text-measurement-pending" },
+      ],
+    });
+  });
+
+  it("requires the authoritative export text report to match the fresh preview report", () => {
+    const previewReport = {
+      title: { state: "adjusted", requestedFontSize: 45, resolvedFontSize: 31, lineCount: 1, maxLines: 1 },
+      body: { state: "fits", requestedFontSize: 24, resolvedFontSize: 24, lineCount: 2, maxLines: 3 },
+    } as const;
+
+    expect(isCardTextFitReportCurrent(previewReport, { text: previewReport })).toBe(true);
+    expect(isCardTextFitReportCurrent(previewReport, null)).toBe(false);
+    expect(isCardTextFitReportCurrent(previewReport, {
+      text: {
+        ...previewReport,
+        body: { ...previewReport.body, state: "truncated", resolvedFontSize: 16 },
+      },
+    })).toBe(false);
   });
 
   it("resolves the supported card export dimensions", () => {
@@ -162,6 +243,18 @@ describe("card export options", () => {
   });
 
   it("returns one-render export metadata for the current run", async () => {
+    const renderReport = {
+      text: {
+        title: { state: "adjusted", requestedFontSize: 45, resolvedFontSize: 31, lineCount: 1, maxLines: 1 },
+        body: { state: "fits", requestedFontSize: 24, resolvedFontSize: 24, lineCount: 2, maxLines: 3 },
+      },
+    } as const;
+    renderCardMock.mockImplementationOnce((canvas, _card, _artworkImage, options) => {
+      const pixelScale = options?.pixelScale ?? 1;
+      canvas.width = 500 * pixelScale;
+      canvas.height = 702 * pixelScale;
+      return renderReport;
+    });
     vi.stubGlobal("document", {
       createElement: vi.fn(() => ({
         width: 0,
@@ -200,6 +293,7 @@ describe("card export options", () => {
         jpegQuality: 0.92,
       },
       target: { kind: "generated" },
+      renderReport,
     });
     expect(result.durationMs).toBeGreaterThanOrEqual(0);
     expect(renderCardMock).toHaveBeenCalledTimes(1);
@@ -216,6 +310,7 @@ describe("card export options", () => {
       byteLength: 6,
       durationMs: 1,
       normalizedOptions: { format: "png" as const, scale: 1, exposure: 0, contrast: 0, jpegQuality: 0.92 },
+      renderReport: null,
       target: { kind: "generated" as const },
     };
     let finishWrite!: () => void;

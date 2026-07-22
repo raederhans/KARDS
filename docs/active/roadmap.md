@@ -1,6 +1,6 @@
 # KARDS Card Forge Roadmap
 
-## Current Baseline — v1.4.0
+## Current Development Baseline — after v1.4.0
 
 KARDS Card Forge is a local, static tool for creating one custom card at a
 time. The current release includes:
@@ -20,21 +20,28 @@ time. The current release includes:
   compliance results.
 - Five serialized appearance presets, keyboard-reachable workbench controls,
   and a readable Canvas summary with keyboard alternatives for artwork crop.
+- Renderer-owned title/body fit status that starts from serialized manual
+  appearance settings, reports the resolved font size, preserves authored
+  history, and warns before export when minimum-size text is still truncated.
 - Verified Vercel and GitHub Pages release paths plus a code-only Release
   boundary.
 
 The product boundary remains unchanged: a local single-card design tool, not a
 gameplay, account, deck, batch-generation, or network-content platform.
 
-## Next
+## Delivered after v1.4.0
 
 ### 1. Text Health and Editing Safety
 
-- Surface title/body truncation before export instead of silently relying on
-  renderer clipping.
-- Reuse the existing diagnostics and authored-history boundaries; do not add a
-  second validation or state framework.
-- Keep Chinese and English warnings under the same tested behavior contract.
+- Title/body fitting now returns a shared `fits`, `adjusted`, or `truncated`
+  renderer report instead of silently clipping.
+- Chinese and English field feedback and export diagnostics share that report;
+  calculated sizes and line breaks remain outside serialized card history.
+- Truncation is grapheme-safe for CJK and emoji, and preview/export still use
+  one renderer contract. The current browser baseline requires native
+  `Intl.Segmenter`; the app does not ship a partial Unicode fallback.
+
+## Next
 
 ### 2. Representative Visual Baselines
 

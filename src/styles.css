@@ -988,6 +988,14 @@ input[type="range"] {
   color: #f1c0ad;
 }
 
+.text-fit-status.is-adjusted {
+  color: #dbc98d;
+}
+
+.text-fit-status.is-truncated {
+  font-weight: 700;
+}
+
 .primary-action {
   border-color: #8b7748;
   color: #fff2cc;

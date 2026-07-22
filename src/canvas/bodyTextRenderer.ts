@@ -1,4 +1,5 @@
 import { parseBodyMarkup, type BodyMarkupSegment } from "../bodyMarkup";
+import { removeLastTextGrapheme, splitTextGraphemes, type TextFitReport } from "./textFit";
 
 type TextMeasureContext = Pick<CanvasRenderingContext2D, "font" | "measureText">;
 type BodyTextWeights = { regular: number; bold: number };
@@ -21,7 +22,7 @@ export function drawMarkedBodyText(
   scaleY = 1,
   weights: BodyTextWeights = DEFAULT_BODY_TEXT_WEIGHTS,
   baseFontSize = BODY_BASE_FONT_SIZE,
-): void {
+): TextFitReport {
   const layout = fitBodyMarkupLayout(
     ctx,
     text,
@@ -42,6 +43,7 @@ export function drawMarkedBodyText(
     drawBodyMarkupLine(ctx, line, centerX, y + index * layout.lineHeight, fontFamily, layout.fontSize, scaleX, scaleY, weights);
   });
   ctx.textAlign = previousTextAlign;
+  return layout.report;
 }
 
 function fitBodyMarkupLayout(
@@ -56,7 +58,7 @@ function fitBodyMarkupLayout(
   scaleY: number,
   weights: BodyTextWeights,
   baseFontSize: number,
-): { lines: BodyMarkupSegment[][]; fontSize: number; lineHeight: number } {
+): { lines: BodyMarkupSegment[][]; fontSize: number; lineHeight: number; report: TextFitReport } {
   const initialFontSize = Math.max(10, Math.round(baseFontSize));
   const minimumFontSize = Math.min(BODY_MIN_FONT_SIZE, initialFontSize);
   let fallbackLayout = createWrappedBodyMarkupLines(
@@ -75,15 +77,35 @@ function fitBodyMarkupLayout(
     const maxLines = resolveMaxLines(maxHeight, lineHeight, maxLinesCap);
     const layout = createWrappedBodyMarkupLines(ctx, text, maxWidth, maxLines, fontFamily, fontSize, scaleX, weights);
     if (!layout.didOverflow) {
-      return { lines: layout.lines, fontSize, lineHeight };
+      return {
+        lines: layout.lines,
+        fontSize,
+        lineHeight,
+        report: {
+          state: fontSize < initialFontSize ? "adjusted" : "fits",
+          requestedFontSize: initialFontSize,
+          resolvedFontSize: fontSize,
+          lineCount: layout.lines.length,
+          maxLines,
+        },
+      };
     }
     fallbackLayout = layout;
   }
 
+  const lineHeight = resolveScaledBodyLineHeight(minimumFontSize, baseLineHeight, scaleY);
+  const maxLines = resolveMaxLines(maxHeight, lineHeight, maxLinesCap);
   return {
     lines: fallbackLayout.lines,
     fontSize: minimumFontSize,
-    lineHeight: resolveScaledBodyLineHeight(minimumFontSize, baseLineHeight, scaleY),
+    lineHeight,
+    report: {
+      state: "truncated",
+      requestedFontSize: initialFontSize,
+      resolvedFontSize: minimumFontSize,
+      lineCount: fallbackLayout.lines.length,
+      maxLines,
+    },
   };
 }
 
@@ -195,9 +217,47 @@ function createBodyMarkupTokens(
   weights: BodyTextWeights,
 ): BodyMarkupSegment[] {
   return segments.flatMap((segment) => {
-    const tokens = segment.text.match(/\s+|[A-Za-z0-9]+(?:[-'][A-Za-z0-9]+)*|[\u3400-\u9fff\uf900-\ufaff]|[^\sA-Za-z0-9\u3400-\u9fff\uf900-\ufaff]/g) ?? [];
+    const tokens = tokenizeBodyText(segment.text);
     return tokens.flatMap((token) => splitBodyMarkupToken(ctx, token, segment.bold, maxWidth, fontFamily, fontSize, scaleX, weights));
   });
+}
+
+function tokenizeBodyText(text: string): string[] {
+  const graphemes = splitTextGraphemes(text);
+  const tokens: string[] = [];
+  let buffered = "";
+  let bufferedKind: "space" | "word" | null = null;
+
+  const flush = () => {
+    if (buffered) {
+      tokens.push(buffered);
+      buffered = "";
+    }
+    bufferedKind = null;
+  };
+
+  graphemes.forEach((grapheme, index) => {
+    const next = graphemes[index + 1] ?? "";
+    const isSpace = /^\s+$/u.test(grapheme);
+    const isAsciiWord = /^[A-Za-z0-9]$/u.test(grapheme);
+    const isInternalWordPunctuation = (grapheme === "-" || grapheme === "'")
+      && bufferedKind === "word"
+      && /^[A-Za-z0-9]$/u.test(next);
+    const kind = isSpace ? "space" : isAsciiWord || isInternalWordPunctuation ? "word" : null;
+
+    if (!kind) {
+      flush();
+      tokens.push(grapheme);
+      return;
+    }
+    if (bufferedKind !== kind) {
+      flush();
+      bufferedKind = kind;
+    }
+    buffered += grapheme;
+  });
+  flush();
+  return tokens;
 }
 
 function splitBodyMarkupToken(
@@ -221,11 +281,11 @@ function splitBodyMarkupToken(
   const chunks: BodyMarkupSegment[] = [];
   let chunk = leadingSpace;
 
-  for (const char of core) {
-    const testChunk = `${chunk}${char}`;
+  for (const grapheme of splitTextGraphemes(core)) {
+    const testChunk = `${chunk}${grapheme}`;
     if (chunk.trim() && measureScaledText(ctx, testChunk, scaleX) > maxWidth) {
       chunks.push({ text: chunk, bold });
-      chunk = char;
+      chunk = grapheme;
     } else {
       chunk = testChunk;
     }
@@ -273,7 +333,7 @@ function appendEllipsisToBodyMarkupLine(
   ) {
     nextLine[lastSegmentIndex] = {
       ...nextLine[lastSegmentIndex],
-      text: nextLine[lastSegmentIndex].text.slice(0, -1),
+      text: removeLastTextGrapheme(nextLine[lastSegmentIndex].text),
     };
     if (!nextLine[lastSegmentIndex].text) {
       nextLine.splice(lastSegmentIndex, 1);

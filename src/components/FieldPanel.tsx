@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { CARD_TEXT_APPEARANCE_BOUNDS } from "../cardModel";
+import type { CardRenderReport, TextFitReport } from "../canvas/cardRenderer";
 import { CARD_KINDS, NATIONS, RARITIES, SETS, getKind } from "../presets";
 import { translateKeywordLabel, translatePresetLabel, type Language, type UiText } from "../i18n";
 import type { CardKind, CardSpec, CardUpdate } from "../types";
@@ -32,6 +33,7 @@ type FieldPanelProps = {
   artworkRevision: number;
   language: Language;
   text: UiText["fieldPanel"];
+  textFitReport?: CardRenderReport["text"] | null;
   onCardChange: (update: CardUpdate, mergeKey?: string) => void;
   onArtworkImportStart: () => number;
   isArtworkImportCurrent: (generation: number) => boolean;
@@ -122,6 +124,7 @@ export function FieldPanel({
   artworkRevision,
   language,
   text,
+  textFitReport = null,
   onCardChange,
   onArtworkImportStart,
   isArtworkImportCurrent,
@@ -615,11 +618,15 @@ export function FieldPanel({
         <div className="field-block">
           <input
             aria-label={text.title}
+            aria-describedby={textFitReport?.title ? "title-text-fit-status" : undefined}
             name="card-title"
             value={card.title}
             maxLength={TITLE_MAX_LENGTH}
             onChange={(event) => update({ title: event.target.value }, getFieldPanelMergeKey("text", "title"))}
           />
+          {textFitReport?.title ? (
+            <TextFitStatus id="title-text-fit-status" label={text.title} report={textFitReport.title} text={text} />
+          ) : null}
         </div>
         <div className="text-appearance-grid" aria-label={text.titleAppearance}>
           <TextAppearanceRange
@@ -786,6 +793,7 @@ export function FieldPanel({
           </div>
           <textarea
             aria-label={text.body}
+            aria-describedby={textFitReport?.body ? "body-bold-feedback body-text-fit-status" : "body-bold-feedback"}
             ref={bodyTextareaRef}
             name="card-body"
             value={card.body}
@@ -799,6 +807,9 @@ export function FieldPanel({
           <p id="body-bold-feedback" className="status-line" role="status" aria-live="polite">
             {bodyBoldFeedbackText}
           </p>
+          {textFitReport?.body ? (
+            <TextFitStatus id="body-text-fit-status" label={text.body} report={textFitReport.body} text={text} />
+          ) : null}
         </div>
         <div className="text-appearance-grid" aria-label={text.bodyAppearance}>
           <TextAppearanceRange
@@ -964,6 +975,34 @@ export function FieldPanel({
         </div>
       </FieldPanelSection>
     </aside>
+  );
+}
+
+function TextFitStatus({
+  id,
+  label,
+  report,
+  text,
+}: {
+  id: string;
+  label: string;
+  report: TextFitReport;
+  text: UiText["fieldPanel"];
+}) {
+  const message = report.state === "truncated"
+    ? text.textFitTruncated(label, report.requestedFontSize, report.resolvedFontSize)
+    : report.state === "adjusted"
+      ? text.textFitAdjusted(report.requestedFontSize, report.resolvedFontSize)
+      : text.textFitFits(report.resolvedFontSize);
+  return (
+    <p
+      id={id}
+      className={`text-fit-status is-${report.state} ${report.state === "truncated" ? "status-warning" : "status-line"}`}
+      role="status"
+      aria-live="polite"
+    >
+      {message}
+    </p>
   );
 }
 

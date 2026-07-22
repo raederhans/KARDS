@@ -19,9 +19,11 @@ import type {
   CardRenderFontSet,
   RenderCardOptions,
 } from "./renderAssets";
+import { removeLastTextGrapheme, type TextFitReport } from "./textFit";
 
 export { CARD_HEIGHT, CARD_WIDTH, getArtworkRect } from "./layout";
 export { isPointInsideArtwork } from "./layout";
+export type { TextFitReport, TextFitState } from "./textFit";
 
 const LATIN_CONDENSED_FONT =
   "'Libre Franklin', 'Franklin Gothic Demi Cond', 'Franklin Gothic Demi Condensed', 'Franklin Gothic Medium Cond', 'Arial Narrow', 'Roboto Condensed'";
@@ -90,15 +92,22 @@ type PrintWearProtectedRegion =
   | { kind: "stat-board"; rect: Rect; shape: WearProtectedStatBoardShape }
   | { kind: "round-rect"; rect: Rect; radius: number };
 
+export type CardRenderReport = {
+  text: {
+    title: TextFitReport;
+    body: TextFitReport;
+  };
+};
+
 export function renderCard(
   canvas: HTMLCanvasElement,
   card: CardSpec,
   artworkImage?: HTMLImageElement | null,
   options: RenderCardOptions = {},
-): void {
+): CardRenderReport | null {
   const ctx = canvas.getContext("2d");
   if (!ctx) {
-    return;
+    return null;
   }
 
   const pixelScale = normalizePixelScale(options.pixelScale);
@@ -160,8 +169,9 @@ export function renderCard(
   drawSet(ctx, layout, set.mark, options, assetContext, fonts);
   drawValues(ctx, layout, card, options, assetContext, fonts);
   drawTypeIcon(ctx, layout, card.kind, kind.symbol, options, assetContext, fonts);
-  drawText(ctx, layout, card, fonts, options);
+  const text = drawText(ctx, layout, card, fonts, options);
   drawCardCornerShade(ctx);
+  return { text };
 }
 
 function drawCardCornerShade(ctx: CanvasRenderingContext2D): void {
@@ -613,7 +623,7 @@ function drawText(
   card: CardSpec,
   fonts: ResolvedRenderFonts,
   options: RenderCardOptions,
-): void {
+): CardRenderReport["text"] {
   const textAppearance = card.appearance?.text ?? DEFAULT_CARD_APPEARANCE.text;
   const titleAppearance = textAppearance.title ?? DEFAULT_CARD_APPEARANCE.text.title;
   const keywordAppearance = textAppearance.keywords ?? DEFAULT_CARD_APPEARANCE.text.keywords;
@@ -631,10 +641,11 @@ function drawText(
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
 
+  let titleReport: TextFitReport;
   if (layout.title) {
     ctx.fillStyle = shouldUseDarkTitle(card.nation) ? DARK : LIGHT;
     const baseScaleX = getTextScale(card.title, 1.12, 1.02);
-    fitText(
+    titleReport = fitText(
       ctx,
       card.title.toUpperCase(),
       layout.title.x + titleAppearance.offsetX,
@@ -651,7 +662,7 @@ function drawText(
     const isCommandTemplate = layout.template === "command";
     const isHqTemplate = layout.template === "hq";
     const baseScaleX = isCommandTemplate ? 0.98 : getTextScale(card.title, 1.08, 1.02);
-    fitText(
+    titleReport = fitText(
       ctx,
       card.title.toUpperCase(),
       250 + titleAppearance.offsetX,
@@ -663,6 +674,14 @@ function drawText(
       titleAppearance.scaleY,
       titleAppearance.bold ? 800 : 600,
     );
+  } else {
+    titleReport = {
+      state: "fits",
+      requestedFontSize: 0,
+      resolvedFontSize: 0,
+      lineCount: 0,
+      maxLines: 1,
+    };
   }
 
   if (visibleKeywordLabels.length > 0) {
@@ -684,7 +703,7 @@ function drawText(
   const bodyFontSize = Math.round(24 * bodyAppearance.fontScale);
   ctx.font = `${bodyWeights?.regular ?? 500} ${bodyFontSize}px ${bodyFont}`;
   const bodyY = visibleKeywordLabels.length > 0 ? layout.text.bodyY : layout.text.keywordY;
-  drawMarkedBodyText(
+  const bodyReport = drawMarkedBodyText(
     ctx,
     card.body,
     250 + bodyAppearance.offsetX,
@@ -700,6 +719,7 @@ function drawText(
     bodyFontSize,
   );
   ctx.restore();
+  return { title: titleReport, body: bodyReport };
 }
 
 function drawKeywordLabels(
@@ -1470,10 +1490,19 @@ function fitText(
   scaleX = 1,
   scaleY = 1,
   fontWeight = 800,
-): void {
+): TextFitReport {
   const size = getFittedFontSize(ctx, text, maxWidth, initialSize, 18, fontFamily, scaleX, fontWeight);
   ctx.font = `${fontWeight} ${size}px ${fontFamily}`;
-  fillScaledText(ctx, truncateToWidth(ctx, text, maxWidth, scaleX), x, y, scaleX, scaleY);
+  const fittedText = truncateToWidth(ctx, text, maxWidth, scaleX);
+  const didTruncate = fittedText !== text;
+  fillScaledText(ctx, fittedText, x, y, scaleX, scaleY);
+  return {
+    state: didTruncate ? "truncated" : size < initialSize ? "adjusted" : "fits",
+    requestedFontSize: initialSize,
+    resolvedFontSize: size,
+    lineCount: text ? 1 : 0,
+    maxLines: 1,
+  };
 }
 
 export function getFittedFontSize(
@@ -1507,8 +1536,8 @@ export function truncateToWidth(ctx: TextMeasureContext, text: string, maxWidth:
 
 function appendEllipsisToWidth(ctx: TextMeasureContext, text: string, maxWidth: number, scaleX = 1): string {
   let truncatedText = text;
-  while (truncatedText.length > 1 && measureScaledText(ctx, `${truncatedText}...`, scaleX) > maxWidth) {
-    truncatedText = truncatedText.slice(0, -1);
+  while (truncatedText && measureScaledText(ctx, `${truncatedText}...`, scaleX) > maxWidth) {
+    truncatedText = removeLastTextGrapheme(truncatedText);
   }
   return `${truncatedText}...`;
 }
