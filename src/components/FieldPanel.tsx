@@ -29,10 +29,28 @@ import { readBrowserFile } from "../browserFiles";
 
 type FieldPanelProps = {
   card: CardSpec;
+  artworkRevision: number;
   language: Language;
   text: UiText["fieldPanel"];
-  onCardChange: (update: CardUpdate) => void;
+  onCardChange: (update: CardUpdate, mergeKey?: string) => void;
+  onArtworkImportStart: () => number;
+  isArtworkImportCurrent: (generation: number) => boolean;
+  onArtworkChange: (
+    artwork: CardSpec["artwork"],
+    expectedArtworkRevision: number,
+    generation: number,
+  ) => void;
   onCardKindChange: (kind: CardKind) => void;
+};
+
+type ArtworkImportRequest = {
+  id: number;
+  artworkRevision: number;
+  generation: number;
+};
+
+type ArtworkImportRequestState = {
+  current: number;
 };
 
 export type FieldPanelSectionId =
@@ -101,9 +119,13 @@ export function applyKeywordSelection(card: CardSpec, keywordIds: string[]): Car
 
 export function FieldPanel({
   card,
+  artworkRevision,
   language,
   text,
   onCardChange,
+  onArtworkImportStart,
+  isArtworkImportCurrent,
+  onArtworkChange,
   onCardKindChange,
 }: FieldPanelProps) {
   const [keywordDrag, setKeywordDrag] = useState<KeywordDragState | null>(null);
@@ -113,6 +135,9 @@ export function FieldPanel({
   const suppressKeywordClickRef = useRef(false);
   const bodyTextareaRef = useRef<HTMLTextAreaElement | null>(null);
   const artworkDragDepthRef = useRef(0);
+  const artworkImportRequestRef = useRef<ArtworkImportRequestState>({ current: 0 });
+  const artworkRevisionRef = useRef(artworkRevision);
+  artworkRevisionRef.current = artworkRevision;
   const kind = getKind(card.kind);
   const selectedKeywordIds = resolveCardKeywordIds(card);
   const availableKeywords = KEYWORD_PRESETS.filter((keyword) => canAddKeywordId(selectedKeywordIds, keyword.id));
@@ -123,8 +148,8 @@ export function FieldPanel({
       ? text.bodyBoldReady
       : text.bodyBoldHint;
 
-  function update(next: Partial<CardSpec>) {
-    onCardChange((currentCard) => ({ ...currentCard, ...next }));
+  function update(next: Partial<CardSpec>, mergeKey?: string) {
+    onCardChange((currentCard) => ({ ...currentCard, ...next }), mergeKey);
   }
 
   function updateCost(key: keyof CardSpec["costs"], value: string) {
@@ -135,7 +160,7 @@ export function FieldPanel({
         ...currentCard.costs,
         [key]: nextValue,
       },
-    }));
+    }), getFieldPanelMergeKey("costs", key));
   }
 
   function updateStat(key: keyof CardSpec["stats"], value: string) {
@@ -148,7 +173,7 @@ export function FieldPanel({
         ...currentCard.stats,
         [key]: nextValue,
       },
-    }));
+    }), getFieldPanelMergeKey("stats", key));
   }
 
   function updateKeywords(keywordIds: string[]) {
@@ -159,6 +184,7 @@ export function FieldPanel({
     role: keyof CardSpec["appearance"]["text"],
     next: Partial<CardSpec["appearance"]["text"]["title"]>,
   ) {
+    const property = Object.keys(next)[0] ?? "value";
     onCardChange((currentCard) => ({
       ...currentCard,
       appearance: {
@@ -171,7 +197,7 @@ export function FieldPanel({
           },
         },
       },
-    }));
+    }), getFieldPanelMergeKey("appearance:text", role, property));
   }
 
   function addKeyword(keywordId: string) {
@@ -359,7 +385,7 @@ export function FieldPanel({
           [key]: normalizedValue,
         },
       },
-    }));
+    }), getFieldPanelMergeKey("artwork:crop", key));
   }
 
   async function importArtworkFile(file: File | null | undefined): Promise<boolean> {
@@ -367,23 +393,61 @@ export function FieldPanel({
       return false;
     }
 
+    const request = beginArtworkImportRequest(
+      artworkImportRequestRef.current,
+      artworkRevision,
+      onArtworkImportStart(),
+    );
+
     try {
-      if (!(await isImportableArtworkFile(file)) || !(await hasAllowedArtworkDimensions(file))) {
-        window.alert(text.invalidArtwork);
+      const isImportable = await isImportableArtworkFile(file);
+      if (!isCurrentArtworkImportRequest(
+        artworkImportRequestRef.current,
+        request,
+        artworkRevisionRef.current,
+        isArtworkImportCurrent,
+      )) {
+        return false;
+      }
+      const hasAllowedDimensions = isImportable && await hasAllowedArtworkDimensions(file);
+      if (!isCurrentArtworkImportRequest(
+        artworkImportRequestRef.current,
+        request,
+        artworkRevisionRef.current,
+        isArtworkImportCurrent,
+      )) {
+        return false;
+      }
+      if (!isImportable || !hasAllowedDimensions) {
+        runForCurrentArtworkImportRequest(
+          artworkImportRequestRef.current,
+          request,
+          artworkRevisionRef.current,
+          isArtworkImportCurrent,
+          () => window.alert(text.invalidArtwork),
+        );
         return false;
       }
       const dataUrl = await readBrowserFile(file, "data-url");
-      onCardChange((currentCard) => ({
-        ...currentCard,
-        artwork: {
+      return runForCurrentArtworkImportRequest(
+        artworkImportRequestRef.current,
+        request,
+        artworkRevisionRef.current,
+        isArtworkImportCurrent,
+        () => onArtworkChange({
           source: "upload",
           dataUrl,
           crop: { x: 0, y: 0, scale: 1 },
-        },
-      }));
-      return true;
+        }, request.artworkRevision, request.generation),
+      );
     } catch {
-      window.alert(text.invalidArtwork);
+      runForCurrentArtworkImportRequest(
+        artworkImportRequestRef.current,
+        request,
+        artworkRevisionRef.current,
+        isArtworkImportCurrent,
+        () => window.alert(text.invalidArtwork),
+      );
       return false;
     }
   }
@@ -554,7 +618,7 @@ export function FieldPanel({
             name="card-title"
             value={card.title}
             maxLength={TITLE_MAX_LENGTH}
-            onChange={(event) => update({ title: event.target.value })}
+            onChange={(event) => update({ title: event.target.value }, getFieldPanelMergeKey("text", "title"))}
           />
         </div>
         <div className="text-appearance-grid" aria-label={text.titleAppearance}>
@@ -729,7 +793,7 @@ export function FieldPanel({
             maxLength={BODY_MAX_LENGTH}
             onChange={(event) => {
               setBodyBoldFeedback(null);
-              update({ body: event.target.value });
+              update({ body: event.target.value }, getFieldPanelMergeKey("text", "body"));
             }}
           />
           <p id="body-bold-feedback" className="status-line" role="status" aria-live="polite">
@@ -915,6 +979,44 @@ export function toggleFieldPanelSection(
 
 export function isImportableArtworkFile(file: Pick<File, "name" | "type" | "size" | "slice">): Promise<boolean> {
   return isAllowedImageFile(file);
+}
+
+export function beginArtworkImportRequest(
+  state: ArtworkImportRequestState,
+  artworkRevision: number,
+  generation: number,
+): ArtworkImportRequest {
+  state.current += 1;
+  return { id: state.current, artworkRevision, generation };
+}
+
+export function getFieldPanelMergeKey(...segments: string[]): string {
+  return segments.join(":");
+}
+
+export function isCurrentArtworkImportRequest(
+  state: ArtworkImportRequestState,
+  request: ArtworkImportRequest,
+  artworkRevision: number,
+  isGenerationCurrent: (generation: number) => boolean,
+): boolean {
+  return request.id === state.current
+    && request.artworkRevision === artworkRevision
+    && isGenerationCurrent(request.generation);
+}
+
+export function runForCurrentArtworkImportRequest(
+  state: ArtworkImportRequestState,
+  request: ArtworkImportRequest,
+  artworkRevision: number,
+  isGenerationCurrent: (generation: number) => boolean,
+  action: () => void,
+): boolean {
+  if (!isCurrentArtworkImportRequest(state, request, artworkRevision, isGenerationCurrent)) {
+    return false;
+  }
+  action();
+  return true;
 }
 
 export function normalizeArtworkCropInput(

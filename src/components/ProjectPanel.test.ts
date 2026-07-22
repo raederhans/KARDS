@@ -289,6 +289,7 @@ describe("ProjectPanel four-tab workbench", () => {
     expect(markup).toContain("唯一匹配时自动填充卡图");
     expect(markup).toContain("仅应用卡图");
     expect(markup).toContain("载入可编辑模板（覆盖当前）");
+    expect(markup).toContain('aria-atomic="true"');
     expect(markup).toContain("T-70");
   });
 

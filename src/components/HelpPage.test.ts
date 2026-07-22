@@ -15,6 +15,9 @@ describe("HelpPage", () => {
     expect(markup).toContain("制作并保留你的卡牌");
     expect(markup).toContain("推荐流程");
     expect(markup).toContain("载入可编辑模板");
+    expect(markup).toContain("Ctrl/Cmd+Z");
+    expect(markup).toContain("可读卡牌摘要");
+    expect(markup).toContain("检查信号，不代表通过或失败");
     expect(markup).toContain("项目文件");
     expect(markup).toContain("不保存嵌入卡图");
     expect(markup).toContain("本地卡库文件夹将无法打开");
@@ -37,6 +40,9 @@ describe("HelpPage", () => {
     expect(markup).toContain("Create and keep your card");
     expect(markup).toContain("Selecting a reference card changes only the comparison card");
     expect(markup).toContain("Load editable template replaces the current card");
+    expect(markup).toContain("Ctrl/Cmd+Z");
+    expect(markup).toContain("readable card summary");
+    expect(markup).toContain("review signals, not pass/fail results");
     expect(markup).toContain("sends page-performance metrics to Vercel Speed Insights");
     expect(markup).toContain("do not include card content or local files");
     expect(markup).toContain('hidden=""');

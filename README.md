@@ -7,26 +7,45 @@ content and the local files you choose are processed in the browser. The app
 does not upload them; it only loads its own resources from the deployed site.
 
 [Open the app on Vercel](https://kards-card-forge.vercel.app/) ·
-[Open the GitHub Pages build](https://raederhans.github.io/KARDS/)
+[Open the GitHub Pages build](https://raederhans.github.io/KARDS-DIY-GENERATOR/)
 
 KARDS Card Forge is maintained as an unofficial, non-commercial fan tool. It is
 not a game client, deck builder, account tool, or official asset downloader.
 Software use is governed by [LICENSE](LICENSE).
 
 For an in-app overview, select **Help** in the top bar. The guide explains the
-first-card workflow, save options, reference actions, and local-file behavior.
+first-card workflow, Undo/Redo, appearance presets, visual comparison, save
+options, and local-file behavior.
 
 ## Make Your First Card
 
 1. Edit the card fields on the left.
-2. Upload artwork, or open **Reference**, choose a card, then select **Use
-   artwork only**.
-3. Drag the artwork to reposition it. Use the mouse wheel to zoom.
-4. Use **Appearance** to adjust the paper texture or load a local style pack.
-5. Open **Export**, check the status, then export PNG, JPG, or PDF.
+2. Open **Appearance** to apply a named preset, fine-tune the paper texture, or
+   load a local style pack.
+3. Upload artwork, or open **Reference**, choose a card, then select **Use
+   artwork only**. Drag and scroll to crop it, or use the number fields and
+   sliders from the keyboard.
+4. Use the visible **Undo** and **Redo** actions if you want to revisit an
+   authored edit or a deliberate full-card replacement.
+5. In **Reference**, compare the preview with an image when you need a review
+   level and a location for changed pixels.
+6. Open **Export**, check the status, then export PNG, JPG, or PDF.
 
 The preview uses a fixed `500 × 702` layout. Exports at `2×` and `3×` rerender
 the card at the target resolution instead of enlarging the preview.
+
+## Undo, Redo, and Accessible Review
+
+The top bar contains Undo and Redo buttons. Outside text fields, use
+`Ctrl/Cmd+Z` to undo and `Ctrl/Cmd+Shift+Z` or `Ctrl+Y` to redo. Inputs,
+textareas, selects, and editable text keep their native browser undo behavior.
+Starting a new authored edit after Undo clears the Redo branch.
+
+The Canvas preview is associated with a readable summary of the current card.
+Artwork crop number fields and sliders provide a keyboard alternative to drag
+and wheel gestures. These focused improvements do not claim full WCAG
+conformance; screen-reader behavior, zoom, and contrast still need human review
+for each release.
 
 ## Workspace
 
@@ -34,7 +53,7 @@ The right-side workspace has four tabs:
 
 | Tab | Use it to |
 | --- | --- |
-| **Appearance** | Adjust paper texture or load a local style pack. |
+| **Appearance** | Apply one of five named presets, adjust paper texture, or load a local style pack. |
 | **Library** | Download or open a project file, and manage a local card library. |
 | **Export** | Choose format, resolution, exposure, contrast, and save location. |
 | **Reference** | Search, filter, compare, and apply bundled reference cards. |
@@ -43,6 +62,11 @@ In **Reference**, selecting a reference card only changes the comparison card. *
 artwork only** changes the artwork. **Load entire card** replaces the current
 card. Automatic artwork matching only applies a unique match and never replaces
 artwork you uploaded or chose yourself.
+
+Uploading a comparison image shows a review level, the channel threshold, and
+the coordinates of the changed area. The locator and its color help with
+orientation, while the same information is also provided as text. A difference
+is a review signal, not an automatic pass/fail result.
 
 ## Save Your Work
 
@@ -129,6 +153,7 @@ Useful commands:
 | `npm test` | Run the Vitest suite once. |
 | `npm run typecheck` | Check the TypeScript projects. |
 | `npm run build` | Build and verify the exact public `dist` output. |
+| `npm run smoke:editor-quality` | Exercise Undo/Redo, presets, diff output, focus, and Canvas alternatives in a real browser. |
 | `npm run validate` | Run tests, private-tool contracts, typecheck, build, and artifact checks. |
 
 ## Project Map

@@ -8,11 +8,15 @@ import {
   FieldPanel,
   FieldPanelSection,
   applyKeywordSelection,
+  beginArtworkImportRequest,
   createBodyBoldFeedback,
+  getFieldPanelMergeKey,
   getCurrentBodyBoldFeedback,
   hasDraggedFiles,
   isImportableArtworkFile,
+  isCurrentArtworkImportRequest,
   normalizeArtworkCropInput,
+  runForCurrentArtworkImportRequest,
   shouldRestoreCollapsedSectionFocus,
   toggleFieldPanelSection,
 } from "./FieldPanel";
@@ -109,16 +113,24 @@ describe("FieldPanel value fields", () => {
   it("uses direct and consistent labels in both languages", () => {
     const chinese = renderToStaticMarkup(createElement(FieldPanel, {
       card: DEFAULT_CARD,
+      artworkRevision: 0,
       language: "zh",
       text: UI_TEXT.zh.fieldPanel,
       onCardChange: vi.fn(),
+      onArtworkImportStart: () => 1,
+      isArtworkImportCurrent: () => true,
+      onArtworkChange: vi.fn(),
       onCardKindChange: vi.fn(),
     }));
     const english = renderToStaticMarkup(createElement(FieldPanel, {
       card: DEFAULT_CARD,
+      artworkRevision: 0,
       language: "en",
       text: UI_TEXT.en.fieldPanel,
       onCardChange: vi.fn(),
+      onArtworkImportStart: () => 1,
+      isArtworkImportCurrent: () => true,
+      onArtworkChange: vi.fn(),
       onCardKindChange: vi.fn(),
     }));
 
@@ -159,9 +171,13 @@ describe("FieldPanel value fields", () => {
           costs: {},
           stats: { hqDefense: 20 },
         },
+        artworkRevision: 0,
         language: "zh",
         text: UI_TEXT.zh.fieldPanel,
         onCardChange: vi.fn(),
+        onArtworkImportStart: () => 1,
+        isArtworkImportCurrent: () => true,
+        onArtworkChange: vi.fn(),
         onCardKindChange: vi.fn(),
       }),
     );
@@ -183,9 +199,13 @@ describe("FieldPanel value fields", () => {
     const markup = renderToStaticMarkup(
       createElement(FieldPanel, {
         card: DEFAULT_CARD,
+        artworkRevision: 0,
         language: "zh",
         text: UI_TEXT.zh.fieldPanel,
         onCardChange: vi.fn(),
+        onArtworkImportStart: () => 1,
+        isArtworkImportCurrent: () => true,
+        onArtworkChange: vi.fn(),
         onCardKindChange: vi.fn(),
       }),
     );
@@ -203,6 +223,45 @@ describe("FieldPanel value fields", () => {
 });
 
 describe("FieldPanel artwork drop import", () => {
+  it("drops a completed upload after the artwork revision changes", () => {
+    const requestState = { current: 0 };
+    const request = beginArtworkImportRequest(requestState, 4, 1);
+
+    expect(isCurrentArtworkImportRequest(requestState, request, 4, () => true)).toBe(true);
+    expect(isCurrentArtworkImportRequest(requestState, request, 5, () => true)).toBe(false);
+  });
+
+  it("uses last-started-wins ordering for overlapping uploads", () => {
+    const requestState = { current: 0 };
+    const first = beginArtworkImportRequest(requestState, 7, 1);
+    const second = beginArtworkImportRequest(requestState, 7, 2);
+
+    expect(isCurrentArtworkImportRequest(requestState, first, 7, () => true)).toBe(false);
+    expect(isCurrentArtworkImportRequest(requestState, second, 7, (generation) => generation === 2)).toBe(true);
+  });
+
+  it("silently drops stale invalid upload work without alerting or committing", () => {
+    const requestState = { current: 0 };
+    const request = beginArtworkImportRequest(requestState, 8, 3);
+    const action = vi.fn();
+
+    expect(runForCurrentArtworkImportRequest(
+      requestState,
+      request,
+      8,
+      () => false,
+      action,
+    )).toBe(false);
+    expect(action).not.toHaveBeenCalled();
+  });
+
+  it("keeps history merge keys stable for high-frequency field edits", () => {
+    expect(getFieldPanelMergeKey("costs", "deployment")).toBe("costs:deployment");
+    expect(getFieldPanelMergeKey("artwork:crop", "x")).toBe("artwork:crop:x");
+    expect(getFieldPanelMergeKey("appearance:text", "title", "fontScale"))
+      .toBe("appearance:text:title:fontScale");
+  });
+
   it("uses the same file conditions as artwork upload", async () => {
     await expect(isImportableArtworkFile(createImageFile("art.png", pngHeader(), "image/png"))).resolves.toBe(true);
     await expect(isImportableArtworkFile(createImageFile("art.webp", webpHeader(), "image/webp"))).resolves.toBe(true);

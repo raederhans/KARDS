@@ -37,6 +37,11 @@ import { consumeSelectedFile, readBrowserFile } from "../browserFiles";
 import { LocalLibraryWorkbench } from "./LocalLibraryWorkbench";
 import { ReferenceWorkbench } from "./ReferenceWorkbench";
 import type { DevPreviewSample, ReferenceFilters, ReferenceSort } from "../devPreviewCatalog";
+import {
+  APPEARANCE_PRESETS,
+  getAppearancePresetLabel,
+  type AppearancePreset,
+} from "../appearancePresets";
 
 export const TEXTURE_CONTROL_LIMITS = CARD_TEXTURE_BOUNDS;
 
@@ -82,6 +87,7 @@ type ProjectPanelProps = {
   onActiveLibraryEntryChange: (entryId: string | null) => void;
   onLibraryDirectoryChange: () => void;
   onRandomTexture: () => void;
+  onAppearancePresetApply: (preset: AppearancePreset) => void;
   textureSettings: {
     intensity: number;
     randomness: number;
@@ -198,6 +204,44 @@ export function WorkbenchTabPanel({
   );
 }
 
+export function AppearancePresetPicker({
+  language,
+  text,
+  presets,
+  selectedPresetId,
+  onPresetSelect,
+  onApply,
+}: {
+  language: Language;
+  text: UiText["projectPanel"];
+  presets: readonly AppearancePreset[];
+  selectedPresetId: string;
+  onPresetSelect: (presetId: string) => void;
+  onApply: () => void;
+}) {
+  const selectedPreset = presets.find((preset) => preset.id === selectedPresetId) ?? presets[0];
+  return (
+    <div className="appearance-preset-picker">
+      <label className="field-block compact-field-block">
+        <span>{text.appearancePreset}</span>
+        <select
+          name="appearance-preset"
+          value={selectedPreset?.id ?? ""}
+          onChange={(event) => onPresetSelect(event.target.value)}
+        >
+          {presets.map((preset) => (
+            <option key={preset.id} value={preset.id}>{getAppearancePresetLabel(preset, language)}</option>
+          ))}
+        </select>
+      </label>
+      {selectedPreset ? <p className="status-line">{selectedPreset.descriptions[language]}</p> : null}
+      <button type="button" className="primary-action" disabled={!selectedPreset} onClick={onApply}>
+        {text.applyAppearancePreset}
+      </button>
+    </div>
+  );
+}
+
 export function ProjectPanel({
   card,
   language,
@@ -232,6 +276,7 @@ export function ProjectPanel({
   onActiveLibraryEntryChange,
   onLibraryDirectoryChange,
   onRandomTexture,
+  onAppearancePresetApply,
   textureSettings,
   textureSourceLabel,
   usesProgramTexture,
@@ -247,6 +292,7 @@ export function ProjectPanel({
   const [exportError, setExportError] = useState<CardExportError | null>(null);
   const [isExportPending, setIsExportPending] = useState(false);
   const [canvasAvailable, setCanvasAvailable] = useState(false);
+  const [selectedAppearancePresetId, setSelectedAppearancePresetId] = useState(APPEARANCE_PRESETS[0].id);
   const exportPendingRef = useRef(false);
   const exportAttemptRef = useRef(0);
   const exportDimensions = getExportDimensions(exportScale);
@@ -393,6 +439,23 @@ export function ProjectPanel({
 
       <div className="workbench-tab-content">
         <WorkbenchTabPanel activeTab={activeTab} tab="appearance">
+            <div className="project-section appearance-preset-section">
+              <div className="section-heading">
+                <p>{text.appearancePresets}</p>
+                <span>{text.appearancePresetScope}</span>
+              </div>
+              <AppearancePresetPicker
+                language={language}
+                text={text}
+                presets={APPEARANCE_PRESETS}
+                selectedPresetId={selectedAppearancePresetId}
+                onPresetSelect={setSelectedAppearancePresetId}
+                onApply={() => {
+                  const preset = APPEARANCE_PRESETS.find((candidate) => candidate.id === selectedAppearancePresetId);
+                  if (preset) onAppearancePresetApply(preset);
+                }}
+              />
+            </div>
             <div className="project-section texture-section">
               <div className="section-heading">
                 <p>{text.textureControls}</p>

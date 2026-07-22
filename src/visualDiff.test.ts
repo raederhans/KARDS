@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { calculateImageDataDiff, compareCanvasToReferenceFile } from "./visualDiff";
+import {
+  calculateImageDataDiff,
+  compareCanvasToReferenceFile,
+  getImageDiffReviewLevel,
+} from "./visualDiff";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -13,6 +17,9 @@ describe("visual pixel diff", () => {
     expect(metrics.meanAbsoluteError).toBe(0);
     expect(metrics.rootMeanSquareError).toBe(0);
     expect(metrics.changedPixels).toBe(0);
+    expect(metrics.changedBounds).toBeNull();
+    expect(metrics.reviewLevel).toBe("none");
+    expect(metrics.threshold).toBe(12);
   });
 
   it("reports changed pixels when any channel exceeds the threshold", () => {
@@ -27,6 +34,27 @@ describe("visual pixel diff", () => {
     expect(metrics.maxChannelDelta).toBe(20);
     expect(metrics.changedPixels).toBe(1);
     expect(metrics.changedPixelRatio).toBe(0.5);
+  });
+
+  it("returns the smallest rectangle that contains every changed pixel", () => {
+    const actual = new Uint8ClampedArray(3 * 2 * 4);
+    const expected = new Uint8ClampedArray(actual);
+    expected[(0 * 3 + 1) * 4] = 30;
+    expected[(1 * 3 + 2) * 4 + 2] = 40;
+
+    const metrics = calculateImageDataDiff(
+      { width: 3, height: 2, data: actual },
+      { width: 3, height: 2, data: expected },
+    );
+
+    expect(metrics.changedBounds).toEqual({ x: 1, y: 0, width: 2, height: 2 });
+  });
+
+  it("uses explicit review-level boundaries without treating them as pass or fail", () => {
+    expect(getImageDiffReviewLevel(0)).toBe("none");
+    expect(getImageDiffReviewLevel(0.01)).toBe("limited");
+    expect(getImageDiffReviewLevel(0.1)).toBe("noticeable");
+    expect(getImageDiffReviewLevel(0.1001)).toBe("broad");
   });
 
   it("rejects mismatched dimensions before comparing channels", () => {

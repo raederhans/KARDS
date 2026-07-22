@@ -23,6 +23,18 @@
   box-sizing: border-box;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 html,
 body,
 #root {
@@ -98,6 +110,22 @@ button:disabled {
 .top-actions {
   justify-content: flex-end;
   gap: 10px;
+}
+
+.history-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.history-controls button {
+  min-height: 32px;
+  padding: 0 12px;
+}
+
+button:focus-visible,
+.file-button:focus-within {
+  outline: 3px solid var(--accent-strong);
+  outline-offset: 2px;
 }
 
 .brand-mark {
@@ -922,6 +950,11 @@ input[type="range"] {
   gap: 8px;
 }
 
+.appearance-preset-picker {
+  display: grid;
+  gap: 9px;
+}
+
 .texture-range {
   display: grid;
   gap: 4px;
@@ -1040,6 +1073,45 @@ input[type="range"] {
   display: block;
   color: #f1c0ad;
   line-height: 1.35;
+}
+
+.diff-status .diff-detail {
+  display: block;
+  line-height: 1.4;
+}
+
+.diff-locator {
+  position: relative;
+  width: min(100%, 132px);
+  aspect-ratio: 500 / 702;
+  justify-self: center;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background:
+    linear-gradient(rgba(212, 189, 121, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212, 189, 121, 0.08) 1px, transparent 1px),
+    #11110d;
+  background-size: 20% 20%;
+}
+
+.diff-locator-bounds {
+  position: absolute;
+  min-width: 2px;
+  min-height: 2px;
+  border: 2px solid #f0bf58;
+  background: rgba(240, 191, 88, 0.26);
+  box-shadow: 0 0 0 1px rgba(17, 17, 13, 0.92);
+}
+
+.diff-locator.is-empty::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--accent-strong);
+  font-size: 28px;
 }
 
 @media (max-width: 1120px) {

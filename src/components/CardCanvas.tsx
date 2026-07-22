@@ -1,11 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { CARD_HEIGHT, CARD_WIDTH, isPointInsideArtwork, renderCard } from "../canvas/cardRenderer";
 import type { RenderCardOptions } from "../canvas/renderAssets";
-import type { UiText } from "../i18n";
+import {
+  translateKeywordLabel,
+  translatePresetLabel,
+  type Language,
+  type UiText,
+} from "../i18n";
+import { getKind, getNation, getRarity, getSet } from "../presets";
+import { KEYWORD_PRESETS } from "../keywords";
 import type { CardSpec } from "../types";
 
 type CardCanvasProps = {
   card: CardSpec;
+  language: Language;
   text: UiText["canvas"];
   artworkImage: HTMLImageElement | null;
   onCropChange: (crop: CardSpec["artwork"]["crop"]) => void;
@@ -25,6 +33,7 @@ type DragState = {
 
 export function CardCanvas({
   card,
+  language,
   text,
   artworkImage,
   onCropChange,
@@ -35,6 +44,17 @@ export function CardCanvas({
 }: CardCanvasProps) {
   const [dragState, setDragState] = useState<DragState | null>(null);
   const previewRef = useRef<HTMLDivElement | null>(null);
+  const kindLabel = translatePresetLabel(language, "kind", card.kind, getKind(card.kind).label);
+  const nationLabel = translatePresetLabel(language, "nation", card.nation, getNation(card.nation).label);
+  const rarityLabel = translatePresetLabel(language, "rarity", card.rarity, getRarity(card.rarity).label);
+  const setLabel = translatePresetLabel(language, "set", card.set, getSet(card.set).label);
+  const keywordLabels = (card.keywords ?? [])
+    .map((keywordId) => {
+      const keyword = KEYWORD_PRESETS.find((candidate) => candidate.id === keywordId);
+      return translateKeywordLabel(language, keywordId, keyword?.label ?? keywordId);
+    })
+    .join(", ") || text.summaryEmpty;
+  const displayValue = (value: number | undefined) => value === undefined ? text.summaryEmpty : String(value);
 
   useEffect(() => {
     if (canvasRef.current) {
@@ -122,7 +142,9 @@ export function CardCanvas({
             width={CARD_WIDTH}
             height={CARD_HEIGHT}
             className={artworkImage ? "card-canvas is-draggable" : "card-canvas"}
+            role="img"
             aria-label={text.generatedAria}
+            aria-describedby="card-preview-summary canvas-hint"
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -140,7 +162,21 @@ export function CardCanvas({
           </figure>
         ) : null}
       </div>
-      <p className="canvas-hint">{text.hint}</p>
+      <div id="card-preview-summary" className="sr-only">
+        <p><strong>{text.summaryHeading}</strong></p>
+        <p>{text.summaryIdentity(kindLabel, nationLabel, rarityLabel, setLabel)}</p>
+        <p>{card.title}</p>
+        <p>{text.summaryCosts(displayValue(card.costs.deployment), displayValue(card.costs.operation))}</p>
+        <p>{text.summaryStats(
+          displayValue(card.stats.attack),
+          displayValue(card.stats.defense),
+          displayValue(card.stats.hqDefense),
+        )}</p>
+        <p>{text.summaryKeywords(keywordLabels)}</p>
+        <p>{card.body}</p>
+        <p>{text.keyboardAlternative}</p>
+      </div>
+      <p id="canvas-hint" className="canvas-hint">{text.hint}</p>
     </section>
   );
 }

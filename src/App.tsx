@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { normalizeCardSpec } from "./cardModel";
 import {
   applyAutomaticArtwork,
@@ -11,6 +11,7 @@ import {
   replaceCardEditorContent,
   resetCardEditorState,
   selectCardKind,
+  type CardEditorState,
 } from "./cardEditorState";
 import { CardCanvas } from "./components/CardCanvas";
 import { FieldPanel } from "./components/FieldPanel";
@@ -43,6 +44,17 @@ import {
 import type { CardKind, CardSpec, CardUpdate } from "./types";
 import type { CardLibraryEntry } from "./localLibrary";
 import { compareCanvasToReferenceFile, type ImageDiffMetrics } from "./visualDiff";
+import {
+  commitEditorHistory,
+  createEditorHistory,
+  getEditorHistoryShortcut,
+  isEditableHistoryTarget,
+  redoEditorHistory,
+  replaceEditorHistoryPresent,
+  undoEditorHistory,
+  type EditorHistoryCommitOptions,
+} from "./editorHistory";
+import { applyAppearancePreset, type AppearancePreset } from "./appearancePresets";
 import "./styles.css";
 
 type DevPreviewCatalogModule = typeof import("./devPreviewCatalog");
@@ -50,19 +62,93 @@ type DevPreviewSample = import("./devPreviewCatalog").DevPreviewSample;
 type ReferenceFilters = import("./devPreviewCatalog").ReferenceFilters;
 type ReferenceSort = import("./devPreviewCatalog").ReferenceSort;
 type TextureImageStatus = "loading" | "ready" | "error";
+type EditorStateUpdate = CardEditorState | ((current: CardEditorState) => CardEditorState);
+type LatestRequestIdentity = { current: number };
+type EditorHistoryDirection = "undo" | "redo";
 
 const PAPER_TEXTURE_URL = `${import.meta.env.BASE_URL}textures/ambientcg-paper001-960.png`;
 const BRAND_MARK_URL = `${import.meta.env.BASE_URL}brand/card-forge-mark.png`;
 const DEFAULT_ARTWORK_URL = `${import.meta.env.BASE_URL}artwork/capybara-placeholder.png`;
 
+export function EditorHistoryControls({
+  canUndo,
+  canRedo,
+  undoLabel,
+  redoLabel,
+  onUndo,
+  onRedo,
+}: {
+  canUndo: boolean;
+  canRedo: boolean;
+  undoLabel: string;
+  redoLabel: string;
+  onUndo: () => void;
+  onRedo: () => void;
+}) {
+  return (
+    <div className="history-controls" role="group" aria-label={`${undoLabel} / ${redoLabel}`}>
+      <button
+        type="button"
+        disabled={!canUndo}
+        aria-keyshortcuts="Control+Z Meta+Z"
+        onClick={onUndo}
+      >
+        {undoLabel}
+      </button>
+      <button
+        type="button"
+        disabled={!canRedo}
+        aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y"
+        onClick={onRedo}
+      >
+        {redoLabel}
+      </button>
+    </div>
+  );
+}
+
+export function beginLatestRequest(identity: LatestRequestIdentity): number {
+  identity.current += 1;
+  return identity.current;
+}
+
+export function invalidateLatestRequest(identity: LatestRequestIdentity): void {
+  identity.current += 1;
+}
+
+export function isLatestRequest(identity: LatestRequestIdentity, requestId: number): boolean {
+  return identity.current === requestId;
+}
+
+export function resolveEditorHistoryNavigation(
+  history: ReturnType<typeof createEditorHistory>,
+  direction: EditorHistoryDirection,
+  activeLibraryEntryId: string | null,
+): {
+  history: ReturnType<typeof createEditorHistory>;
+  activeLibraryEntryId: string | null;
+  didNavigate: boolean;
+} {
+  const nextHistory = direction === "undo" ? undoEditorHistory(history) : redoEditorHistory(history);
+  const didNavigate = nextHistory !== history;
+  return {
+    history: nextHistory,
+    activeLibraryEntryId: didNavigate ? null : activeLibraryEntryId,
+    didNavigate,
+  };
+}
+
 function App() {
   const [language, setLanguage] = useState<Language>(() => getInitialLanguage(window.localStorage));
   const text = UI_TEXT[language];
   const [isHelpOpen, setIsHelpOpen] = useState(false);
-  const [editorState, setEditorState] = useState(() => {
+  const [editorHistory, setEditorHistory] = useState(() => {
     const draft = loadDraftCardState(window.localStorage, getCardKindReferenceCard("tank", language));
-    return createCardEditorState(draft.card, draft.hasUserEdits, draft.clearedNumericFields);
+    return createEditorHistory(
+      createCardEditorState(draft.card, draft.hasUserEdits, draft.clearedNumericFields),
+    );
   });
+  const editorState = editorHistory.present;
   const card = editorState.card;
   const [loadedArtwork, setLoadedArtwork] = useState<{
     source: string;
@@ -95,10 +181,27 @@ function App() {
   const sampleLoadRequestRef = useRef(0);
   const autoArtworkRequestRef = useRef(0);
   const artworkApplyRequestRef = useRef(0);
+  const explicitArtworkWorkGenerationRef = useRef<LatestRequestIdentity>({ current: 0 });
+  const referenceDiffRequestRef = useRef<LatestRequestIdentity>({ current: 0 });
   const cardEditVersionRef = useRef(0);
   const pendingTemplateSampleIdRef = useRef<string | null>(null);
   const isMountedRef = useRef(true);
   const didLoadDevPreviewRef = useRef(false);
+  const replaceDerivedEditorState = useCallback((update: EditorStateUpdate) => {
+    setEditorHistory((history) => {
+      const next = typeof update === "function" ? update(history.present) : update;
+      return replaceEditorHistoryPresent(history, next);
+    });
+  }, []);
+  const commitAuthoredEditorState = useCallback((
+    update: EditorStateUpdate,
+    options?: EditorHistoryCommitOptions,
+  ) => {
+    setEditorHistory((history) => {
+      const next = typeof update === "function" ? update(history.present) : update;
+      return commitEditorHistory(history, next, options);
+    });
+  }, []);
   useEffect(() => {
     saveLanguage(window.localStorage, language);
     document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
@@ -253,6 +356,16 @@ function App() {
     }),
     [assetPack, defaultArtworkImage, language, textureImage, textureSettings],
   );
+
+  const invalidateReferenceDiff = useCallback(() => {
+    invalidateLatestRequest(referenceDiffRequestRef.current);
+    setReferenceDiff(null);
+    setReferenceDiffError(null);
+  }, []);
+
+  useLayoutEffect(() => {
+    invalidateReferenceDiff();
+  }, [artworkImage, invalidateReferenceDiff, previewCard, renderOptions]);
   const referenceSample = useMemo(
     () =>
       devPreviewCatalog && selectedReferenceSampleId
@@ -286,9 +399,8 @@ function App() {
     }
 
     setReferenceImageUrl(nextReferenceUrl);
-    setReferenceDiff(null);
-    setReferenceDiffError(null);
-  }, [devPreviewCatalog, language, referenceImageUrl, referenceSample]);
+    invalidateReferenceDiff();
+  }, [devPreviewCatalog, invalidateReferenceDiff, language, referenceImageUrl, referenceSample]);
 
   useEffect(() => {
     const requestId = autoArtworkRequestRef.current + 1;
@@ -300,7 +412,7 @@ function App() {
 
     const sample = devPreviewCatalog.findUniqueAutomaticArtworkSample(referenceSamples, card);
     if (!sample) {
-      setEditorState((currentState) => {
+      replaceDerivedEditorState((currentState) => {
         if (currentState.artworkOrigin.kind !== "auto-reference") {
           return currentState;
         }
@@ -325,7 +437,7 @@ function App() {
     setAutoArtworkError(null);
     void resolveDevPreviewSampleCard(sample, readDevPreviewCardUrl, cropDevPreviewArtwork, language)
       .then((resolvedCard) => {
-        setEditorState((currentState) => {
+        replaceDerivedEditorState((currentState) => {
           if (!shouldApplyAutomaticArtworkResult({
             isMounted: isMountedRef.current,
             requestId,
@@ -341,7 +453,7 @@ function App() {
       })
       .catch((error) => {
         if (requestId === autoArtworkRequestRef.current && isMountedRef.current) {
-          setEditorState((currentState) => (
+          replaceDerivedEditorState((currentState) => (
             devPreviewCatalog.getAutomaticArtworkMatchingKey(currentState.card) === matchingKeyAtStart
               ? clearMismatchedAutomaticArtwork(currentState, sample.id)
               : currentState
@@ -370,18 +482,53 @@ function App() {
     referenceSamples,
   ]);
 
-  function updateCard(update: CardUpdate) {
+  function updateCard(update: CardUpdate, mergeKey?: string) {
     cardEditVersionRef.current += 1;
     pendingTemplateSampleIdRef.current = null;
     setActiveTemplateSampleId(null);
-    setEditorState((currentState) => applyUserCardUpdate(currentState, update));
+    commitAuthoredEditorState(
+      (currentState) => applyUserCardUpdate(currentState, update),
+      mergeKey ? { mergeKey } : undefined,
+    );
+  }
+
+  const beginArtworkUpload = useCallback(() => {
+    const generation = beginLatestRequest(explicitArtworkWorkGenerationRef.current);
+    sampleLoadRequestRef.current += 1;
+    artworkApplyRequestRef.current += 1;
+    pendingTemplateSampleIdRef.current = null;
+    setIsTemplateLoading(false);
+    setTemplateLoadError(null);
+    return generation;
+  }, []);
+
+  const isExplicitArtworkWorkCurrent = useCallback((generation: number) => (
+    isLatestRequest(explicitArtworkWorkGenerationRef.current, generation)
+  ), []);
+
+  function updateArtwork(
+    artwork: CardSpec["artwork"],
+    expectedArtworkRevision: number,
+    generation: number,
+  ) {
+    if (!isExplicitArtworkWorkCurrent(generation)) {
+      return;
+    }
+    cardEditVersionRef.current += 1;
+    pendingTemplateSampleIdRef.current = null;
+    setActiveTemplateSampleId(null);
+    commitAuthoredEditorState((currentState) => (
+      isExplicitArtworkWorkCurrent(generation)
+        ? applyUserArtworkIfRevisionMatches(currentState, expectedArtworkRevision, artwork)
+        : currentState
+    ));
   }
 
   function handleCardKindChange(kind: CardKind) {
     cardEditVersionRef.current += 1;
     pendingTemplateSampleIdRef.current = null;
     setActiveTemplateSampleId(null);
-    setEditorState((currentState) => selectCardKind(currentState, kind, language));
+    commitAuthoredEditorState((currentState) => selectCardKind(currentState, kind, language));
   }
 
   function handleCardReset() {
@@ -395,7 +542,7 @@ function App() {
     setAutoArtworkError(null);
     setActiveLibraryEntryId(null);
     setActiveTemplateSampleId(null);
-    setEditorState(resetCardEditorState(language));
+    commitAuthoredEditorState(resetCardEditorState(language));
   }
 
   function handleCardImport(importedCard: CardSpec) {
@@ -409,7 +556,7 @@ function App() {
     setAutoArtworkError(null);
     setActiveLibraryEntryId(null);
     setActiveTemplateSampleId(null);
-    setEditorState(replaceCardEditorContent(importedCard));
+    commitAuthoredEditorState(replaceCardEditorContent(importedCard));
   }
 
   async function handleAssetPackLoad(files: FileList | null) {
@@ -466,11 +613,11 @@ function App() {
     const selection = resolveDevPreviewReferenceSelection(sample, language);
     setSelectedReferenceSampleId(selection.selectedReferenceSampleId);
     setReferenceImageUrl(selection.referenceImageUrl);
-    setReferenceDiff(null);
-    setReferenceDiffError(null);
+    invalidateReferenceDiff();
   }
 
   async function loadDevPreviewTemplate(sample: DevPreviewSample, sampleLanguage: Language = language) {
+    const explicitWorkGeneration = beginLatestRequest(explicitArtworkWorkGenerationRef.current);
     const requestId = sampleLoadRequestRef.current + 1;
     const cardEditVersionAtStart = cardEditVersionRef.current;
     sampleLoadRequestRef.current = requestId;
@@ -488,7 +635,7 @@ function App() {
         sampleLanguage,
       );
 
-      if (!shouldApplyDevPreviewSampleResult({
+      if (!isExplicitArtworkWorkCurrent(explicitWorkGeneration) || !shouldApplyDevPreviewSampleResult({
         isMounted: isMountedRef.current,
         requestId,
         activeRequestId: sampleLoadRequestRef.current,
@@ -503,20 +650,23 @@ function App() {
       setAutoArtworkError(null);
       setActiveLibraryEntryId(null);
       setActiveTemplateSampleId(sample.id);
-      setEditorState(replaceCardEditorContent(selection.card));
+      commitAuthoredEditorState(replaceCardEditorContent(selection.card));
       setSelectedReferenceSampleId(sample.id);
       setReferenceImageUrl(selection.referenceImageUrl);
-      setReferenceDiff(null);
-      setReferenceDiffError(null);
+      invalidateReferenceDiff();
     } catch (error) {
-      if (requestId !== sampleLoadRequestRef.current) {
+      if (!isExplicitArtworkWorkCurrent(explicitWorkGeneration) || requestId !== sampleLoadRequestRef.current) {
         return;
       }
       setTemplateLoadError(
         error instanceof Error ? error.message : UI_TEXT.en.errors.privateReferencePreview,
       );
     } finally {
-      if (requestId === sampleLoadRequestRef.current && isMountedRef.current) {
+      if (
+        isExplicitArtworkWorkCurrent(explicitWorkGeneration)
+        && requestId === sampleLoadRequestRef.current
+        && isMountedRef.current
+      ) {
         pendingTemplateSampleIdRef.current = null;
         setIsTemplateLoading(false);
       }
@@ -555,6 +705,7 @@ function App() {
       return;
     }
 
+    const explicitWorkGeneration = beginLatestRequest(explicitArtworkWorkGenerationRef.current);
     const requestId = artworkApplyRequestRef.current + 1;
     const artworkRevisionAtStart = editorState.artworkRevision;
     const cardEditVersionAtStart = cardEditVersionRef.current;
@@ -571,7 +722,7 @@ function App() {
         cropDevPreviewArtwork,
         language,
       );
-      if (!shouldApplyDevPreviewSampleResult({
+      if (!isExplicitArtworkWorkCurrent(explicitWorkGeneration) || !shouldApplyDevPreviewSampleResult({
         isMounted: isMountedRef.current,
         requestId,
         activeRequestId: artworkApplyRequestRef.current,
@@ -584,19 +735,26 @@ function App() {
       setAutoArtworkError(null);
       cardEditVersionRef.current += 1;
       setActiveTemplateSampleId(null);
-      setEditorState((currentState) => applyUserArtworkIfRevisionMatches(
+      commitAuthoredEditorState((currentState) => applyUserArtworkIfRevisionMatches(
         currentState,
         artworkRevisionAtStart,
         resolvedCard.artwork,
       ));
     } catch (error) {
-      if (requestId === artworkApplyRequestRef.current) {
+      if (
+        isExplicitArtworkWorkCurrent(explicitWorkGeneration)
+        && requestId === artworkApplyRequestRef.current
+      ) {
         setTemplateLoadError(
           error instanceof Error ? error.message : UI_TEXT.en.errors.privateReferencePreview,
         );
       }
     } finally {
-      if (requestId === artworkApplyRequestRef.current && isMountedRef.current) {
+      if (
+        isExplicitArtworkWorkCurrent(explicitWorkGeneration)
+        && requestId === artworkApplyRequestRef.current
+        && isMountedRef.current
+      ) {
         setIsTemplateLoading(false);
       }
     }
@@ -612,7 +770,7 @@ function App() {
     setTemplateLoadError(null);
     setAutoArtworkError(null);
     setActiveTemplateSampleId(null);
-    setEditorState(createCardEditorState(entry.card, true));
+    commitAuthoredEditorState(createCardEditorState(entry.card, true));
     setActiveLibraryEntryId(entry.id);
   }
 
@@ -624,17 +782,25 @@ function App() {
   async function handleReferenceCompare(file: File | null) {
     const canvas = canvasRef.current;
     if (!file || !canvas) {
+      invalidateReferenceDiff();
       return;
     }
 
+    const requestId = beginLatestRequest(referenceDiffRequestRef.current);
+    setReferenceDiff(null);
     setReferenceDiffError(null);
     try {
-      setReferenceDiff(await compareCanvasToReferenceFile(canvas, file));
+      const diff = await compareCanvasToReferenceFile(canvas, file);
+      if (isLatestRequest(referenceDiffRequestRef.current, requestId)) {
+        setReferenceDiff(diff);
+      }
     } catch (error) {
-      setReferenceDiff(null);
-      setReferenceDiffError(
-        error instanceof Error ? error.message : UI_TEXT.en.errors.referenceCompare,
-      );
+      if (isLatestRequest(referenceDiffRequestRef.current, requestId)) {
+        setReferenceDiff(null);
+        setReferenceDiffError(
+          error instanceof Error ? error.message : UI_TEXT.en.errors.referenceCompare,
+        );
+      }
     }
   }
 
@@ -688,8 +854,71 @@ function App() {
           },
         },
       };
-    });
+    }, `appearance:texture:${key}`);
   }
+
+  function handleAppearancePresetApply(preset: AppearancePreset) {
+    updateCard((currentCard) => applyAppearancePreset(currentCard, preset));
+  }
+
+  const invalidatePendingCardWork = useCallback(() => {
+    cardEditVersionRef.current += 1;
+    autoArtworkRequestRef.current += 1;
+    sampleLoadRequestRef.current += 1;
+    artworkApplyRequestRef.current += 1;
+    pendingTemplateSampleIdRef.current = null;
+    setIsTemplateLoading(false);
+    setTemplateLoadError(null);
+    setAutoArtworkError(null);
+    setActiveTemplateSampleId(null);
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    const navigation = resolveEditorHistoryNavigation(editorHistory, "undo", activeLibraryEntryId);
+    if (!navigation.didNavigate) {
+      return;
+    }
+    invalidatePendingCardWork();
+    setEditorHistory(navigation.history);
+    setActiveLibraryEntryId(navigation.activeLibraryEntryId);
+  }, [activeLibraryEntryId, editorHistory, invalidatePendingCardWork]);
+
+  const handleRedo = useCallback(() => {
+    const navigation = resolveEditorHistoryNavigation(editorHistory, "redo", activeLibraryEntryId);
+    if (!navigation.didNavigate) {
+      return;
+    }
+    invalidatePendingCardWork();
+    setEditorHistory(navigation.history);
+    setActiveLibraryEntryId(navigation.activeLibraryEntryId);
+  }, [activeLibraryEntryId, editorHistory, invalidatePendingCardWork]);
+
+  useEffect(() => {
+    function handleHistoryKeyDown(event: KeyboardEvent) {
+      if (isHelpOpen || event.defaultPrevented || isEditableHistoryTarget(event.target)) {
+        return;
+      }
+      const shortcut = getEditorHistoryShortcut(event);
+      if (!shortcut) {
+        return;
+      }
+      if (
+        (shortcut === "undo" && editorHistory.past.length === 0)
+        || (shortcut === "redo" && editorHistory.future.length === 0)
+      ) {
+        return;
+      }
+      event.preventDefault();
+      if (shortcut === "undo") {
+        handleUndo();
+      } else {
+        handleRedo();
+      }
+    }
+
+    window.addEventListener("keydown", handleHistoryKeyDown);
+    return () => window.removeEventListener("keydown", handleHistoryKeyDown);
+  }, [editorHistory.future.length, editorHistory.past.length, handleRedo, handleUndo, isHelpOpen]);
 
   const closeHelp = useCallback(() => {
     setIsHelpOpen(false);
@@ -707,6 +936,14 @@ function App() {
           </div>
         </div>
         <div className="top-actions">
+          <EditorHistoryControls
+            canUndo={editorHistory.past.length > 0}
+            canRedo={editorHistory.future.length > 0}
+            undoLabel={text.history.undo}
+            redoLabel={text.history.redo}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+          />
           <button
             ref={helpButtonRef}
             type="button"
@@ -729,13 +966,18 @@ function App() {
       <div className="workspace" hidden={isHelpOpen}>
         <FieldPanel
           card={previewCard}
+          artworkRevision={editorState.artworkRevision}
           language={language}
           text={text.fieldPanel}
           onCardChange={updateCard}
+          onArtworkImportStart={beginArtworkUpload}
+          isArtworkImportCurrent={isExplicitArtworkWorkCurrent}
+          onArtworkChange={updateArtwork}
           onCardKindChange={handleCardKindChange}
         />
         <CardCanvas
           card={previewCard}
+          language={language}
           text={text.canvas}
           artworkImage={artworkImage}
           canvasRef={canvasRef}
@@ -751,7 +993,7 @@ function App() {
                 ...currentCard.artwork,
                 crop,
               },
-            }))
+            }), "artwork:crop:canvas")
           }
         />
         <ProjectPanel
@@ -798,6 +1040,7 @@ function App() {
           onActiveLibraryEntryChange={setActiveLibraryEntryId}
           onLibraryDirectoryChange={() => setActiveLibraryEntryId(null)}
           onRandomTexture={randomizeTexture}
+          onAppearancePresetApply={handleAppearancePresetApply}
           textureSettings={textureSettings}
           textureSourceLabel={
             textureImageStatus === "ready" ? text.projectPanel.textureCurrent : text.projectPanel.textureFallback

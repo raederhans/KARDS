@@ -1,55 +1,71 @@
 # KARDS Card Forge Roadmap
 
-## Current Baseline — v1.0.0
+## Current Baseline — v1.3.0
 
 KARDS Card Forge is a local, static tool for creating one custom card at a
 time. The current release includes:
 
 - Chinese and English editing, Canvas preview, and PNG/JPG/PDF export.
 - `1×`, `2×`, and `3×` rerendered output with exposure and contrast controls.
-- Project files, lightweight browser drafts, and a local card library with add,
-  load, update, and delete actions.
-- A versioned reference catalog with search, filters, stable sorting, comparison,
-  explicit artwork application, full-card loading, and safe automatic matching.
-- Bundled reference assets, generated fallbacks, optional local style packs,
-  export preflight, and structured export diagnostics.
-- Verified Vercel and GitHub Pages release paths.
-- A Simplified Chinese README, source-available software license, separate
-  resource-rights boundary, and deployed third-party notices.
+- Project files, lightweight browser drafts, and a local card library.
+- A versioned reference catalog with 74 bilingual sample/reference cards,
+  search, comparison, explicit artwork application, and full-card loading.
+- Bundled reference assets, optional local style packs, export preflight, and
+  structured diagnostics.
+- Verified Vercel and GitHub Pages release paths plus a code-only Release
+  boundary.
 
-The product boundary remains the same: a local single-card design tool, not a
-gameplay, account, deck, or network-content platform.
+The product boundary remains unchanged: a local single-card design tool, not a
+gameplay, account, deck, batch-generation, or network-content platform.
 
-## Next
+## Release Scope — v1.4.0 Editing Safety and Visual Quality
 
-### 1. Stable Visual Review
+The v1.4.0 scope is a bounded editor-quality increment that preserves the
+local single-card product boundary.
 
-- Record a small visual baseline for the main card types and representative
-  text lengths.
-- State what each baseline proves: layout, selected elements, or full-card
-  appearance.
-- Treat image drift as a review signal, not automatic proof of a bug.
+### 1. Bounded Undo and Redo
 
-### 2. Focused Accessibility
+- Add a bounded editor-state history for authored card changes and deliberate
+  full-card replacements.
+- Provide visible Undo/Redo actions and standard keyboard shortcuts.
+- Keep asynchronous artwork derivation, loading state, export settings, and
+  library filesystem operations outside authored history.
+- Clear Redo after a new authored edit and avoid recording no-op transitions.
 
-- Test the complete editor with keyboard-only input and common screen-reader
-  paths.
-- Improve focus order, field instructions, and status announcements where the
-  current semantics are not enough.
-- Keep Chinese and English labels under the same tested text contract.
+### 2. Useful Visual Difference Review
 
-### 3. Renderer Maintenance
+- Extend the existing comparison metrics with a visible diff result that helps
+  locate changed pixels.
+- Keep thresholds and scope explicit; a visual difference remains a review
+  signal, not automatic proof of a defect.
+- Keep fixed-environment browser baselines limited to representative cards and
+  text lengths; do not turn runtime comparison into a baseline manager.
 
-- Tune rendering details only when a baseline can show the intended change.
-- Split large renderer or workspace modules by real responsibility when that
-  makes tests and ownership clearer.
-- Avoid a broad renderer rewrite while current output is stable.
+### 3. Focused Accessibility
+
+- Make Undo/Redo, visual comparison, presets, tabs, and status changes usable
+  from the keyboard with clear names and focus behavior.
+- Add focused DOM and browser keyboard contracts for history, tabs, focus,
+  diff text, presets, and the Canvas text alternative.
+- Keep Canvas-specific layout, contrast, zoom, and screen-reader behavior in a
+  documented manual review because automated checks cannot prove them.
+
+### 4. Reference and Appearance Preset Library
+
+- Keep the current 74-card public catalog unchanged until a candidate has the
+  full bilingual image/JSON, source identity, SHA-256, rights, catalog, and
+  closed-world build closure; private metadata alone is not publishable art.
+- Add a small named appearance preset catalog backed by serialized
+  `CardSpec.appearance`, so preview, export, project files, drafts, and local
+  library restores remain identical.
+- Presets may adjust existing supported appearance fields; they must not create
+  a second renderer, arbitrary theme schema, or hidden runtime dependency.
 
 ## Later, If Evidence Supports It
 
-- Better print presets for existing PDF export.
-- More portable local-library workflows that preserve the current JSON format.
-- Additional built-in reference metadata that fits the existing static catalog.
+- Print presets with explicit physical size, bleed, and cut-mark contracts.
+- A portable local-library format with relative artwork sidecars.
+- A larger appearance catalog after the first built-in set proves useful.
 
 These are directions, not promised release items. Add them only after a clear
 user need and a testable acceptance rule exist.
@@ -59,12 +75,13 @@ user need and a testable acceptance rule exist.
 - Deck builder or game-rule validation
 - Account system or online sharing
 - Network image gallery or official-resource downloader
-- Large batch-generation workflow
+- Large batch-generation or spreadsheet workflow
+- Canvas engine rewrite or general-purpose theme/plugin platform
 
 ## Release Guardrails
 
-- `npm run validate` remains the repository gate for tests, private-tool
-  contracts, typecheck, production build, and final artifact verification.
+- Every behavior change follows a failing-test-first cycle and the final
+  `npm run validate` repository gate.
 - `npm run build:sites` prepares the same verified static application for Sites
   hosting without changing product behavior.
 - The public reference pack stays inside `public/reference-pack/v1` with an

@@ -3,7 +3,7 @@ import { localizeRuntimeMessage, translatePresetLabel, type Language, type UiTex
 import { CARD_KINDS, NATIONS, RARITIES, SETS } from "../presets";
 import type { DevPreviewSample, ReferenceFilters, ReferenceSort } from "../devPreviewCatalog";
 import type { CardSpec } from "../types";
-import type { ImageDiffMetrics } from "../visualDiff";
+import type { ImageDiffMetrics, ImageDiffReviewLevel } from "../visualDiff";
 
 type ReferenceWorkbenchProps = {
   card: CardSpec;
@@ -178,17 +178,62 @@ export function ReferenceWorkbench({
         />
       </label>
       <p className="status-line">{text.diffHint}</p>
-      <div className="diff-status" role="status" aria-live="polite">
-        {referenceDiff ? (
-          <>
-            <p><span>{text.averageDiff}</span><strong>{referenceDiff.meanAbsoluteError}</strong></p>
-            <p><span>{text.overallDiff}</span><strong>{referenceDiff.rootMeanSquareError}</strong></p>
-            <p><span>{text.changed}</span><strong>{formatPercent(referenceDiff.changedPixelRatio)}</strong></p>
-          </>
-        ) : null}
+      <div className="diff-status" role="status" aria-live="polite" aria-atomic="true">
+        {referenceDiff ? <ImageDiffSummary metrics={referenceDiff} text={text} /> : null}
         {referenceDiffError ? <p className="status-warning" role="alert">{localizeRuntimeMessage(language, referenceDiffError)}</p> : null}
       </div>
     </div>
+  );
+}
+
+export function ImageDiffSummary({
+  metrics,
+  text,
+}: {
+  metrics: ImageDiffMetrics;
+  text: UiText["projectPanel"];
+}) {
+  const levelLabels: Record<ImageDiffReviewLevel, string> = {
+    none: text.diffReviewNone,
+    limited: text.diffReviewLimited,
+    noticeable: text.diffReviewNoticeable,
+    broad: text.diffReviewBroad,
+  };
+  const boundsText = metrics.changedBounds
+    ? text.diffBounds(
+        metrics.changedBounds.x,
+        metrics.changedBounds.x + metrics.changedBounds.width - 1,
+        metrics.changedBounds.y,
+        metrics.changedBounds.y + metrics.changedBounds.height - 1,
+      )
+    : text.diffNoBounds;
+
+  return (
+    <>
+      <p><span>{text.diffReviewLevel}</span><strong>{levelLabels[metrics.reviewLevel]}</strong></p>
+      <p><span>{text.averageDiff}</span><strong>{metrics.meanAbsoluteError}</strong></p>
+      <p><span>{text.overallDiff}</span><strong>{metrics.rootMeanSquareError}</strong></p>
+      <p><span>{text.changed}</span><strong>{formatPercent(metrics.changedPixelRatio)}</strong></p>
+      <p className="diff-detail">{text.diffThreshold(metrics.threshold)}</p>
+      <p className="diff-detail">{boundsText}</p>
+      <div
+        className={metrics.changedBounds ? "diff-locator" : "diff-locator is-empty"}
+        role="img"
+        aria-label={`${text.diffReviewLevel}: ${levelLabels[metrics.reviewLevel]}. ${boundsText}`}
+      >
+        {metrics.changedBounds ? (
+          <span
+            className="diff-locator-bounds"
+            style={{
+              left: `${(metrics.changedBounds.x / metrics.width) * 100}%`,
+              top: `${(metrics.changedBounds.y / metrics.height) * 100}%`,
+              width: `${(metrics.changedBounds.width / metrics.width) * 100}%`,
+              height: `${(metrics.changedBounds.height / metrics.height) * 100}%`,
+            }}
+          />
+        ) : null}
+      </div>
+    </>
   );
 }
 

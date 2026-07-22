@@ -7,6 +7,15 @@ export type ImageDataLike = {
   data: Uint8ClampedArray | number[];
 };
 
+export type ImageDiffBounds = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type ImageDiffReviewLevel = "none" | "limited" | "noticeable" | "broad";
+
 export type ImageDiffMetrics = {
   width: number;
   height: number;
@@ -16,6 +25,9 @@ export type ImageDiffMetrics = {
   maxChannelDelta: number;
   changedPixels: number;
   changedPixelRatio: number;
+  changedBounds: ImageDiffBounds | null;
+  reviewLevel: ImageDiffReviewLevel;
+  threshold: number;
 };
 
 export function calculateImageDataDiff(
@@ -39,6 +51,10 @@ export function calculateImageDataDiff(
   let squaredDeltaTotal = 0;
   let maxChannelDelta = 0;
   let changedPixels = 0;
+  let minChangedX = actual.width;
+  let minChangedY = actual.height;
+  let maxChangedX = -1;
+  let maxChangedY = -1;
 
   for (let pixelIndex = 0; pixelIndex < comparedPixels; pixelIndex += 1) {
     const offset = pixelIndex * 4;
@@ -56,10 +72,17 @@ export function calculateImageDataDiff(
 
     if (pixelChanged) {
       changedPixels += 1;
+      const x = pixelIndex % actual.width;
+      const y = Math.floor(pixelIndex / actual.width);
+      minChangedX = Math.min(minChangedX, x);
+      minChangedY = Math.min(minChangedY, y);
+      maxChangedX = Math.max(maxChangedX, x);
+      maxChangedY = Math.max(maxChangedY, y);
     }
   }
 
   const channelCount = comparedPixels * 4;
+  const changedPixelRatio = changedPixels / comparedPixels;
   return {
     width: actual.width,
     height: actual.height,
@@ -68,8 +91,31 @@ export function calculateImageDataDiff(
     rootMeanSquareError: roundMetric(Math.sqrt(squaredDeltaTotal / channelCount)),
     maxChannelDelta,
     changedPixels,
-    changedPixelRatio: roundMetric(changedPixels / comparedPixels),
+    changedPixelRatio: roundMetric(changedPixelRatio),
+    changedBounds: changedPixels === 0
+      ? null
+      : {
+          x: minChangedX,
+          y: minChangedY,
+          width: maxChangedX - minChangedX + 1,
+          height: maxChangedY - minChangedY + 1,
+        },
+    reviewLevel: getImageDiffReviewLevel(changedPixelRatio),
+    threshold,
   };
+}
+
+export function getImageDiffReviewLevel(changedPixelRatio: number): ImageDiffReviewLevel {
+  if (changedPixelRatio <= 0) {
+    return "none";
+  }
+  if (changedPixelRatio <= 0.01) {
+    return "limited";
+  }
+  if (changedPixelRatio <= 0.1) {
+    return "noticeable";
+  }
+  return "broad";
 }
 
 export async function compareCanvasToReferenceFile(

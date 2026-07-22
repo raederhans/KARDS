@@ -67,3 +67,6 @@
 - Every new production dependency and bundled public asset changes the release closure: ship the dependency's exact license text, classify asset rights explicitly, and update code-only archive exclusions before tagging.
 - New nation-mark families need exact non-HQ selectors because missing kinds can reuse another same-nation image; lock the required ground/air/artillery differences without forcing every same-branch PNG to remain pixel-unique forever.
 - After a GitHub repository rename, update the local `origin` before publishing; redirects can hide stale repository names and produce misleading Pages, Release, or deployment evidence.
+- Undo history must separate authored snapshots from derived runtime state: exclude automatic reference artwork, never restore an old asynchronous revision token, and invalidate pending requests before history navigation.
+- Overlapping explicit artwork loaders need one shared user-intent generation in addition to loader-local request and revision guards; separate request IDs cannot enforce cross-loader last-started-wins behavior.
+- Browser smoke readiness should use an observable page contract such as a visible editor control; Playwright `networkidle` is not a reliable test-readiness signal for a Vite application.
