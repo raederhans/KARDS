@@ -5,17 +5,18 @@
 - Worktree name/path: sole main checkout, repository root
 - Thread/task: audit the complete bilingual workshop candidate and publish GitHub Release `v1.3.0`
 - Base branch/base commit: `main`, `94e6b59a7479d6e965127a05ac4f3fb7deeab5e4`
-- Current branch/HEAD: `main`; candidate commit not yet frozen
+- Current branch/HEAD: `main`; immutable release candidate and tag `v1.3.0` are `8262f290ddf510143aab815fef3fc053da9f9ad4`, followed only by this records-only closeout
 - Task goal: ship bilingual sample/reference flows, local startup, preview/HQ/UI repairs, and reliable directory export as one exact-SHA release without weakening resource-rights or code-only artifact boundaries
-- Status: final code review `APPROVE` and architecture `CLEAR`; candidate commit and external publication pending
+- Status: integrated and published
 - Main changed files: app/reference/export state, renderer and workbench UI, startup and bilingual generators, 69 Chinese sample/reference pairs, 5 English HQ references, focused tests, version metadata, and task records
-- Shared hotspots: package version, reference-pack closure, generated-image identities, local port/log ownership, release archive exclusions, GitHub tag/Release, Pages, and Vercel Production
-- Validation: initial review findings repaired; the final image-manifest bootstrap fallback was removed and all 69 images were re-downloaded from the configured official source; final code review `APPROVE`, architecture `CLEAR`; focused checks, 69 sample identities, 5 current-renderer HQ comparisons, local startup and browser smoke passed; full `npm run validate` passed 18 files / 276 Vitest tests, 26 Python contracts, typecheck/build/boundary; Pages-mode build and standard rebuild passed; dependency audit found 0 vulnerabilities
-- Tests not run: immutable-candidate archive scan, remote CI/Pages/Vercel, tag, Release, and fresh asset download
+- Shared hotspots: package version, reference-pack closure, generated-image identities, local port/log ownership, release archive exclusions, GitHub tag/Release, and Pages
+- Validation: final code review `APPROVE`, architecture `CLEAR`; the self-sign fallback was removed and all 69 images were re-downloaded from the configured official source; 69 sample identities, 5 current-renderer HQ comparisons, local startup/browser smoke, full 18-file / 276-test validation, 26 Python contracts, Pages/standard builds, and zero-vulnerability audit passed; GitHub CI `29892787171`, Pages `29892787144`, public root/JS/Chinese-image probes, tag, Release, checksum, exclusions, and fresh download all passed
+- Tests not run: no blocking release gate omitted; native directory-picker behavior was not exhaustively repeated across every embedded WebView engine
 - Potential overlap: green; `git worktree list` shows only this checkout and independent reviewers are read-only
-- Recommended integration order: freeze records and candidate, obtain final review clearance, run full local gates, commit/push once, verify exact remote SHA, then tag and publish
-- Delivery package: `docs/active/kards-v1.3.0-release/task.md`
-- Next action: freeze the Lore candidate commit and inspect its exact-SHA code-only archive
+- Recommended integration order: complete; keep tag and Release fixed on `8262f290ddf510143aab815fef3fc053da9f9ad4`, and allow only this records-only closeout to advance `main`
+- Delivery package: `docs/archive/kards-v1.3.0-release/task.md`
+- Release: `https://github.com/raederhans/KARDS-DIY-GENERATOR/releases/tag/v1.3.0`; code-only ZIP SHA-256 `768372f519cd4cd88dc7b38373efb813d5ecb736e4a07e5a69e8f6c6e9482609`
+- Next action: none; preserve the candidate tag and archived evidence
 
 ## KARDS v1.2.0 release
 

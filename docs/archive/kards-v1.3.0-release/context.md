@@ -4,7 +4,7 @@
 
 - Task class: complex external publication.
 - Sole worktree: repository root, branch `main`, baseline `94e6b59a7479d6e965127a05ac4f3fb7deeab5e4`, aligned with `origin/main` before release edits.
-- Latest published Release: `v1.2.0`, tag candidate `8033291f9fd1b462e209b0422fca8186a3cd8ecf`.
+- Published Release: `v1.3.0`, immutable candidate and annotated tag `8262f290ddf510143aab815fef3fc053da9f9ad4`.
 - Version decision: `v1.3.0` because the candidate adds backward-compatible user-visible features and a large bilingual public sample/resource set.
 - Candidate currently contains 25 modified tracked files and 159 untracked source/resource/record files after temporary browser snapshots were removed.
 - No dependency changes are intended.
@@ -21,6 +21,9 @@
 | 2026-07-22 | Browser smoke loaded a Chinese template, refreshed it to English, then applied another sample's artwork and switched back to Chinese. | The untouched template localized correctly; the explicit artwork action cleared template ownership and prevented content overwrite. Console: 0 errors, 0 warnings. |
 | 2026-07-22 | Final code review rejected the first-image hash bootstrap because a missing manifest could self-sign existing AVIF files. | Removed the fallback, added a missing-manifest regression, deleted the manifest, and re-downloaded all 69 images from the configured official source before regenerating hashes. Final code review: `APPROVE`. |
 | 2026-07-22 | Final architecture review inspected the repaired trust bootstrap and current 69-entry manifest. | `CLEAR`; no remaining BLOCK or WATCH. |
+| 2026-07-22 | Candidate `8262f290ddf510143aab815fef3fc053da9f9ad4` passed GitHub CI `29892787171` and Pages `29892787144`. | The published tag and Release were fixed to that SHA only after both workflows passed. |
+| 2026-07-22 | Live Pages root, hashed JS entry, and `careless_talk.avif` returned HTTP 200. | Repository rename/base-path handling and the new bilingual resource path are publicly reachable. |
+| 2026-07-22 | GitHub Release assets were downloaded fresh and expanded. | ZIP SHA-256 `768372f519cd4cd88dc7b38373efb813d5ecb736e4a07e5a69e8f6c6e9482609` matched `SHA256SUMS.txt`; 82 files expanded and every excluded path was absent. |
 
 ## Live process ownership
 
@@ -29,7 +32,7 @@
 | Local preview | Primary agent | `npm run local -- --no-open`; port `5173` | `.runtime/local-ui.log` | Running; must remain reachable |
 | Release validation | Primary agent | `npm run validate`; shared `dist/`, npm/Vite caches | `.runtime/releases/v1.3.0/validate-final.log` | Complete: 276 Vitest, 26 Python, typecheck/build/boundary passed |
 | Pages-mode build | Primary agent | `npm run build` with `KARDS_GITHUB_PAGES=true`; shared `dist/` | `.runtime/releases/v1.3.0/pages-build.log` | Complete; standard dist restored and reverified |
-| Release archive verification | Primary agent | code-only ZIP expansion and checksum | `.runtime/releases/v1.3.0/` | Pending |
+| Release archive verification | Primary agent | code-only ZIP expansion, checksum, upload, and fresh download | `.runtime/releases/v1.3.0/` | Complete |
 
 ## Handoff
 
@@ -38,4 +41,4 @@
 
 ## Next step
 
-Freeze one Lore candidate commit, inspect the exact-SHA code-only archive, then push and run remote release gates.
+None. Preserve the tag and Release on the immutable candidate; only this records-only closeout may advance `main`.

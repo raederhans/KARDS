@@ -24,10 +24,10 @@ Audit the complete working-tree candidate, repair release blockers, and publish 
 
 - [x] Stage 1: establish candidate scope, version, ownership, and independent review evidence.
 - [x] Stage 2: repair all blocking findings and add focused regressions.
-- [ ] Stage 3: run release-grade local verification and inspect the code-only archive.
-- [ ] Stage 4: create the Lore candidate commit and push `main`.
-- [ ] Stage 5: verify remote checks, tag `v1.3.0`, publish the Release, and re-download its assets.
-- [ ] Stage 6: reconcile repository truth and archive this record.
+- [x] Stage 3: run release-grade local verification and inspect the code-only archive.
+- [x] Stage 4: create the Lore candidate commit and push `main`.
+- [x] Stage 5: verify remote checks, tag `v1.3.0`, publish the Release, and re-download its assets.
+- [x] Stage 6: reconcile repository truth and archive this record.
 
 ## Acceptance criteria
 
@@ -35,7 +35,7 @@ Audit the complete working-tree candidate, repair release blockers, and publish 
 - Exporting to a selected local directory requests write permission directly from the export click before asynchronous rendering.
 - Bilingual generators report no drift and every catalog sample resolves to the selected UI language.
 - `npm run validate`, `npm audit --audit-level=moderate`, Pages-mode build, and code-only archive scans pass.
-- `main`, `origin/main`, annotated tag `v1.3.0`, and the GitHub Release resolve to one immutable candidate SHA.
+- At publication, `main`, `origin/main`, annotated tag `v1.3.0`, and the GitHub Release resolve to one immutable candidate SHA; only the records-only closeout may advance `main` afterward.
 - Attached ZIP checksum matches a fresh Release download and excluded resource paths are absent.
 
 ## Non-goals
