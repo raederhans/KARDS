@@ -1,5 +1,25 @@
 # Worktree Registry
 
+## KARDS v1.5.0 release
+
+- Worktree name/path: sole main checkout, repository root
+- Thread/task: publish the adaptive title/body fitting and export-safety increment as GitHub Release `v1.5.0`, then deploy the same candidate to Vercel Production
+- Base branch/base commit: `main`, `caa2d5e6e57cf818128b1e6c56d912455cee4bde` (`v1.4.0`)
+- Current branch/HEAD: pre-release `main`; immutable candidate SHA is not frozen yet
+- Task goal: ship renderer-owned text fitting, localized accessible status, and export freshness checks without changing serialized manual appearance or release-resource boundaries
+- Status: in progress
+- Main changed files: title/body Canvas rendering, text-fit reports, editor and export diagnostics, focused tests, Help/roadmap, version metadata, and release records
+- Shared hotspots: `dist/`, Vite/npm caches, package version, code-only archive exclusions, GitHub tag/Release, workflow-driven Pages, and Vercel Production
+- Live-process owner: primary agent exclusively owns validation, Pages/standard builds, workflow polling, archive inspection, and the Vercel production deployment
+- Validation: pre-candidate `npm run validate` passed 24 Vitest files / 316 tests, 26 private-tool contracts, TypeScript, production build, and dist boundary; dependency audit found 0 vulnerabilities; Pages and standard path builds passed; exact candidate archive and remote gates remain pending
+- Tests not run: manual screen-reader, 200% zoom, forced-colors, cross-OS font-metric identity, and manual-offset safe-region geometry remain explicit non-claims
+- Potential overlap: green; one worktree exists and no parallel release process is active
+- Recommended integration order: version and records → validation/audit/builds → Lore candidate → push/CI/Pages → tag/Release/assets → exact-candidate Vercel deploy → records-only closeout
+- Delivery package: `docs/active/kards-v1.5.0-release/`
+- Release: pending
+- Vercel: pending
+- Next action: validate and freeze the exact v1.5.0 candidate
+
 ## KARDS v1.4.0 release
 
 - Worktree name/path: sole main checkout, repository root

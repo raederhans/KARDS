@@ -1,6 +1,6 @@
 # KARDS Card Forge Roadmap
 
-## Current Development Baseline — after v1.4.0
+## Current Development Baseline — v1.5.0 release candidate
 
 KARDS Card Forge is a local, static tool for creating one custom card at a
 time. The current release includes:
@@ -29,7 +29,7 @@ time. The current release includes:
 The product boundary remains unchanged: a local single-card design tool, not a
 gameplay, account, deck, batch-generation, or network-content platform.
 
-## Delivered after v1.4.0
+## Delivered in v1.5.0
 
 ### 1. Text Health and Editing Safety
 
